@@ -2068,32 +2068,36 @@ body[data-theme='sakura'] {
 }
 .loot-effects {
   padding: 8px 10px;
-  margin: 8px 0 14px;
+  margin: 6px 0 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
+/* 한 줄로 흐르게 — 좁은 화면에서도 최대 2줄. 줄바꿈되면 글자에 맞춰 들여씀 */
 .loot-effect-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-size: 12px;
+  line-height: 1.5;
+  padding-left: 22px;
+  text-indent: -22px;
 }
-.loot-effect-name {
-  flex-shrink: 0;
-  min-width: 64px;
-}
-.loot-effect-desc {
-  flex: 1;
-  min-width: 0;
-  color: var(--dim);
-}
-.loot-effect-row.dim .loot-effect-desc {
-  color: inherit;
+.loot-effect-row .pixel-sprite {
+  display: inline-grid;
+  vertical-align: middle;
+  margin-right: 6px;
 }
 .loot-effect-count {
   color: var(--gold);
-  flex-shrink: 0;
+  margin-left: 5px;
+}
+.loot-effect-desc {
+  color: var(--dim);
+  margin-left: 6px;
+}
+.loot-row-locked {
+  opacity: 0.5;
+}
+.loot-row-locked .loot-effect-count {
+  color: var(--dim);
 }
 
 
@@ -2189,14 +2193,6 @@ body[data-theme='sakura'] {
   }
   .freeze-body {
     flex: 1 1 120px;
-  }
-  .loot-effect-row {
-    flex-wrap: wrap;
-    font-size: 11px;
-  }
-  .loot-effect-desc {
-    flex: 1 1 100%;
-    padding-left: 22px;
   }
 }
 

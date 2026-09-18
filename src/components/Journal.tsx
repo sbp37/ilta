@@ -129,26 +129,17 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
       <div className="field-label">
         전리품 <span className="dim">모을수록 강해져요 (최대 {LOOT_STACK_CAP}개까지 효과)</span>
       </div>
-      <div className="loot-grid">
-        {LOOT.map((l) => {
-          const count = state.loot[l.id] ?? 0
-          return (
-            <div key={l.id} className={`loot-cell ${count === 0 ? 'loot-locked' : ''}`} title={`${l.name} — ${LOOT_EFFECT[l.id]}`}>
-              <Pixel name={l.sprite} size={3} />
-              {count > 1 && <span className="loot-count">x{count}</span>}
-            </div>
-          )
-        })}
-      </div>
       <div className="pixel-panel loot-effects">
         {LOOT.map((l) => {
           const count = state.loot[l.id] ?? 0
           return (
-            <div key={l.id} className={`loot-effect-row ${count === 0 ? 'dim' : ''}`}>
+            <div key={l.id} className={`loot-effect-row ${count === 0 ? 'loot-row-locked' : ''}`}>
               <Pixel name={l.sprite} size={2} />
               <span className="loot-effect-name">{l.name}</span>
+              <span className="loot-effect-count">
+                {count > 0 ? `x${Math.min(count, LOOT_STACK_CAP)}` : '미획득'}
+              </span>
               <span className="loot-effect-desc">{LOOT_EFFECT[l.id]}</span>
-              <span className="loot-effect-count">{count > 0 ? `x${Math.min(count, LOOT_STACK_CAP)}` : '—'}</span>
             </div>
           )
         })}
