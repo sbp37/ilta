@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActiveQuest,
   CRIT_CHANCE,
   CRIT_MULT,
   DoneQuest,
+  FREEZE_COST,
+  FREEZE_MAX,
   GEAR,
   GameState,
   HeroClass,
@@ -12,6 +14,7 @@ import {
   RAID_MAX_HP,
   RAID_REWARD,
   Task,
+  applyFreezes,
   goldFor,
   lootById,
   petStage,
@@ -61,10 +64,29 @@ export interface CompleteResult {
 
 export function useGame() {
   const [state, setState] = useState<GameState>(load)
+  // 되돌리기용 스냅샷 — 처치/삭제 직전 상태를 통째로 보관
+  const undoRef = useRef<GameState | null>(null)
+  // 최신 상태 미러 — 업데이터 밖에서 결과를 미리 계산할 때 사용 (업데이터는 지연 실행될 수 있음)
+  const stateRef = useRef(state)
+  stateRef.current = state
 
   useEffect(() => {
     localStorage.setItem(KEY, JSON.stringify(state))
   }, [state])
+
+  // 휴식일 부적 자동 소모: 앱 켤 때 + 하루 넘어갈 때 어제 빈 날이 있으면 지켜준다
+  const checkFreezes = useCallback((): number => {
+    const cur = stateRef.current
+    const now = Date.now()
+    const peek = applyFreezes(cur.done, cur.freezes ?? 0, cur.freezeUsed ?? [], now)
+    if (peek.consumed === 0) return 0
+    setState((s) => {
+      const r = applyFreezes(s.done, s.freezes ?? 0, s.freezeUsed ?? [], now)
+      if (r.consumed === 0) return s
+      return { ...s, freezes: r.freezes, freezeUsed: r.used }
+    })
+    return peek.consumed
+  }, [])
 
   const addTask = useCallback((t: Omit<Task, 'id' | 'createdAt'>) => {
     const monster = t.monster ?? randomMonster(t.difficulty)
@@ -124,7 +146,34 @@ export function useGame() {
   }, [])
 
   const removeTask = useCallback((id: string) => {
-    setState((s) => ({ ...s, pool: s.pool.filter((t) => t.id !== id) }))
+    setState((s) => {
+      if (!s.pool.some((t) => t.id === id)) return s
+      undoRef.current = s
+      return { ...s, pool: s.pool.filter((t) => t.id !== id) }
+    })
+  }, [])
+
+  // 할 일 편집 — 수집함/슬롯 어디 있든. 난이도가 바뀌면 몬스터도 새로 배정
+  const updateTask = useCallback(
+    (id: string, patch: Partial<Pick<Task, 'title' | 'difficulty' | 'minutes' | 'energy' | 'due' | 'cost' | 'repeat'>>) => {
+      const apply = <T extends Task>(t: T): T => {
+        if (t.id !== id) return t
+        const next = { ...t, ...patch }
+        if (patch.difficulty && patch.difficulty !== t.difficulty) next.monster = randomMonster(patch.difficulty)
+        return next
+      }
+      setState((s) => ({ ...s, pool: s.pool.map(apply), active: s.active.map(apply) }))
+    },
+    [],
+  )
+
+  // 마지막 처치/삭제 되돌리기. 스냅샷이 있으면 true
+  const undo = useCallback((): boolean => {
+    const snap = undoRef.current
+    if (!snap) return false
+    undoRef.current = null
+    setState(snap)
+    return true
   }, [])
 
   // 빈 슬롯에 바로 적기: 슬롯 비어있으면 active로, 아니면 pool로
@@ -197,6 +246,7 @@ export function useGame() {
     setState((s) => {
       const q = s.active.find((t) => t.id === id)
       if (!q) return s
+      undoRef.current = s
       const now = Date.now()
       const doneToday = s.done.filter((d) => sameDay(d.completedAt, now)).length
       const crit = Math.random() < CRIT_CHANCE
@@ -312,6 +362,19 @@ export function useGame() {
     })
   }, [])
 
+  // 휴식일 부적 구매 — 최대 FREEZE_MAX개
+  const buyFreeze = useCallback((): 'nogold' | 'full' | 'ok' => {
+    const cur = stateRef.current
+    if ((cur.freezes ?? 0) >= FREEZE_MAX) return 'full'
+    if (cur.gold < FREEZE_COST) return 'nogold'
+    setState((s) => {
+      const have = s.freezes ?? 0
+      if (have >= FREEZE_MAX || s.gold < FREEZE_COST) return s
+      return { ...s, gold: s.gold - FREEZE_COST, freezes: have + 1 }
+    })
+    return 'ok'
+  }, [])
+
   // ---------- 펫 / 오늘의 일격 ----------
   // 먹이 주기: 골드 10G 소비 → 끼니+1. 진화하면 'evolved'
   const feedPet = useCallback((): 'nogold' | 'fed' | 'evolved' => {
@@ -362,6 +425,9 @@ export function useGame() {
     state,
     addTask,
     removeTask,
+    updateTask,
+    undo,
+    checkFreezes,
     setHeroName,
     setHeroLook,
     setHeroClass,
@@ -382,6 +448,7 @@ export function useGame() {
     buyReward,
     buyGear,
     toggleGear,
+    buyFreeze,
     feedPet,
     setPetName,
     setStrike,

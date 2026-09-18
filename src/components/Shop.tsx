@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import { sfx } from '../sound'
-import { GEAR, GameState, heroPalette, heroSprite } from '../game'
+import { FREEZE_COST, FREEZE_MAX, GEAR, GameState, heroPalette, heroSprite } from '../game'
 
 interface Props {
   state: GameState
@@ -11,6 +11,7 @@ interface Props {
   onBuy: (id: string) => boolean
   onBuyGear: (id: string) => boolean
   onToggleGear: (id: string) => void
+  onBuyFreeze: () => 'nogold' | 'full' | 'ok'
   onToast: (msg: string) => void
 }
 
@@ -38,7 +39,7 @@ const SLOT_LABEL: Record<string, string> = {
   feet: '발',
 }
 
-export function Shop({ state, onAddReward, onRemoveReward, onBuy, onBuyGear, onToggleGear, onToast }: Props) {
+export function Shop({ state, onAddReward, onRemoveReward, onBuy, onBuyGear, onToggleGear, onBuyFreeze, onToast }: Props) {
   const [name, setName] = useState('')
   const [cost, setCost] = useState('')
   const line = useMemo(() => SHOP_LINES[Math.floor(Math.random() * SHOP_LINES.length)], [])
@@ -64,6 +65,21 @@ export function Shop({ state, onAddReward, onRemoveReward, onBuy, onBuyGear, onT
     if (onBuy(id)) {
       sfx.complete()
       onToast(`「${rewardName}」 구매! 즐기세요`)
+    } else {
+      sfx.deny()
+      onToast('골드가 부족합니다!')
+    }
+  }
+
+  const freezes = state.freezes ?? 0
+  const buyFreeze = () => {
+    const r = onBuyFreeze()
+    if (r === 'ok') {
+      sfx.complete()
+      onToast('휴식일 부적 획득! 하루 쉬어도 연속 기록이 지켜져요')
+    } else if (r === 'full') {
+      sfx.deny()
+      onToast(`부적은 최대 ${FREEZE_MAX}개까지만 들 수 있어요`)
     } else {
       sfx.deny()
       onToast('골드가 부족합니다!')
@@ -134,6 +150,24 @@ export function Shop({ state, onAddReward, onRemoveReward, onBuy, onBuyGear, onT
             </div>
           )
         })}
+      </div>
+
+      <div className="field-label">소모품</div>
+      <div className="pixel-panel freeze-card">
+        <Pixel name="shield" size={4} />
+        <div className="freeze-body">
+          <div className="gear-name">
+            휴식일 부적 <span className="gear-slot">보유 {freezes}/{FREEZE_MAX}</span>
+          </div>
+          <div className="dim gear-desc">하루 빠져도 🔥연속 기록이 깨지지 않아요. 빈 날이 생기면 자동으로 쓰여요.</div>
+        </div>
+        <button
+          className="btn btn-gold gear-btn"
+          disabled={state.gold < FREEZE_COST || freezes >= FREEZE_MAX}
+          onClick={buyFreeze}
+        >
+          {FREEZE_COST}G
+        </button>
       </div>
 
       <div className="field-label">내 보상 상점 — 일한 나에게 주는 선물</div>

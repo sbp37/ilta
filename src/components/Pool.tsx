@@ -10,21 +10,33 @@ import {
   MINUTE_OPTIONS,
   Task,
   dueLabel,
-  enraged,
 } from '../game'
 
 interface Props {
   pool: Task[]
   strikeId?: string
+  enragedIds: Set<string>
   onAdd: (t: Omit<Task, 'id' | 'createdAt'>) => void
   onRemove: (id: string) => void
   onMove: (id: string, dir: -1 | 1) => void
   onToggleUrgent: (id: string) => void
   onToggleRepeat: (id: string) => void
   onSetStrike: (id: string) => void
+  onEdit: (task: Task) => void
 }
 
-export function Pool({ pool, strikeId, onAdd, onRemove, onMove, onToggleUrgent, onToggleRepeat, onSetStrike }: Props) {
+export function Pool({
+  pool,
+  strikeId,
+  enragedIds,
+  onAdd,
+  onRemove,
+  onMove,
+  onToggleUrgent,
+  onToggleRepeat,
+  onSetStrike,
+  onEdit,
+}: Props) {
   const [title, setTitle] = useState('')
   const [difficulty, setDifficulty] = useState<Difficulty>('slime')
   const [minutes, setMinutes] = useState<number>(15)
@@ -139,7 +151,7 @@ export function Pool({ pool, strikeId, onAdd, onRemove, onMove, onToggleUrgent, 
         {pool.map((t, i) => {
           const diff = DIFF[t.difficulty]
           const due = t.due ? dueLabel(t.due) : null
-          const mad = enraged(t)
+          const mad = enragedIds.has(t.id)
           return (
             <div key={t.id} className={`pool-item ${mad ? 'pool-enraged' : ''}`}>
               <div className="order-btns">
@@ -187,6 +199,16 @@ export function Pool({ pool, strikeId, onAdd, onRemove, onMove, onToggleUrgent, 
                   {t.cost && <span className="cost-tag">안 하면: {t.cost}</span>}
                 </div>
               </div>
+              <button
+                className="icon-btn"
+                title="수정"
+                onClick={() => {
+                  sfx.click()
+                  onEdit(t)
+                }}
+              >
+                ✎
+              </button>
               <button
                 className={`icon-btn ${t.repeat ? 'repeat-on' : ''}`}
                 title="매일 반복 — 처치해도 다시 나타남"

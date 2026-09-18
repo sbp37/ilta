@@ -10,7 +10,6 @@ import {
   NUDGE_LINES,
   Task,
   dueLabel,
-  enraged,
   filterDoable,
   monsterOf,
   pickWeighted,
@@ -19,6 +18,7 @@ import {
 interface Props {
   pool: Task[]
   activeFull: boolean
+  enragedIds: Set<string>
   onAccept: (id: string) => boolean
   onClose: () => void
 }
@@ -31,7 +31,7 @@ const NPC_LINES = [
   '조건만 말씀해 주시면 제가 골라드리죠.',
 ]
 
-export function DrawModal({ pool, activeFull, onAccept, onClose }: Props) {
+export function DrawModal({ pool, activeFull, enragedIds, onAccept, onClose }: Props) {
   const [phase, setPhase] = useState<Phase>('setup')
   const [minutes, setMinutes] = useState<number>(30)
   const [energy, setEnergy] = useState<Energy>('mid')
@@ -80,7 +80,7 @@ export function DrawModal({ pool, activeFull, onAccept, onClose }: Props) {
   }
 
   const diff = picked ? DIFF[picked.difficulty] : null
-  const mad = picked ? enraged(picked) : false
+  const mad = picked ? enragedIds.has(picked.id) : false
   // 이 퀘스트를 미루면 생기는 일: 등록된 대가 > 마감 경고 > 일반 푸시 대사
   const nudge = picked
     ? picked.cost ??

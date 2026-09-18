@@ -1963,3 +1963,75 @@ body[data-theme='dungeon'] {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ---------- v0.4: 편집 / 되돌리기 / 휴식일 부적 / 타이머 ---------- */
+
+.quest-top .quest-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.edit-btn {
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.edit-modal {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.edit-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.edit-head .text-input {
+  flex: 1;
+  min-width: 0;
+}
+.edit-hint {
+  font-size: 11px;
+  margin-top: 4px;
+}
+.repeat-chip {
+  margin-top: 10px;
+  align-self: flex-start;
+}
+
+.toast-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+.toast-actions .toast-btn {
+  white-space: nowrap;
+  margin: 0;
+}
+
+.freeze-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+.freeze-body {
+  flex: 1;
+  min-width: 0;
+}
+.freeze-card .gear-btn {
+  flex-shrink: 0;
+}
+.freeze-badge {
+  font-size: 11px;
+  color: var(--green);
+  background: var(--ink);
+  padding: 3px 6px;
+}
+
+.timer-hint {
+  font-size: 11px;
+}

@@ -11,6 +11,7 @@ interface Props {
   doneToday: number
   strikeTask?: Task
   strikeInPool: boolean
+  enragedIds: Set<string>
   onDraw: () => void
   onComplete: (id: string) => void
   onStarter: (quest: ActiveQuest) => void
@@ -20,6 +21,7 @@ interface Props {
   onAcceptStrike: (id: string) => void
   onAddSub: (id: string, title: string) => void
   onToggleSub: (id: string, subId: string) => void
+  onEdit: (task: Task) => void
   heroPal?: Record<string, string>
   equipped?: string[]
   heroVariant?: string
@@ -82,6 +84,7 @@ export function QuestBoard({
   doneToday,
   strikeTask,
   strikeInPool,
+  enragedIds,
   onDraw,
   onComplete,
   onStarter,
@@ -91,6 +94,7 @@ export function QuestBoard({
   onAcceptStrike,
   onAddSub,
   onToggleSub,
+  onEdit,
   heroPal,
   equipped,
   heroVariant,
@@ -179,12 +183,14 @@ export function QuestBoard({
           key={q.id}
           quest={q}
           isStrike={strikeTask?.id === q.id}
+          mad={enragedIds.has(q.id)}
           onComplete={onComplete}
           onStarter={onStarter}
           onFight={onFight}
           onAbandon={onAbandon}
           onAddSub={onAddSub}
           onToggleSub={onToggleSub}
+          onEdit={onEdit}
         />
       ))}
 

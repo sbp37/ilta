@@ -11,11 +11,12 @@ import {
   STARTER_BONUS_XP,
   STRIKE_BONUS,
   Task,
-  enraged,
+  enragedSet,
   heroPalette,
   heroSprite,
   monsterOf,
   sameDay,
+  timerLeft,
   todayKey,
 } from './game'
 import { TitleScreen } from './components/TitleScreen'
@@ -30,13 +31,34 @@ import { Pool } from './components/Pool'
 import { Journal } from './components/Journal'
 import { Shop } from './components/Shop'
 import { TimerOverlay } from './components/TimerOverlay'
+import { EditModal, TaskPatch } from './components/EditModal'
 
 type Tab = 'quest' | 'pool' | 'shop' | 'journal'
 
 interface TimerState {
-  quest: ActiveQuest
+  questId: string
   seconds: number
   starter: boolean
+  startedAt: number
+}
+
+interface ToastAction {
+  label: string
+  fn: () => void
+}
+
+const TIMER_KEY = 'ilta-timer'
+
+function loadTimer(): TimerState | null {
+  try {
+    const raw = localStorage.getItem(TIMER_KEY)
+    if (!raw) return null
+    const t = JSON.parse(raw) as TimerState
+    if (typeof t.startedAt !== 'number' || typeof t.seconds !== 'number' || !t.questId) return null
+    return t
+  } catch {
+    return null
+  }
 }
 
 export default function App() {
@@ -44,6 +66,9 @@ export default function App() {
     state,
     addTask,
     removeTask,
+    updateTask,
+    undo,
+    checkFreezes,
     setHeroName,
     setHeroLook,
     setHeroClass,
@@ -64,6 +89,7 @@ export default function App() {
     buyReward,
     buyGear,
     toggleGear,
+    buyFreeze,
     feedPet,
     setPetName,
     setStrike,
@@ -75,6 +101,7 @@ export default function App() {
   const [heroOpen, setHeroOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
+  const [editing, setEditing] = useState<Task | null>(null)
   const [encounter, setEncounter] = useState<Task | null>(null)
   const [muted, setMuted] = useState(isMuted())
   const [installEvt, setInstallEvt] = useState<Event | null>(null)
@@ -92,21 +119,58 @@ export default function App() {
   }, [])
   const [tab, setTab] = useState<Tab>('quest')
   const [drawing, setDrawing] = useState(false)
-  const [timer, setTimer] = useState<TimerState | null>(null)
+  // 저장된 타이머가 있으면 그대로 복원 (시작 시각 기준이라 닫았다 열어도 정확)
+  const [timer, setTimer] = useState<TimerState | null>(loadTimer)
   const [toast, setToast] = useState('')
-  const [toastAction, setToastAction] = useState<{ label: string; fn: () => void } | null>(null)
+  const [toastActions, setToastActions] = useState<ToastAction[]>([])
   const [flash, setFlash] = useState(0)
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
-  const showToast = useCallback((msg: string, action?: { label: string; fn: () => void }) => {
+  // 타이머는 저장해 두고, 앱을 닫았다 열어도 이어서 센다
+  useEffect(() => {
+    if (timer) localStorage.setItem(TIMER_KEY, JSON.stringify(timer))
+    else localStorage.removeItem(TIMER_KEY)
+  }, [timer])
+
+  const showToast = useCallback((msg: string, action?: ToastAction | ToastAction[], ms = 3200) => {
     setToast(msg)
-    setToastAction(action ?? null)
+    setToastActions(action ? (Array.isArray(action) ? action : [action]) : [])
     if (toastTimer.current) clearTimeout(toastTimer.current)
     toastTimer.current = setTimeout(() => {
       setToast('')
-      setToastAction(null)
-    }, 3200)
+      setToastActions([])
+    }, ms)
   }, [])
+
+  const undoAction = useCallback(
+    (label = '되돌리기'): ToastAction => ({
+      label,
+      fn: () => {
+        if (undo()) {
+          sfx.accept()
+          showToast('되돌렸어요')
+        }
+      },
+    }),
+    [undo, showToast],
+  )
+
+  const handleRemove = useCallback(
+    (id: string) => {
+      removeTask(id)
+      sfx.click()
+      showToast('몬스터를 놓아줬어요', undoAction(), 5000)
+    },
+    [removeTask, showToast, undoAction],
+  )
+
+  const handleEditSave = useCallback(
+    (id: string, patch: TaskPatch) => {
+      updateTask(id, patch)
+      showToast('수정했어요')
+    },
+    [updateTask, showToast],
+  )
 
   const handleComplete = useCallback(
     (id: string) => {
@@ -115,11 +179,10 @@ export default function App() {
       const critText = result.crit ? '크리티컬! ' : ''
       const goalBonus = result.combo === DAILY_GOAL ? ` · 일일 목표 달성 +${DAILY_GOAL_BONUS}G!` : ''
       if (result.combo === DAILY_GOAL) bonusXp(DAILY_GOAL_BONUS)
-      // 모멘텀: 수집함에 남은 게 있고 슬롯에 자리가 있으면 바로 다음 뽑기 제안
-      const nextAction =
-        state.pool.length > 0 && state.active.length < MAX_ACTIVE
-          ? { label: '다음 뽑기 →', fn: () => setDrawing(true) }
-          : undefined
+      // 모멘텀: 수집함에 남은 게 있고 슬롯에 자리가 있으면 바로 다음 뽑기 제안 + 잘못 눌렀으면 되돌리기
+      const actions: ToastAction[] = [undoAction()]
+      if (state.pool.length > 0 && state.active.length < MAX_ACTIVE)
+        actions.push({ label: '다음 뽑기 →', fn: () => setDrawing(true) })
       // 오늘의 일격 처치 → 대축하 + 보너스
       const isStrike = state.strike?.day === todayKey() && state.strike.id === id
       if (isStrike) {
@@ -136,28 +199,29 @@ export default function App() {
       if (result.leveledUp) {
         sfx.levelup()
         setFlash((f) => f + 1)
-        showToast(`${strikeText}LEVEL UP! ${critText}+${result.xp}XP +${result.gold}G${goalBonus}${raidText}`, nextAction)
+        showToast(`${strikeText}LEVEL UP! ${critText}+${result.xp}XP +${result.gold}G${goalBonus}${raidText}`, actions, 5000)
       } else {
         sfx.complete()
         showToast(
           `${strikeText}${critText}처치 완료! +${result.xp}XP +${result.gold}G${
             result.combo > 1 ? ` · x${result.combo} 콤보!` : ''
           }${result.lootName ? ` · 「${result.lootName}」` : ''}${goalBonus}${raidText}`,
-          nextAction,
+          actions,
+          5000,
         )
       }
     },
-    [complete, showToast, bonusXp, state.pool.length, state.active.length],
+    [complete, showToast, bonusXp, undoAction, state.pool.length, state.active.length],
   )
 
   const handleStarter = useCallback((quest: ActiveQuest) => {
     sfx.click()
-    setTimer({ quest, seconds: 5 * 60, starter: true })
+    setTimer({ questId: quest.id, seconds: 5 * 60, starter: true, startedAt: Date.now() })
   }, [])
 
   const handleFight = useCallback((quest: ActiveQuest) => {
     sfx.click()
-    setTimer({ quest, seconds: quest.minutes * 60, starter: false })
+    setTimer({ questId: quest.id, seconds: quest.minutes * 60, starter: false, startedAt: Date.now() })
   }, [])
 
   const handleQuickAdd = useCallback(
@@ -169,17 +233,43 @@ export default function App() {
     [quickAdd, showToast],
   )
 
-  const handleTimerFinish = useCallback(() => {
-    if (!timer) return
-    if (timer.starter) {
-      bonusXp(STARTER_BONUS_XP)
-      showToast(`시작 성공! +${STARTER_BONUS_XP}XP — 이어서 처치하거나 쉬어도 OK`)
+  // 타이머 정산은 여기 한 곳에서만. 오버레이가 0초를 보고 부르든, 앱 복귀 때 부르든 같은 타이머는 한 번만 처리
+  const settledTimer = useRef<number | null>(null)
+  const handleTimerFinish = useCallback(
+    (returning = false) => {
+      if (!timer || settledTimer.current === timer.startedAt) return
+      settledTimer.current = timer.startedAt
       setTimer(null)
-    } else {
-      setTimer(null)
-      handleComplete(timer.quest.id)
+      const back = returning ? '돌아온 사이 ' : ''
+      if (timer.starter) {
+        bonusXp(STARTER_BONUS_XP)
+        showToast(`${back}5분 시작 성공! +${STARTER_BONUS_XP}XP — 이어서 처치하거나 쉬어도 OK`)
+      } else {
+        if (returning) showToast('돌아온 사이 전투 시간이 끝났어요! 처치 완료 처리합니다')
+        handleComplete(timer.questId)
+      }
+    },
+    [timer, bonusXp, showToast, handleComplete],
+  )
+
+  // 앱을 켜면: 복원된 타이머 검사 (퀘스트가 사라졌으면 버리고, 이미 끝났으면 바로 정산) + 휴식일 부적 자동 소모
+  useEffect(() => {
+    if (!started) return
+    if (timer) {
+      const alive = state.active.some((q) => q.id === timer.questId)
+      if (!alive) setTimer(null)
+      else if (timerLeft(timer.startedAt, timer.seconds) <= 0) handleTimerFinish(true)
     }
-  }, [timer, bonusXp, showToast, handleComplete])
+    const used = checkFreezes()
+    if (used > 0) showToast(`🛡 휴식일 부적 ${used}개가 연속 기록을 지켜줬어요`)
+    // 날짜가 바뀌면 다시 확인
+    const t = setInterval(() => {
+      const n = checkFreezes()
+      if (n > 0) showToast(`🛡 휴식일 부적 ${n}개가 연속 기록을 지켜줬어요`)
+    }, 60_000)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [started])
 
   // 하위 잡몹 처치 — 전부 잡으면 본체 자동 처치
   const handleToggleSub = useCallback(
@@ -205,7 +295,8 @@ export default function App() {
     if (state.pool.length === 0 || state.active.length >= MAX_ACTIVE) return
     if (Math.random() > 0.45) return
     const t = setTimeout(() => {
-      const mad = state.pool.filter((x) => enraged(x))
+      const madIds = enragedSet(state.pool)
+      const mad = state.pool.filter((x) => madIds.has(x.id))
       const pick = mad[0] ?? state.pool[Math.floor(Math.random() * state.pool.length)]
       setEncounter(pick)
       sfx.bossReveal()
@@ -219,7 +310,7 @@ export default function App() {
     if (!started || !state.notif || typeof Notification === 'undefined') return
     if (Notification.permission !== 'granted') return
     const t = setTimeout(() => {
-      const mad = state.pool.filter((x) => enraged(x)).length
+      const mad = enragedSet(state.pool).size
       const strike =
         state.strike?.day === todayKey()
           ? state.pool.find((x) => x.id === state.strike!.id) ??
@@ -241,6 +332,10 @@ export default function App() {
   }
 
   const doneToday = state.done.filter((d) => sameDay(d.completedAt, Date.now())).length
+
+  // 광폭 표시는 심각한 순으로 최대 3마리까지만 (전부 빨개지면 경고가 무뎌짐)
+  const enragedIds = enragedSet([...state.pool, ...state.active])
+  const timerQuest = timer ? state.active.find((q) => q.id === timer.questId) : undefined
 
   // 장착 장비 — 상점 장비 우선, 전리품 (레어순 3개) 뒤에
   const equippedIds = [
@@ -328,6 +423,7 @@ export default function App() {
             doneToday={doneToday}
             strikeTask={strikeTask}
             strikeInPool={strikeInPool}
+            enragedIds={enragedIds}
             onDraw={() => setDrawing(true)}
             onComplete={handleComplete}
             onStarter={handleStarter}
@@ -343,6 +439,7 @@ export default function App() {
             }}
             onAddSub={addSub}
             onToggleSub={handleToggleSub}
+            onEdit={setEditing}
             heroPal={heroPalette(state)}
             equipped={equippedIds}
             heroVariant={heroSprite(state.heroClass)}
@@ -357,8 +454,10 @@ export default function App() {
           <Pool
             pool={state.pool}
             strikeId={strikeSet ? state.strike!.id : undefined}
+            enragedIds={enragedIds}
             onAdd={addTask}
-            onRemove={removeTask}
+            onRemove={handleRemove}
+            onEdit={setEditing}
             onMove={move}
             onToggleUrgent={toggleUrgent}
             onToggleRepeat={toggleRepeat}
@@ -376,6 +475,7 @@ export default function App() {
             onBuy={buyReward}
             onBuyGear={buyGear}
             onToggleGear={toggleGear}
+            onBuyFreeze={buyFreeze}
             onToast={showToast}
           />
         )}
@@ -454,7 +554,7 @@ export default function App() {
               <div>
                 <div className="encounter-title">{encounter.title}</div>
                 {encounter.cost && <div className="cost-line">안 하면 → {encounter.cost}</div>}
-                {enraged(encounter) && <div className="enraged-tag">광폭 상태!</div>}
+                {enragedIds.has(encounter.id) && <div className="enraged-tag">광폭 상태!</div>}
               </div>
             </div>
             <div className="encounter-actions">
@@ -492,25 +592,29 @@ export default function App() {
         <DrawModal
           pool={state.pool}
           activeFull={state.active.length >= MAX_ACTIVE}
+          enragedIds={enragedIds}
           onAccept={accept}
           onClose={() => setDrawing(false)}
         />
       )}
 
-      {timer && (
+      {timer && timerQuest && (
         <TimerOverlay
-          quest={timer.quest}
+          quest={timerQuest}
           seconds={timer.seconds}
+          startedAt={timer.startedAt}
           starter={timer.starter}
-          onFinish={handleTimerFinish}
+          onFinish={() => handleTimerFinish()}
           onCancel={() => {
             // 도망치기 = 후퇴 처리 (도망 기록 남음)
             setTimer(null)
-            abandon(timer.quest.id)
+            abandon(timer.questId)
             showToast('도망쳤다! 몬스터는 수집함에서 기다리고 있습니다…')
           }}
         />
       )}
+
+      {editing && <EditModal task={editing} onSave={handleEditSave} onClose={() => setEditing(null)} />}
 
       {installEvt && (
         <div className="install-banner pixel-panel">
@@ -540,18 +644,23 @@ export default function App() {
       {toast && (
         <div className="toast pixel-panel">
           {toast}
-          {toastAction && (
-            <button
-              className="toast-btn"
-              onClick={() => {
-                sfx.click()
-                toastAction.fn()
-                setToast('')
-                setToastAction(null)
-              }}
-            >
-              {toastAction.label}
-            </button>
+          {toastActions.length > 0 && (
+            <div className="toast-actions">
+              {toastActions.map((a) => (
+                <button
+                  key={a.label}
+                  className="toast-btn"
+                  onClick={() => {
+                    sfx.click()
+                    setToast('')
+                    setToastActions([])
+                    a.fn()
+                  }}
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       )}

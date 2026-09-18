@@ -1,23 +1,35 @@
 import { useRef, useState } from 'react'
 import { Pixel } from '../Pixel'
 import { sfx } from '../sound'
-import { ActiveQuest, DIFF, ENERGY_LABEL, dueLabel, enraged, monsterOf } from '../game'
+import { ActiveQuest, DIFF, ENERGY_LABEL, Task, dueLabel, monsterOf } from '../game'
 
 interface Props {
   quest: ActiveQuest
   isStrike?: boolean
+  mad: boolean
   onComplete: (id: string) => void
   onStarter: (quest: ActiveQuest) => void
   onFight: (quest: ActiveQuest) => void
   onAbandon: (id: string) => void
   onAddSub: (id: string, title: string) => void
   onToggleSub: (id: string, subId: string) => void
+  onEdit: (task: Task) => void
 }
 
-export function QuestCard({ quest, isStrike, onComplete, onStarter, onFight, onAbandon, onAddSub, onToggleSub }: Props) {
+export function QuestCard({
+  quest,
+  isStrike,
+  mad,
+  onComplete,
+  onStarter,
+  onFight,
+  onAbandon,
+  onAddSub,
+  onToggleSub,
+  onEdit,
+}: Props) {
   const diff = DIFF[quest.difficulty]
   const due = quest.due ? dueLabel(quest.due) : null
-  const mad = enraged(quest)
   const [confirming, setConfirming] = useState(false)
   const [dying, setDying] = useState(false)
   const [subsOpen, setSubsOpen] = useState(false)
@@ -83,6 +95,16 @@ export function QuestCard({ quest, isStrike, onComplete, onStarter, onFight, onA
           </div>
           {quest.cost && <div className="cost-line">안 하면 → {quest.cost}</div>}
         </div>
+        <button
+          className="icon-btn edit-btn"
+          title="수정"
+          onClick={() => {
+            sfx.click()
+            onEdit(quest)
+          }}
+        >
+          ✎
+        </button>
       </div>
 
       {(subs.length > 0 || subsOpen) && (

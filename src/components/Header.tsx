@@ -29,7 +29,8 @@ export function Header({
   const level = levelOf(state.xp)
   const progress = levelProgress(state.xp)
   const combo = state.done.filter((d) => sameDay(d.completedAt, Date.now())).length
-  const streak = streakDays(state.done)
+  const streak = streakDays(state.done, Date.now(), state.freezeUsed)
+  const freezes = state.freezes ?? 0
   const pet = petStage(state.petFood)
   const mood = petMood(state)
 
@@ -78,6 +79,11 @@ export function Header({
           {state.heroClass && <span className="class-badge">{CLASSES[state.heroClass].name}</span>}
           <span className="lv-badge">LV.{level}</span>
           {streak >= 2 && <span className="streak-badge">🔥{streak}일</span>}
+          {freezes > 0 && (
+            <span className="freeze-badge" title="휴식일 부적 — 하루 빠져도 연속 기록 유지">
+              🛡{freezes}
+            </span>
+          )}
         </div>
         <div className="xp-bar" title={`${progress}/${XP_PER_LEVEL}`}>
           <div className="xp-fill" style={{ width: `${(progress / XP_PER_LEVEL) * 100}%` }} />

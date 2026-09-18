@@ -27,7 +27,7 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
   const dayList = [...days.entries()].reverse()
 
   const bossKills = state.done.filter((d) => d.difficulty === 'boss').length
-  const streak = streakDays(state.done)
+  const streak = streakDays(state.done, Date.now(), state.freezeUsed)
   // 최고 콤보 = 하루 최다 처치 수
   let bestCombo = 0
   for (const quests of days.values()) bestCombo = Math.max(bestCombo, quests.length)

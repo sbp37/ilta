@@ -1,7 +1,9 @@
-const CACHE = 'ilta-v1'
+const CACHE = 'ilta-v2'
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/'])))
+  // 앱이 배포된 실제 경로(예: /ilta/)를 캐시 — 루트가 아닐 수 있음
+  const base = new URL('./', self.location.href).pathname
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll([base])))
   self.skipWaiting()
 })
 
@@ -24,5 +26,18 @@ self.addEventListener('fetch', (e) => {
         return res
       })
       .catch(() => caches.match(e.request)),
+  )
+})
+
+// 알림 탭하면 앱 창으로 돌아오기
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close()
+  const base = new URL('./', self.location.href).href
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      const open = list.find((c) => c.url.startsWith(base))
+      if (open) return open.focus()
+      return self.clients.openWindow(base)
+    }),
   )
 })

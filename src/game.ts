@@ -70,6 +70,8 @@ export interface GameState {
   raid?: { key: string; hp: number; max: number }
   gear?: string[]
   equippedGear?: string[]
+  freezes?: number // 휴식일 부적 보유 수
+  freezeUsed?: string[] // 부적으로 지켜낸 날짜 키
 }
 
 export const MAX_ACTIVE = 3
@@ -123,13 +125,33 @@ export const CRIT_MULT = 1.5
 
 // ---------- 광폭화: 미루면 몬스터가 커진다 ----------
 
-export const ENRAGE_DAYS = 3
+export const ENRAGE_DAYS = 7 // 마감 없는 몹은 일주일 묵혀야 광폭화
 export const ENRAGE_RETREATS = 2
+export const ENRAGE_CAP = 3 // 동시에 광폭 상태로 보이는 몹 최대 수 (경고 피로 방지)
 
 export function enraged(t: { due?: string; retreats?: number; createdAt: number }, now = Date.now()): boolean {
   if ((t.retreats ?? 0) >= ENRAGE_RETREATS) return true
   if (t.due && new Date(t.due + 'T23:59:59').getTime() < now) return true
   return now - t.createdAt >= ENRAGE_DAYS * 86400000
+}
+
+// 광폭화 심각도: 마감 넘김 > 도망 횟수 > 오래 묵힘
+function enrageSeverity(t: { due?: string; retreats?: number; createdAt: number }, now: number): number {
+  let sev = 0
+  if (t.due) {
+    const over = now - new Date(t.due + 'T23:59:59').getTime()
+    if (over > 0) sev += 1000 + over / 86400000
+  }
+  sev += (t.retreats ?? 0) * 100
+  sev += (now - t.createdAt) / 86400000
+  return sev
+}
+
+// 실제로 "광폭"으로 표시할 몹 id 집합 — 심각한 순으로 ENRAGE_CAP개까지만
+export function enragedSet(tasks: Task[], now = Date.now()): Set<string> {
+  const mad = tasks.filter((t) => enraged(t, now))
+  mad.sort((a, b) => enrageSeverity(b, now) - enrageSeverity(a, now))
+  return new Set(mad.slice(0, ENRAGE_CAP).map((t) => t.id))
 }
 
 // "안 하면 생기는 일" 프리셋 + NPC 푸시 대사
@@ -276,8 +298,8 @@ function dayKeyOf(ts: number): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
 }
 
-export function streakDays(done: DoneQuest[], now = Date.now()): number {
-  const days = new Set(done.map((d) => dayKeyOf(d.completedAt)))
+export function streakDays(done: DoneQuest[], now = Date.now(), covered: string[] = []): number {
+  const days = new Set([...done.map((d) => dayKeyOf(d.completedAt)), ...covered])
   const cursor = new Date(now)
   // 오늘 아직 안 했으면 어제부터 거슬러 셈 (오늘이 끝나기 전까진 스트릭 유지)
   if (!days.has(dayKeyOf(cursor.getTime()))) cursor.setDate(cursor.getDate() - 1)
@@ -287,6 +309,42 @@ export function streakDays(done: DoneQuest[], now = Date.now()): number {
     cursor.setDate(cursor.getDate() - 1)
   }
   return streak
+}
+
+// ---------- 휴식일 부적: 하루 빠져도 스트릭을 지켜준다 ----------
+
+export const FREEZE_COST = 60
+export const FREEZE_MAX = 3
+
+// 어제부터 거슬러 올라가며 빈 날을 찾고, 그 앞에 지켜야 할 스트릭이 있으면 부적을 소모한다.
+// 빈 날 수만큼 부적이 없으면 아무것도 하지 않는다 (반만 덮어봐야 소용없으므로).
+export function applyFreezes(
+  done: DoneQuest[],
+  freezes: number,
+  used: string[],
+  now = Date.now(),
+): { freezes: number; used: string[]; consumed: number } {
+  if (freezes <= 0 || done.length === 0) return { freezes, used, consumed: 0 }
+  const days = new Set([...done.map((d) => dayKeyOf(d.completedAt)), ...used])
+  const cursor = new Date(now)
+  cursor.setDate(cursor.getDate() - 1)
+  const gap: string[] = []
+  while (!days.has(dayKeyOf(cursor.getTime()))) {
+    gap.push(dayKeyOf(cursor.getTime()))
+    cursor.setDate(cursor.getDate() - 1)
+    if (gap.length > freezes) return { freezes, used, consumed: 0 }
+    // 너무 오래 전까지 거슬러가지 않도록
+    if (gap.length > FREEZE_MAX) return { freezes, used, consumed: 0 }
+  }
+  if (gap.length === 0) return { freezes, used, consumed: 0 }
+  // 빈 날 바로 앞에 실제로 처치한 날이 있어야 지킬 스트릭이 있는 것
+  return { freezes: freezes - gap.length, used: [...used, ...gap], consumed: gap.length }
+}
+
+// ---------- 타이머: 시작 시각 기준으로 남은 초 계산 (백그라운드에서도 정확) ----------
+
+export function timerLeft(startedAt: number, seconds: number, now = Date.now()): number {
+  return Math.max(0, seconds - Math.floor((now - startedAt) / 1000))
 }
 
 // ---------- 캐릭터 커스터마이징 / 테마 / 주간 통계 ----------
