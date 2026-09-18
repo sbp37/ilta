@@ -1375,8 +1375,13 @@ body {
 /* ---------- 반복 뱃지 ---------- */
 
 .repeat-tag {
-  font-size: 11px;
-  margin-right: 2px;
+  display: inline-block;
+  font-size: 10px;
+  color: var(--dim);
+  border: 1px solid var(--dim);
+  padding: 0 4px;
+  margin-right: 6px;
+  vertical-align: 1px;
 }
 
 .repeat-on {
@@ -1989,10 +1994,6 @@ body[data-theme='dungeon'] {
   font-size: 11px;
   margin-top: 4px;
 }
-.repeat-chip {
-  margin-top: 10px;
-  align-self: flex-start;
-}
 
 .toast-actions {
   display: flex;
@@ -2200,4 +2201,164 @@ body[data-theme='sakura'] {
 .freeze-badge,
 .boost-badge {
   font-size: 10px;
+}
+
+/* ---------- v0.6: 분류 / 반복 / 업적 / 챕터 ---------- */
+
+.cat-row {
+  margin-top: 8px;
+}
+.cat-chip {
+  font-size: 12px;
+}
+.sleep-line {
+  font-size: 11px;
+  color: var(--dim);
+  margin-top: 2px;
+}
+.pool-sleeping .pool-item-main {
+  opacity: 0.55;
+}
+.pool-act:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 분류별 처치 통계 */
+.cat-stats {
+  padding: 10px;
+  margin-bottom: 14px;
+}
+.cat-bar {
+  display: flex;
+  height: 14px;
+  border: 3px solid var(--ink);
+  background: var(--ink);
+  margin: 6px 0 8px;
+  overflow: hidden;
+}
+.cat-seg {
+  height: 100%;
+}
+.cat-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--dim);
+}
+.cat-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.cat-dot {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+}
+
+/* 챕터 */
+.chapter-card {
+  padding: 10px;
+  margin-bottom: 14px;
+}
+.chapter-weeks {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0;
+}
+.chapter-week {
+  flex: 1;
+  text-align: center;
+  font-size: 11px;
+  padding: 5px 0;
+  border: 3px solid var(--ink);
+  background: var(--panel2);
+  color: var(--dim);
+}
+.chapter-week.week-past {
+  background: var(--green);
+  color: var(--ink);
+}
+.chapter-week.week-now {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.chapter-week.week-final {
+  font-size: 10px;
+}
+.chapter-week.week-final.week-now {
+  border-color: var(--red);
+  color: var(--red);
+}
+.chapter-hint,
+.chapter-line {
+  font-size: 11px;
+}
+.raid-final {
+  border-color: var(--red);
+}
+
+/* 업적 */
+.ach-list {
+  padding: 8px 10px;
+  margin: 6px 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.ach-row {
+  font-size: 12px;
+  line-height: 1.5;
+  padding-left: 18px;
+  text-indent: -18px;
+}
+.ach-mark {
+  color: var(--gold);
+  margin-right: 6px;
+}
+.ach-name {
+  color: var(--text);
+}
+.ach-desc {
+  color: var(--dim);
+  margin-left: 6px;
+}
+.ach-gold {
+  color: var(--green);
+  margin-left: 6px;
+}
+.ach-locked {
+  opacity: 0.5;
+}
+.ach-locked .ach-mark {
+  color: var(--dim);
+}
+.ach-locked .ach-gold {
+  color: var(--gold);
+}
+
+/* 퀘스트 카드 우상단 수정 버튼 — 액션 줄을 늘리지 않는다 */
+.edit-link {
+  flex-shrink: 0;
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--dim);
+  background: var(--panel2);
+  border: 2px solid var(--ink);
+  padding: 3px 7px;
+  cursor: pointer;
+}
+.edit-link:hover {
+  color: var(--text);
+}
+
+/* 챕터 보스 주간은 금색 테두리로 구분 (평소 주간 보스는 빨강) */
+.raid-panel.raid-final {
+  border-color: var(--gold);
+}
+.raid-final .raid-label {
+  color: var(--gold);
 }

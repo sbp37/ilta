@@ -45,8 +45,9 @@ test('무료 리롤을 다 쓰면 다시뽑기권으로 한 번 더 뽑는다', 
 })
 
 test('휴식일 부적은 빈 날이 생기면 자동으로 쓰여 연속 기록을 지킨다', async ({ page }) => {
-  // 그저께까지만 처치 → 어제가 빈 날
-  await enterGame(page, { done: [doneDaysAgo(2)], gold: 100 })
+  // 그저께까지만 처치 → 어제가 빈 날.
+  // achieved 를 미리 채워 업적 보상 골드가 계산에 섞이지 않게 한다
+  await enterGame(page, { done: [doneDaysAgo(2)], gold: 100, achieved: ['first'] })
   await page.locator('.tab', { hasText: '상점' }).click()
   await page.locator('.freeze-card', { hasText: '휴식일 부적' }).locator('.btn-gold').click()
   await expect(page.locator('.freeze-badge')).toContainText('1')

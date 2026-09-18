@@ -422,7 +422,7 @@ export const SPRITES: Record<string, Sprite> = {
       'KWWWKKWWWK',
       'KWWWWWWWWK',
       'KWKWKWKWK.',
-      '.KKKKKKKK..',
+      '.KKKKKKKK.',
     ],
   },
   // 잡몹 — 블루슬라임
@@ -600,6 +600,55 @@ export const SPRITES: Record<string, Sprite> = {
       '.KPPPPK.',
       'KPPPPPPK',
       '.KKKKKK.',
+    ],
+  },
+  // 잡몹 — 박쥐 (기타 카테고리)
+  bat: {
+    palette: { K, P: '#6b5ba8', W },
+    rows: [
+      '..K......K..',
+      '.KPK....KPK.',
+      'KPPPK..KPPPK',
+      'KPPPPKKPPPPK',
+      'KPPWPPPPWPPK',
+      '.KPPPPPPPPK.',
+      '..KPPPPPPK..',
+      '...KPPPPK...',
+      '....KKKK....',
+    ],
+  },
+  // 정예 — 오거 (건강 카테고리)
+  ogre: {
+    palette: { K, W, G: '#7a9e4a', g: '#5c7a36' },
+    rows: [
+      '..KKKKKKKK..',
+      '.KGGGGGGGGK.',
+      'KGGGGGGGGGGK',
+      'KGGWKGGKWGGK',
+      'KGGGGGGGGGGK',
+      'KGGKWWWWKGGK',
+      '.KGGGGGGGGK.',
+      '..KGGGGGGK..',
+      '.KgGGGGGGgK.',
+      '.KgKGGGGKgK.',
+      '..KKKKKKKK..',
+    ],
+  },
+  // 정예 — 가고일 (기타 카테고리)
+  gargoyle: {
+    palette: { K, R, S, s: '#5f6478' },
+    rows: [
+      '.K........K.',
+      '.KSK....KSK.',
+      '.KSSK..KSSK.',
+      '..KSSKKSSK..',
+      '...KSSSSK...',
+      '..KSRSSRSK..',
+      '..KSSSSSSK..',
+      '..KSKKKKSK..',
+      '...KSSSSK...',
+      '...KsKKsK...',
+      '....KKKK....',
     ],
   },
 }

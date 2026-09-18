@@ -2,13 +2,18 @@ import { useState } from 'react'
 import { Pixel } from '../Pixel'
 import { sfx } from '../sound'
 import {
+  CATEGORIES,
+  CATEGORY_IDS,
   COST_PRESETS,
+  Category,
   DIFF,
   Difficulty,
   ENERGY_LABEL,
   Energy,
   MINUTE_OPTIONS,
+  REPEAT_LABEL,
   Task,
+  availableLabel,
   dueLabel,
 } from '../game'
 
@@ -47,6 +52,7 @@ export function Pool({
   const [energy, setEnergy] = useState<Energy>('low')
   const [due, setDue] = useState('')
   const [cost, setCost] = useState('')
+  const [category, setCategory] = useState<Category | undefined>(undefined)
   const [detailOpen, setDetailOpen] = useState(false)
 
   const submit = () => {
@@ -55,7 +61,7 @@ export function Pool({
       sfx.deny()
       return
     }
-    onAdd({ title: trimmed, difficulty, minutes, energy, due: due || undefined, cost: cost || undefined })
+    onAdd({ title: trimmed, difficulty, minutes, energy, due: due || undefined, cost: cost || undefined, category })
     setTitle('')
     sfx.accept()
   }
@@ -78,6 +84,20 @@ export function Pool({
           <button className="btn btn-go" onClick={submit}>
             넣기
           </button>
+        </div>
+
+        <div className="chip-row cat-row">
+          {CATEGORY_IDS.map((c) => (
+            <button
+              key={c}
+              className={`chip cat-chip ${category === c ? 'chip-on' : ''}`}
+              style={category === c ? { borderColor: CATEGORIES[c].color, color: CATEGORIES[c].color } : undefined}
+              title={`${CATEGORIES[c].name} — 전담 몬스터가 정해져요`}
+              onClick={() => setCategory(category === c ? undefined : c)}
+            >
+              {CATEGORIES[c].name}
+            </button>
+          ))}
         </div>
 
         <button className="form-toggle" onClick={() => setDetailOpen((o) => !o)}>
@@ -157,7 +177,10 @@ export function Pool({
           const due = t.due ? dueLabel(t.due) : null
           const mad = enragedIds.has(t.id)
           return (
-            <div key={t.id} className={`pool-item ${mad ? 'pool-enraged' : ''}`}>
+            <div
+              key={t.id}
+              className={`pool-item ${mad ? 'pool-enraged' : ''} ${availableLabel(t) ? 'pool-sleeping' : ''}`}
+            >
               <div className="pool-item-main">
                 <div className="order-btns">
                   <button
@@ -188,11 +211,14 @@ export function Pool({
                   <div className="pool-item-title">
                     {strikeId === t.id && <span className="strike-tag">일격</span>}
                     {mad && <span className="enraged-tag">광폭</span>}
-                    {t.repeat && <span className="repeat-tag">🔁</span>}
+                    {t.repeat && <span className="repeat-tag">🔁{REPEAT_LABEL[t.repeat]}</span>}
                     {t.urgent && <span className="urgent-mark">!</span>}
                     {t.title}
                   </div>
                   <div className="quest-meta">
+                    {t.category && (
+                      <span style={{ color: CATEGORIES[t.category].color }}>{CATEGORIES[t.category].name}</span>
+                    )}
                     <span style={{ color: diff.color }}>{diff.label}</span>
                     <span>{t.minutes}분</span>
                     <span>{ENERGY_LABEL[t.energy]}</span>
@@ -203,6 +229,7 @@ export function Pool({
                     {(t.retreats ?? 0) > 0 && <span className="retreat-tag">도망 x{t.retreats}</span>}
                   </div>
                   {t.cost && <div className="cost-line">안 하면 → {t.cost}</div>}
+                  {availableLabel(t) && <div className="sleep-line">💤 {availableLabel(t)}</div>}
                 </div>
               </div>
 
@@ -220,6 +247,7 @@ export function Pool({
                 <button
                   className={`pool-act ${strikeId === t.id ? 'act-on' : ''}`}
                   title="오늘의 일격으로 지정 — 이것만 잡아도 오늘은 승리"
+                  disabled={!!availableLabel(t)}
                   onClick={() => {
                     sfx.accept()
                     onSetStrike(t.id)
