@@ -1,5 +1,6 @@
 export type Difficulty = 'slime' | 'elite' | 'boss'
 export type Energy = 'low' | 'mid' | 'high'
+export type HeroClass = 'warrior' | 'mage' | 'rogue'
 
 export interface SubTask {
   id: string
@@ -65,6 +66,8 @@ export interface GameState {
   strike?: { id: string; day: string }
   theme?: string
   notif?: boolean
+  heroClass?: HeroClass
+  raid?: { key: string; hp: number; max: number }
 }
 
 export const MAX_ACTIVE = 3
@@ -315,6 +318,31 @@ export const THEMES = [
   { id: 'forest', name: '숲속' },
   { id: 'dungeon', name: '던전' },
 ] as const
+
+// ---------- 직업 / 주간 보스 레이드 ----------
+
+export const CLASSES: Record<HeroClass, { name: string; desc: string; icon: string }> = {
+  warrior: { name: '전사', desc: '콤보 보너스 2배 — 연속 처치에 강하다', icon: 'sword' },
+  mage: { name: '마법사', desc: '하위 잡몹 처치마다 +3XP — 쪼개기에 강하다', icon: 'star' },
+  rogue: { name: '도적', desc: '골드 획득 +25% — 전리품에 강하다', icon: 'gem' },
+}
+
+export const RAID_MAX_HP = 300
+export const RAID_REWARD = 100
+const RAID_BOSSES = ['dragon', 'golem', 'lich', 'mimic', 'demon']
+
+// ISO-ish 주차 키 (같은 주면 같은 키)
+export function weekKey(now = Date.now()): string {
+  const d = new Date(now)
+  const jan1 = new Date(d.getFullYear(), 0, 1)
+  const week = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7)
+  return `${d.getFullYear()}-W${week}`
+}
+
+export function raidBoss(key: string): string {
+  const w = parseInt(key.split('-W')[1] ?? '1', 10)
+  return RAID_BOSSES[w % RAID_BOSSES.length]
+}
 
 // 최근 7일 처치 수 (주간 차트용)
 export function weekCounts(done: DoneQuest[], now = Date.now()): { label: string; count: number }[] {

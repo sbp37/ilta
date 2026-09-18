@@ -20,6 +20,7 @@ import {
 import { TitleScreen } from './components/TitleScreen'
 import { PetModal } from './components/PetModal'
 import { HeroModal } from './components/HeroModal'
+import { ReviewModal } from './components/ReviewModal'
 import { SettingsModal } from './components/SettingsModal'
 import { Header } from './components/Header'
 import { QuestBoard } from './components/QuestBoard'
@@ -44,6 +45,7 @@ export default function App() {
     removeTask,
     setHeroName,
     setHeroLook,
+    setHeroClass,
     setTheme,
     setNotif,
     quickAdd,
@@ -69,6 +71,7 @@ export default function App() {
   const [petOpen, setPetOpen] = useState(false)
   const [heroOpen, setHeroOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
   const [encounter, setEncounter] = useState<Task | null>(null)
   const [muted, setMuted] = useState(isMuted())
   const [installEvt, setInstallEvt] = useState<Event | null>(null)
@@ -122,16 +125,21 @@ export default function App() {
         sfx.levelup()
       }
       const strikeText = isStrike ? `오늘의 일격 성공! +${STRIKE_BONUS}G ` : ''
+      const raidText = result.raidKilled ? ' · 주간 보스 처치! +100G' : ''
+      if (result.raidKilled) {
+        sfx.bossReveal()
+        setFlash((f) => f + 1)
+      }
       if (result.leveledUp) {
         sfx.levelup()
         setFlash((f) => f + 1)
-        showToast(`${strikeText}LEVEL UP! ${critText}+${result.xp}XP +${result.gold}G${goalBonus}`, nextAction)
+        showToast(`${strikeText}LEVEL UP! ${critText}+${result.xp}XP +${result.gold}G${goalBonus}${raidText}`, nextAction)
       } else {
         sfx.complete()
         showToast(
           `${strikeText}${critText}처치 완료! +${result.xp}XP +${result.gold}G${
             result.combo > 1 ? ` · x${result.combo} 콤보!` : ''
-          }${result.lootName ? ` · 「${result.lootName}」` : ''}${goalBonus}`,
+          }${result.lootName ? ` · 「${result.lootName}」` : ''}${goalBonus}${raidText}`,
           nextAction,
         )
       }
@@ -330,6 +338,11 @@ export default function App() {
             onToggleSub={handleToggleSub}
             heroPal={heroPalette(state)}
             equipped={equippedIds}
+            raid={state.raid}
+            onReview={() => {
+              sfx.click()
+              setReviewOpen(true)
+            }}
           />
         )}
         {tab === 'pool' && (
@@ -390,7 +403,23 @@ export default function App() {
         <HeroModal
           state={state}
           onLook={(h, t) => setHeroLook(h, t)}
+          onClass={(c) => {
+            setHeroClass(c)
+            showToast('직업을 변경했습니다!')
+          }}
           onClose={() => setHeroOpen(false)}
+        />
+      )}
+
+      {reviewOpen && (
+        <ReviewModal
+          state={state}
+          onPickTomorrow={(id) => {
+            setStrike(id, todayKey(Date.now() + 86400000))
+            setReviewOpen(false)
+            showToast('내일의 일격을 예약했습니다!')
+          }}
+          onClose={() => setReviewOpen(false)}
         />
       )}
 

@@ -5,8 +5,11 @@ import {
   CRIT_MULT,
   DoneQuest,
   GameState,
+  HeroClass,
   MAX_ACTIVE,
   PET_FEED_COST,
+  RAID_MAX_HP,
+  RAID_REWARD,
   Task,
   goldFor,
   lootById,
@@ -16,6 +19,7 @@ import {
   sameDay,
   todayKey,
   uid,
+  weekKey,
   xpFor,
 } from './game'
 
@@ -51,6 +55,7 @@ export interface CompleteResult {
   leveledUp: boolean
   combo: number
   crit: boolean
+  raidKilled: boolean
 }
 
 export function useGame() {
@@ -71,6 +76,10 @@ export function useGame() {
 
   const setHeroLook = useCallback((hair?: string, tunic?: string) => {
     setState((s) => ({ ...s, heroHair: hair, heroTunic: tunic }))
+  }, [])
+
+  const setHeroClass = useCallback((heroClass: HeroClass) => {
+    setState((s) => ({ ...s, heroClass }))
   }, [])
 
   const setTheme = useCallback((theme: string) => {
@@ -106,7 +115,9 @@ export function useGame() {
       if (!q || !sub) return s
       const subs = q.subs!.map((x) => (x.id === subId ? { ...x, done: !x.done } : x))
       res = subs.length > 0 && subs.every((x) => x.done) ? 'cleared' : 'sub'
-      return { ...s, active: s.active.map((t) => (t.id === id ? { ...t, subs } : t)) }
+      // 마법사: 잡몹 처치(체크)할 때마다 소량 XP/골드
+      const mageBonus = s.heroClass === 'mage' && !sub.done ? { xp: s.xp + 3, gold: s.gold + 3 } : {}
+      return { ...s, ...mageBonus, active: s.active.map((t) => (t.id === id ? { ...t, subs } : t)) }
     })
     return res
   }, [])
@@ -188,12 +199,19 @@ export function useGame() {
       const now = Date.now()
       const doneToday = s.done.filter((d) => sameDay(d.completedAt, now)).length
       const crit = Math.random() < CRIT_CHANCE
-      const xp = Math.round(xpFor(q.difficulty, doneToday) * (crit ? CRIT_MULT : 1))
-      const gold = goldFor(xp)
+      let xp = Math.round(xpFor(q.difficulty, doneToday) * (crit ? CRIT_MULT : 1))
+      if (s.heroClass === 'warrior') xp += Math.min(doneToday, 5) * 2 // 전사: 콤보 보너스 2배
+      let gold = s.heroClass === 'rogue' ? Math.round(goldFor(xp) * 1.25) : goldFor(xp) // 도적: 골드 +25%
       const loot = rollLoot(q.difficulty)
       const prevLevel = Math.floor(s.xp / 100)
       const nextLevel = Math.floor((s.xp + xp) / 100)
       const doneQuest: DoneQuest = { ...q, completedAt: now, xp, lootId: loot.id }
+      // 주간 보스 레이드: 얻은 XP만큼 보스 HP 감소
+      const wk = weekKey(now)
+      const raid = s.raid && s.raid.key === wk ? s.raid : { key: wk, hp: RAID_MAX_HP, max: RAID_MAX_HP }
+      const raidHp = Math.max(0, raid.hp - xp)
+      const raidKilled = raid.hp > 0 && raidHp === 0
+      if (raidKilled) gold += RAID_REWARD
       result = {
         xp,
         gold,
@@ -201,6 +219,7 @@ export function useGame() {
         leveledUp: nextLevel > prevLevel,
         combo: doneToday + 1,
         crit,
+        raidKilled,
       }
       // 반복 몬스터는 처치해도 수집함에 리스폰
       const respawn: Task[] = q.repeat
@@ -229,6 +248,7 @@ export function useGame() {
         xp: s.xp + xp,
         gold: s.gold + gold,
         loot: { ...s.loot, [loot.id]: (s.loot[loot.id] ?? 0) + 1 },
+        raid: { ...raid, hp: raidHp },
       }
     })
     return result
@@ -284,9 +304,9 @@ export function useGame() {
     setState((s) => ({ ...s, petName: name }))
   }, [])
 
-  // 오늘의 일격 지정 (하루 1개)
-  const setStrike = useCallback((id: string) => {
-    setState((s) => ({ ...s, strike: { id, day: todayKey() } }))
+  // 오늘의 일격 지정 (하루 1개). day를 넘기면 그 날짜용으로 예약
+  const setStrike = useCallback((id: string, day?: string) => {
+    setState((s) => ({ ...s, strike: { id, day: day ?? todayKey() } }))
   }, [])
 
   // ---------- 백업 / 복원 ----------
@@ -318,6 +338,7 @@ export function useGame() {
     removeTask,
     setHeroName,
     setHeroLook,
+    setHeroClass,
     setTheme,
     setNotif,
     quickAdd,

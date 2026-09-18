@@ -1,6 +1,7 @@
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import {
+  CLASSES,
   GameState,
   LOOT,
   PET_MOOD_LABEL,
@@ -70,6 +71,7 @@ export function Header({
       <div className="hero-info">
         <div className="hero-name">
           {state.heroName ?? '모험가'} <span className="hero-title">{titleOf(level)}</span>
+          {state.heroClass && <span className="class-badge">{CLASSES[state.heroClass].name}</span>}
           <span className="lv-badge">LV.{level}</span>
           {streak >= 2 && <span className="streak-badge">🔥{streak}일</span>}
         </div>

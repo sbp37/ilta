@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import { sfx } from '../sound'
-import { ActiveQuest, DAILY_GOAL, MAX_ACTIVE, Task, monsterOf } from '../game'
+import { ActiveQuest, DAILY_GOAL, MAX_ACTIVE, MONSTER_NAMES, Task, monsterOf, raidBoss } from '../game'
 import { QuestCard } from './QuestCard'
 
 interface Props {
@@ -22,6 +22,8 @@ interface Props {
   onToggleSub: (id: string, subId: string) => void
   heroPal?: Record<string, string>
   equipped?: string[]
+  raid?: { key: string; hp: number; max: number }
+  onReview: () => void
 }
 
 function EmptySlot({ onQuickAdd }: { onQuickAdd: (title: string) => void }) {
@@ -90,6 +92,8 @@ export function QuestBoard({
   onToggleSub,
   heroPal,
   equipped,
+  raid,
+  onReview,
 }: Props) {
   const emptySlots = MAX_ACTIVE - active.length
   const goalDone = doneToday >= DAILY_GOAL
@@ -108,6 +112,33 @@ export function QuestBoard({
               지금 잡기
             </button>
           )}
+        </div>
+      )}
+
+      {raid && (
+        <div className="pixel-panel raid-panel">
+          <Pixel
+            name={raidBoss(raid.key)}
+            size={3}
+            className={raid.hp > 0 ? 'boss-glow' : ''}
+          />
+          <div className="raid-body">
+            <div className="raid-label">
+              주간 보스 — {MONSTER_NAMES[raidBoss(raid.key)]}
+              <span className="dim"> HP {raid.hp}/{raid.max}</span>
+            </div>
+            <div className="xp-bar raid-bar">
+              <div
+                className="xp-fill raid-fill"
+                style={{ width: `${(raid.hp / raid.max) * 100}%` }}
+              />
+            </div>
+            {raid.hp === 0 ? (
+              <div className="goal-done">이번 주 보스 처치 완료!</div>
+            ) : (
+              <div className="dim raid-hint">퀘스트 처치 XP만큼 데미지 — 이번 주 안에 잡으면 +100G</div>
+            )}
+          </div>
         </div>
       )}
 
@@ -168,6 +199,10 @@ export function QuestBoard({
       >
         퀘스트 뽑기
         <span className="draw-sub">수집함 {poolSize}개 중에서</span>
+      </button>
+
+      <button className="btn btn-sub review-btn" onClick={onReview}>
+        🌙 하루 마무리 — 오늘의 전과 보기
       </button>
     </div>
   )
