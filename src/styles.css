@@ -2035,3 +2035,69 @@ body[data-theme='dungeon'] {
 .timer-hint {
   font-size: 11px;
 }
+
+body[data-theme='sakura'] {
+  background:
+    radial-gradient(2px 2px at 20% 15%, #ffb7d5aa 50%, transparent 50%),
+    radial-gradient(2px 2px at 85% 25%, #ffc9e088 50%, transparent 50%),
+    radial-gradient(1px 1px at 65% 8%, #fff7 50%, transparent 50%),
+    radial-gradient(2px 2px at 40% 40%, #ffb7d566 50%, transparent 50%),
+    linear-gradient(180deg, #1d0f22 0%, #3a1a3d 55%, #5a2a48 100%);
+}
+
+/* ---------- v0.5: 소모품 / 전리품 효과 / 레벨 해금 ---------- */
+
+.boost-badge {
+  font-size: 11px;
+  color: var(--purple);
+  background: var(--ink);
+  padding: 3px 6px;
+  margin-right: 6px;
+}
+.gear-locked {
+  opacity: 0.55;
+}
+.gear-locked .gear-btn {
+  font-size: 11px;
+}
+.item-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.chip-locked {
+  opacity: 0.5;
+}
+.calm-btn {
+  color: var(--purple);
+}
+.loot-effects {
+  padding: 8px 10px;
+  margin: 8px 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.loot-effect-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.loot-effect-name {
+  flex-shrink: 0;
+  min-width: 64px;
+}
+.loot-effect-desc {
+  flex: 1;
+  min-width: 0;
+  color: var(--dim);
+}
+.loot-effect-row.dim .loot-effect-desc {
+  color: inherit;
+}
+.loot-effect-count {
+  color: var(--gold);
+  flex-shrink: 0;
+}

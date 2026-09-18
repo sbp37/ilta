@@ -5,7 +5,7 @@ import {
   GameState,
   LOOT,
   PET_MOOD_LABEL,
-  XP_PER_LEVEL,
+  XP_BOOST_MULT,
   heroPalette,
   heroSprite,
   levelOf,
@@ -85,13 +85,18 @@ export function Header({
             </span>
           )}
         </div>
-        <div className="xp-bar" title={`${progress}/${XP_PER_LEVEL}`}>
-          <div className="xp-fill" style={{ width: `${(progress / XP_PER_LEVEL) * 100}%` }} />
+        <div className="xp-bar" title={`${progress.cur}/${progress.need} XP`}>
+          <div className="xp-fill" style={{ width: `${(progress.cur / progress.need) * 100}%` }} />
         </div>
         <div className="hero-sub">
           <span className="gold-display">
             <Pixel name="coin" size={2} /> {state.gold}G
           </span>
+          {state.xpBoost && (
+            <span className="boost-badge" title="XP 포션 적용 중">
+              ⚗ x{XP_BOOST_MULT}
+            </span>
+          )}
           {combo > 0 ? (
             <span className="combo">x{combo} 콤보!</span>
           ) : (

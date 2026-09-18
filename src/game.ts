@@ -72,11 +72,60 @@ export interface GameState {
   equippedGear?: string[]
   freezes?: number // 휴식일 부적 보유 수
   freezeUsed?: string[] // 부적으로 지켜낸 날짜 키
+  items?: Record<string, number> // 소모품 보유 수 (reroll / xppotion / calm)
+  xpBoost?: boolean // XP 포션 적용 중 — 다음 처치 XP 1.5배
 }
 
-export const MAX_ACTIVE = 3
+export const MAX_ACTIVE = 3 // 기본 슬롯 수 — 레벨 해금은 slotsFor() 참고
 export const XP_PER_LEVEL = 100
 export const STARTER_BONUS_XP = 5
+
+// ---------- 레벨 커브: 5레벨까진 100XP, 그 뒤로 레벨당 +20XP씩 더 필요 ----------
+
+export function xpNeed(level: number): number {
+  return XP_PER_LEVEL + Math.max(0, level - 5) * 20
+}
+
+export function levelOf(xp: number): number {
+  let level = 1
+  let rest = xp
+  while (rest >= xpNeed(level)) {
+    rest -= xpNeed(level)
+    level++
+  }
+  return level
+}
+
+// 현재 레벨 안에서의 진행도
+export function levelProgress(xp: number): { cur: number; need: number } {
+  let level = 1
+  let rest = xp
+  while (rest >= xpNeed(level)) {
+    rest -= xpNeed(level)
+    level++
+  }
+  return { cur: rest, need: xpNeed(level) }
+}
+
+// 레벨업 축하 골드 = 새 레벨 × 10
+export const levelUpGold = (level: number) => level * 10
+
+// 레벨 해금 표
+export const UNLOCKS: { level: number; text: string }[] = [
+  { level: 3, text: '테마 「노을」 해금' },
+  { level: 5, text: '장비 「가죽 갑옷」 해금' },
+  { level: 6, text: '테마 「숲속」 해금' },
+  { level: 8, text: '퀘스트 슬롯 4개로 확장!' },
+  { level: 10, text: '테마 「던전」 해금' },
+  { level: 12, text: '장비 「기사 투구」 해금' },
+  { level: 15, text: '테마 「벚꽃」 + 장비 「황금 왕관」 해금' },
+]
+
+export const unlocksAt = (level: number) => UNLOCKS.filter((u) => u.level === level).map((u) => u.text)
+
+// 퀘스트 슬롯: 8레벨부터 4개
+export const SLOT_UNLOCK_LEVEL = 8
+export const slotsFor = (level: number) => (level >= SLOT_UNLOCK_LEVEL ? MAX_ACTIVE + 1 : MAX_ACTIVE)
 
 export const DIFF: Record<Difficulty, { label: string; xp: number; sprite: string; color: string }> = {
   slime: { label: '잡몹', xp: 10, sprite: 'slime', color: '#43d675' },
@@ -202,8 +251,6 @@ export const LOOT: LootItem[] = [
 
 export const uid = () => Math.random().toString(36).slice(2, 10)
 
-export const levelOf = (xp: number) => Math.floor(xp / XP_PER_LEVEL) + 1
-export const levelProgress = (xp: number) => xp % XP_PER_LEVEL
 
 export function sameDay(a: number, b: number) {
   const da = new Date(a)
@@ -281,6 +328,60 @@ export function goldFor(xp: number): number {
 export function lootById(id?: string): LootItem | undefined {
   return LOOT.find((l) => l.id === id)
 }
+
+// ---------- 전리품 패시브: 모을수록 강해진다 (개당 효과, 상한 있음) ----------
+
+export const LOOT_STACK_CAP = 5
+export const POTION_CONVERT = 5 // 빨간 포션 5개 → XP 포션 1개
+
+export const LOOT_EFFECT: Record<string, string> = {
+  potion: `${POTION_CONVERT}개 모이면 XP 포션으로 변환`,
+  sword: '크리티컬 배율 1.5 → 1.75배',
+  shield: '후퇴할 때 50% 확률로 도망 기록 안 남음',
+  gem: '개당 골드 +5% (최대 +25%)',
+  star: '개당 크리티컬 확률 +3% (최대 +15%)',
+  crown: '개당 XP +5% (최대 +25%)',
+}
+
+export interface LootBonus {
+  critChance: number
+  critMult: number
+  goldMult: number
+  xpMult: number
+  shieldChance: number
+}
+
+export function lootBonus(loot: Record<string, number>): LootBonus {
+  const n = (id: string) => Math.min(loot[id] ?? 0, LOOT_STACK_CAP)
+  return {
+    critChance: n('star') * 0.03,
+    critMult: (loot.sword ?? 0) > 0 ? 0.25 : 0,
+    goldMult: n('gem') * 0.05,
+    xpMult: n('crown') * 0.05,
+    shieldChance: (loot.shield ?? 0) > 0 ? 0.5 : 0,
+  }
+}
+
+// ---------- 소모품 ----------
+
+export interface Consumable {
+  id: string
+  name: string
+  sprite: string
+  cost: number
+  desc: string
+}
+
+export const ITEM_MAX = 5
+export const XP_BOOST_MULT = 1.5
+
+export const CONSUMABLES: Consumable[] = [
+  { id: 'reroll', name: '다시뽑기권', sprite: 'ticket', cost: 30, desc: '퀘스트 뽑기에서 한 번 더 뽑을 수 있다' },
+  { id: 'xppotion', name: 'XP 포션', sprite: 'potion', cost: 40, desc: `사용하면 다음 처치 XP ${XP_BOOST_MULT}배` },
+  { id: 'calm', name: '진정의 향', sprite: 'incense', cost: 45, desc: '광폭한 몹 하나를 진정시킨다 (도망·묵힌 기록 초기화)' },
+]
+
+export const itemCount = (s: { items?: Record<string, number> }, id: string) => s.items?.[id] ?? 0
 
 // ---------- 칭호 / 스트릭 / 펫 ----------
 
@@ -373,10 +474,11 @@ export function heroPalette(s: { heroHair?: string; heroTunic?: string }): Recor
 }
 
 export const THEMES = [
-  { id: 'night', name: '밤하늘' },
-  { id: 'sunset', name: '노을' },
-  { id: 'forest', name: '숲속' },
-  { id: 'dungeon', name: '던전' },
+  { id: 'night', name: '밤하늘', level: 1 },
+  { id: 'sunset', name: '노을', level: 3 },
+  { id: 'forest', name: '숲속', level: 6 },
+  { id: 'dungeon', name: '던전', level: 10 },
+  { id: 'sakura', name: '벚꽃', level: 15 },
 ] as const
 
 // ---------- 직업 / 주간 보스 레이드 ----------
@@ -503,15 +605,16 @@ export interface GearItem {
   cost: number
   slot: string
   desc: string
+  level?: number // 해금 레벨
 }
 
 export const GEAR: GearItem[] = [
   { id: 'g_potion', name: '포션 벨트', sprite: 'potion', cost: 50, slot: 'acc', desc: '허리에 포션을 차고 다닌다' },
   { id: 'g_boots', name: '가벼운 장화', sprite: 'boots', cost: 70, slot: 'feet', desc: '발이 가벼워 보인다' },
   { id: 'g_amulet', name: '행운의 목걸이', sprite: 'amulet', cost: 90, slot: 'acc', desc: '목에 걸면 운이 따를 것 같다' },
-  { id: 'g_armor', name: '가죽 갑옷', sprite: 'armor', cost: 110, slot: 'body', desc: '몸을 든든하게 감싼다' },
+  { id: 'g_armor', name: '가죽 갑옷', sprite: 'armor', cost: 110, slot: 'body', desc: '몸을 든든하게 감싼다', level: 5 },
   { id: 'g_cape', name: '모험가 망토', sprite: 'cape', cost: 130, slot: 'back', desc: '뒷모습이 모험가답다' },
   { id: 'g_wizardhat', name: '뾰족 마법모자', sprite: 'wizardhat', cost: 160, slot: 'head', desc: '쓰면 지혜로워 보인다' },
-  { id: 'g_helmet', name: '기사 투구', sprite: 'helmet', cost: 190, slot: 'head', desc: '묵직한 철 투구' },
-  { id: 'g_crown', name: '황금 왕관', sprite: 'crown', cost: 260, slot: 'head', desc: '진짜 용사의 증표' },
+  { id: 'g_helmet', name: '기사 투구', sprite: 'helmet', cost: 190, slot: 'head', desc: '묵직한 철 투구', level: 12 },
+  { id: 'g_crown', name: '황금 왕관', sprite: 'crown', cost: 260, slot: 'head', desc: '진짜 용사의 증표', level: 15 },
 ]

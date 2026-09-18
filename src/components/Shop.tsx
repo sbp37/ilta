@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import { sfx } from '../sound'
-import { FREEZE_COST, FREEZE_MAX, GEAR, GameState, heroPalette, heroSprite } from '../game'
+import { CONSUMABLES, FREEZE_COST, FREEZE_MAX, GEAR, GameState, ITEM_MAX, heroPalette, heroSprite, itemCount, levelOf } from '../game'
 
 interface Props {
   state: GameState
@@ -12,6 +12,8 @@ interface Props {
   onBuyGear: (id: string) => boolean
   onToggleGear: (id: string) => void
   onBuyFreeze: () => 'nogold' | 'full' | 'ok'
+  onBuyItem: (id: string) => 'nogold' | 'full' | 'ok'
+  onUseXpPotion: () => 'none' | 'already' | 'ok'
   onToast: (msg: string) => void
 }
 
@@ -39,7 +41,19 @@ const SLOT_LABEL: Record<string, string> = {
   feet: '발',
 }
 
-export function Shop({ state, onAddReward, onRemoveReward, onBuy, onBuyGear, onToggleGear, onBuyFreeze, onToast }: Props) {
+export function Shop({
+  state,
+  onAddReward,
+  onRemoveReward,
+  onBuy,
+  onBuyGear,
+  onToggleGear,
+  onBuyFreeze,
+  onBuyItem,
+  onUseXpPotion,
+  onToast,
+}: Props) {
+  const level = levelOf(state.xp)
   const [name, setName] = useState('')
   const [cost, setCost] = useState('')
   const line = useMemo(() => SHOP_LINES[Math.floor(Math.random() * SHOP_LINES.length)], [])
@@ -86,6 +100,33 @@ export function Shop({ state, onAddReward, onRemoveReward, onBuy, onBuyGear, onT
     }
   }
 
+  const buyItem = (id: string, itemName: string) => {
+    const r = onBuyItem(id)
+    if (r === 'ok') {
+      sfx.complete()
+      onToast(`「${itemName}」 구매!`)
+    } else if (r === 'full') {
+      sfx.deny()
+      onToast(`「${itemName}」은 최대 ${ITEM_MAX}개까지만 들 수 있어요`)
+    } else {
+      sfx.deny()
+      onToast('골드가 부족합니다!')
+    }
+  }
+
+  const usePotion = () => {
+    const r = onUseXpPotion()
+    if (r === 'ok') {
+      sfx.levelup()
+      onToast('⚗ XP 포션 사용! 다음 처치 XP 1.5배')
+    } else if (r === 'already') {
+      sfx.deny()
+      onToast('이미 포션이 적용 중이에요. 먼저 하나 처치하세요')
+    } else {
+      sfx.deny()
+    }
+  }
+
   const buyGear = (id: string, gearName: string) => {
     if (onBuyGear(id)) {
       sfx.complete()
@@ -121,8 +162,9 @@ export function Shop({ state, onAddReward, onRemoveReward, onBuy, onBuyGear, onT
           const owned = (state.gear ?? []).includes(g.id)
           const equippedNow = equippedGear.includes(g.id)
           const affordable = state.gold >= g.cost
+          const locked = !owned && (g.level ?? 1) > level
           return (
-            <div key={g.id} className={`pixel-panel gear-card ${equippedNow ? 'gear-equipped' : ''}`}>
+            <div key={g.id} className={`pixel-panel gear-card ${equippedNow ? 'gear-equipped' : ''} ${locked ? 'gear-locked' : ''}`}>
               <div className="gear-sprite">
                 <Pixel name={g.sprite} size={4} />
               </div>
@@ -130,7 +172,11 @@ export function Shop({ state, onAddReward, onRemoveReward, onBuy, onBuyGear, onT
                 {g.name} <span className="gear-slot">{SLOT_LABEL[g.slot] ?? g.slot}</span>
               </div>
               <div className="dim gear-desc">{g.desc}</div>
-              {equippedNow ? (
+              {locked ? (
+                <button className="btn gear-btn" disabled>
+                  🔒 Lv.{g.level} 해금
+                </button>
+              ) : equippedNow ? (
                 <button className="btn btn-go gear-btn" onClick={() => onToggleGear(g.id)}>
                   장착중 ✓
                 </button>
@@ -169,6 +215,35 @@ export function Shop({ state, onAddReward, onRemoveReward, onBuy, onBuyGear, onT
           {FREEZE_COST}G
         </button>
       </div>
+
+      {CONSUMABLES.map((c) => {
+        const have = itemCount(state, c.id)
+        return (
+          <div key={c.id} className="pixel-panel freeze-card">
+            <Pixel name={c.sprite} size={4} />
+            <div className="freeze-body">
+              <div className="gear-name">
+                {c.name} <span className="gear-slot">보유 {have}/{ITEM_MAX}</span>
+              </div>
+              <div className="dim gear-desc">{c.desc}</div>
+            </div>
+            <div className="item-btns">
+              {c.id === 'xppotion' && (have > 0 || state.xpBoost) && (
+                <button className="btn btn-go gear-btn" disabled={!!state.xpBoost} onClick={usePotion}>
+                  {state.xpBoost ? '적용 중' : '사용'}
+                </button>
+              )}
+              <button
+                className="btn btn-gold gear-btn"
+                disabled={state.gold < c.cost || have >= ITEM_MAX}
+                onClick={() => buyItem(c.id, c.name)}
+              >
+                {c.cost}G
+              </button>
+            </div>
+          </div>
+        )
+      })}
 
       <div className="field-label">내 보상 상점 — 일한 나에게 주는 선물</div>
       <div className="pixel-panel form">

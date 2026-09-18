@@ -23,6 +23,8 @@ interface Props {
   onToggleRepeat: (id: string) => void
   onSetStrike: (id: string) => void
   onEdit: (task: Task) => void
+  calmCount: number
+  onCalm: (id: string) => void
 }
 
 export function Pool({
@@ -36,6 +38,8 @@ export function Pool({
   onToggleRepeat,
   onSetStrike,
   onEdit,
+  calmCount,
+  onCalm,
 }: Props) {
   const [title, setTitle] = useState('')
   const [difficulty, setDifficulty] = useState<Difficulty>('slime')
@@ -199,6 +203,18 @@ export function Pool({
                   {t.cost && <span className="cost-tag">안 하면: {t.cost}</span>}
                 </div>
               </div>
+              {mad && calmCount > 0 && (
+                <button
+                  className="icon-btn calm-btn"
+                  title={`진정의 향 사용 (${calmCount}개) — 광폭 해제`}
+                  onClick={() => {
+                    sfx.accept()
+                    onCalm(t.id)
+                  }}
+                >
+                  ✿
+                </button>
+              )}
               <button
                 className="icon-btn"
                 title="수정"

@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import { sfx } from '../sound'
-import { ActiveQuest, DAILY_GOAL, MAX_ACTIVE, MONSTER_NAMES, Task, monsterOf, raidBoss } from '../game'
+import { ActiveQuest, DAILY_GOAL, MONSTER_NAMES, Task, monsterOf, raidBoss } from '../game'
 import { QuestCard } from './QuestCard'
 
 interface Props {
   active: ActiveQuest[]
+  maxActive: number
   poolSize: number
   doneToday: number
   strikeTask?: Task
@@ -80,6 +81,7 @@ function EmptySlot({ onQuickAdd }: { onQuickAdd: (title: string) => void }) {
 
 export function QuestBoard({
   active,
+  maxActive,
   poolSize,
   doneToday,
   strikeTask,
@@ -101,7 +103,7 @@ export function QuestBoard({
   raid,
   onReview,
 }: Props) {
-  const emptySlots = MAX_ACTIVE - active.length
+  const emptySlots = Math.max(0, maxActive - active.length)
   const goalDone = doneToday >= DAILY_GOAL
 
   return (

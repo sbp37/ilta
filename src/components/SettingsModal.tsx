@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { sfx } from '../sound'
-import { GameState, THEMES } from '../game'
+import { GameState, THEMES, levelOf } from '../game'
 
 interface Props {
   state: GameState
@@ -15,6 +15,7 @@ interface Props {
 export function SettingsModal({ state, onExport, onImport, onTheme, onNotif, onToast, onClose }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const theme = state.theme ?? 'night'
+  const level = levelOf(state.xp)
 
   const download = () => {
     const blob = new Blob([onExport()], { type: 'application/json' })
@@ -71,18 +72,28 @@ export function SettingsModal({ state, onExport, onImport, onTheme, onNotif, onT
 
         <div className="field-label">배경 테마</div>
         <div className="chip-row">
-          {THEMES.map((t) => (
-            <button
-              key={t.id}
-              className={`chip ${theme === t.id ? 'chip-on' : ''}`}
-              onClick={() => {
-                sfx.click()
-                onTheme(t.id)
-              }}
-            >
-              {t.name}
-            </button>
-          ))}
+          {THEMES.map((t) => {
+            const locked = t.level > level
+            return (
+              <button
+                key={t.id}
+                className={`chip ${theme === t.id ? 'chip-on' : ''} ${locked ? 'chip-locked' : ''}`}
+                title={locked ? `Lv.${t.level}에 해금` : undefined}
+                onClick={() => {
+                  if (locked) {
+                    sfx.deny()
+                    onToast(`「${t.name}」 테마는 Lv.${t.level}에 열려요`)
+                    return
+                  }
+                  sfx.click()
+                  onTheme(t.id)
+                }}
+              >
+                {locked ? '🔒 ' : ''}
+                {t.name}
+              </button>
+            )
+          })}
         </div>
 
         <div className="field-label">알림</div>

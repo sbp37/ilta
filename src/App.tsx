@@ -7,17 +7,20 @@ import {
   DAILY_GOAL,
   DAILY_GOAL_BONUS,
   LOOT,
-  MAX_ACTIVE,
   STARTER_BONUS_XP,
   STRIKE_BONUS,
   Task,
   enragedSet,
   heroPalette,
   heroSprite,
+  itemCount,
+  levelOf,
   monsterOf,
   sameDay,
+  slotsFor,
   timerLeft,
   todayKey,
+  unlocksAt,
 } from './game'
 import { TitleScreen } from './components/TitleScreen'
 import { PetModal } from './components/PetModal'
@@ -90,6 +93,10 @@ export default function App() {
     buyGear,
     toggleGear,
     buyFreeze,
+    buyItem,
+    consumeItem,
+    useXpPotion,
+    useCalm,
     feedPet,
     setPetName,
     setStrike,
@@ -181,8 +188,10 @@ export default function App() {
       if (result.combo === DAILY_GOAL) bonusXp(DAILY_GOAL_BONUS)
       // 모멘텀: 수집함에 남은 게 있고 슬롯에 자리가 있으면 바로 다음 뽑기 제안 + 잘못 눌렀으면 되돌리기
       const actions: ToastAction[] = [undoAction()]
-      if (state.pool.length > 0 && state.active.length < MAX_ACTIVE)
+      if (state.pool.length > 0 && state.active.length < slotsFor(levelOf(state.xp)))
         actions.push({ label: '다음 뽑기 →', fn: () => setDrawing(true) })
+      const boostText = result.boosted ? '⚗포션 ' : ''
+      const potionText = result.potionsConverted ? ' · 빨간 포션 5개 → XP 포션!' : ''
       // 오늘의 일격 처치 → 대축하 + 보너스
       const isStrike = state.strike?.day === todayKey() && state.strike.id === id
       if (isStrike) {
@@ -199,19 +208,26 @@ export default function App() {
       if (result.leveledUp) {
         sfx.levelup()
         setFlash((f) => f + 1)
-        showToast(`${strikeText}LEVEL UP! ${critText}+${result.xp}XP +${result.gold}G${goalBonus}${raidText}`, actions, 5000)
+        const unlockText = unlocksAt(result.newLevel)
+          .map((u) => ` · 🔓 ${u}`)
+          .join('')
+        showToast(
+          `${strikeText}LEVEL UP! Lv.${result.newLevel} (+${result.levelGold}G) ${boostText}${critText}+${result.xp}XP +${result.gold}G${goalBonus}${raidText}${potionText}${unlockText}`,
+          actions,
+          unlockText ? 8000 : 5000,
+        )
       } else {
         sfx.complete()
         showToast(
-          `${strikeText}${critText}처치 완료! +${result.xp}XP +${result.gold}G${
+          `${strikeText}${boostText}${critText}처치 완료! +${result.xp}XP +${result.gold}G${
             result.combo > 1 ? ` · x${result.combo} 콤보!` : ''
-          }${result.lootName ? ` · 「${result.lootName}」` : ''}${goalBonus}${raidText}`,
+          }${result.lootName ? ` · 「${result.lootName}」` : ''}${goalBonus}${raidText}${potionText}`,
           actions,
           5000,
         )
       }
     },
-    [complete, showToast, bonusXp, undoAction, state.pool.length, state.active.length],
+    [complete, showToast, bonusXp, undoAction, state.pool.length, state.active.length, state.xp],
   )
 
   const handleStarter = useCallback((quest: ActiveQuest) => {
@@ -292,7 +308,7 @@ export default function App() {
   useEffect(() => {
     if (!started || encounterShown.current) return
     encounterShown.current = true
-    if (state.pool.length === 0 || state.active.length >= MAX_ACTIVE) return
+    if (state.pool.length === 0 || state.active.length >= slotsFor(levelOf(state.xp))) return
     if (Math.random() > 0.45) return
     const t = setTimeout(() => {
       const madIds = enragedSet(state.pool)
@@ -332,6 +348,7 @@ export default function App() {
   }
 
   const doneToday = state.done.filter((d) => sameDay(d.completedAt, Date.now())).length
+  const maxActive = slotsFor(levelOf(state.xp))
 
   // 광폭 표시는 심각한 순으로 최대 3마리까지만 (전부 빨개지면 경고가 무뎌짐)
   const enragedIds = enragedSet([...state.pool, ...state.active])
@@ -419,6 +436,7 @@ export default function App() {
         {tab === 'quest' && (
           <QuestBoard
             active={state.active}
+            maxActive={maxActive}
             poolSize={state.pool.length}
             doneToday={doneToday}
             strikeTask={strikeTask}
@@ -429,8 +447,8 @@ export default function App() {
             onStarter={handleStarter}
             onFight={handleFight}
             onAbandon={(id) => {
-              abandon(id)
-              showToast('퀘스트를 수집함으로 되돌렸습니다.')
+              const r = abandon(id)
+              showToast(r === 'shielded' ? '🛡 나무 방패가 막아줬다! 도망 기록 없이 수집함으로' : '퀘스트를 수집함으로 되돌렸습니다.')
             }}
             onQuickAdd={handleQuickAdd}
             onAcceptStrike={(id) => {
@@ -458,6 +476,10 @@ export default function App() {
             onAdd={addTask}
             onRemove={handleRemove}
             onEdit={setEditing}
+            calmCount={itemCount(state, 'calm')}
+            onCalm={(id) => {
+              if (useCalm(id)) showToast('✿ 진정의 향을 피웠다… 몬스터가 차분해졌다')
+            }}
             onMove={move}
             onToggleUrgent={toggleUrgent}
             onToggleRepeat={toggleRepeat}
@@ -476,6 +498,8 @@ export default function App() {
             onBuyGear={buyGear}
             onToggleGear={toggleGear}
             onBuyFreeze={buyFreeze}
+            onBuyItem={buyItem}
+            onUseXpPotion={useXpPotion}
             onToast={showToast}
           />
         )}
@@ -591,8 +615,11 @@ export default function App() {
       {drawing && (
         <DrawModal
           pool={state.pool}
-          activeFull={state.active.length >= MAX_ACTIVE}
+          activeFull={state.active.length >= maxActive}
+          maxActive={maxActive}
           enragedIds={enragedIds}
+          tickets={itemCount(state, 'reroll')}
+          onUseTicket={() => consumeItem('reroll')}
           onAccept={accept}
           onClose={() => setDrawing(false)}
         />
@@ -608,8 +635,8 @@ export default function App() {
           onCancel={() => {
             // 도망치기 = 후퇴 처리 (도망 기록 남음)
             setTimer(null)
-            abandon(timer.questId)
-            showToast('도망쳤다! 몬스터는 수집함에서 기다리고 있습니다…')
+            const r = abandon(timer.questId)
+            showToast(r === 'shielded' ? '🛡 나무 방패 덕에 도망 기록은 안 남았다!' : '도망쳤다! 몬스터는 수집함에서 기다리고 있습니다…')
           }}
         />
       )}
