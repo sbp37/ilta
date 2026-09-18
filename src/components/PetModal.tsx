@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Pixel } from '../Pixel'
 import { sfx } from '../sound'
-import { GameState, PET_FEED_COST, petStage } from '../game'
+import { GameState, PET_FEED_COST, PET_MOOD_LABEL, petMood, petStage } from '../game'
 
 interface Props {
   state: GameState
@@ -44,8 +44,9 @@ export function PetModal({ state, onFeed, onRename, onToast, onClose }: Props) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal pixel-panel pet-modal" onClick={(e) => e.stopPropagation()}>
-        <Pixel name={stage.sprite} size={6} className="bob" />
+        <Pixel name={stage.sprite} size={6} className={petMood(state) === 'sleeping' ? '' : 'bob'} />
         <div className="reveal-title">{displayName}</div>
+        <div className="pet-mood-line">{PET_MOOD_LABEL[petMood(state)]}</div>
         <div className="dim">단계: {stage.name} · 먹인 끼니 {state.petFood}개</div>
 
         {toNext !== null ? (

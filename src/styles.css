@@ -339,6 +339,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 2px;
+  position: relative;
 }
 
 .pet-name {
@@ -1626,4 +1627,125 @@ body[data-theme='dungeon'] {
   .tab-bar {
     padding-bottom: max(10px, env(safe-area-inset-bottom));
   }
+}
+
+/* ---------- 용사 합성 스프라이트 (장비 착용) ---------- */
+
+.hero-sprite {
+  position: relative;
+}
+
+.equip-slot {
+  position: absolute;
+  pointer-events: none;
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.6));
+}
+
+/* ---------- 펫 상태 ---------- */
+
+.pet-alert {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  background: var(--red);
+  color: #fff;
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+  border: 2px solid var(--ink);
+  animation: blink 0.8s steps(2) infinite;
+}
+
+.pet-zzz {
+  position: absolute;
+  top: -6px;
+  right: -2px;
+  color: var(--dim);
+  font-size: 11px;
+  animation: bob 2s steps(2) infinite;
+}
+
+.pet-mood-line {
+  font-size: 13px;
+  color: var(--gold);
+  margin: 4px 0;
+}
+
+/* ---------- 몬스터 도감 ---------- */
+
+.dex-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.dex-cell {
+  background: var(--panel);
+  border: 3px solid var(--ink);
+  padding: 8px 4px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.dex-locked .pixel-sprite {
+  filter: brightness(0);
+  opacity: 0.45;
+}
+
+.dex-name {
+  font-size: 10px;
+  color: var(--dim);
+  text-align: center;
+}
+
+.dex-cell:not(.dex-locked) .dex-name {
+  color: var(--text);
+}
+
+.dex-count {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 9px;
+  color: var(--gold);
+}
+
+/* ---------- 공유 버튼 행 ---------- */
+
+.share-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.share-row .share-btn {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* ---------- PWA 설치 배너 ---------- */
+
+.install-banner {
+  position: fixed;
+  bottom: 74px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(440px, calc(100% - 24px));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  z-index: 35;
+  animation: pop-in 0.2s steps(4);
+}
+
+.install-banner span {
+  flex: 1;
 }

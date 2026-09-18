@@ -61,6 +61,7 @@ export interface GameState {
   heroTunic?: string
   petFood: number
   petName?: string
+  petFedAt?: number
   strike?: { id: string; day: string }
   theme?: string
   notif?: boolean
@@ -91,6 +92,24 @@ export function randomMonster(d: Difficulty): string {
 export function monsterOf(t: { monster?: string; difficulty: Difficulty }): string {
   return t.monster ?? DIFF[t.difficulty].sprite
 }
+
+// 몬스터 도감 이름표
+export const MONSTER_NAMES: Record<string, string> = {
+  slime: '슬라임',
+  mushroom: '독버섯',
+  ghost: '유령',
+  blueslime: '블루슬라임',
+  imp: '임프',
+  skeleton: '스켈레톤',
+  witch: '마녀',
+  demon: '데몬',
+  dragon: '드래곤',
+  lich: '리치',
+  golem: '골렘',
+  mimic: '미믹',
+}
+
+export const ALL_MONSTERS: string[] = [...MONSTERS.slime, ...MONSTERS.elite, ...MONSTERS.boss]
 
 export const DAILY_GOAL = 3
 export const DAILY_GOAL_BONUS = 20
@@ -315,4 +334,24 @@ export function petStage(food: number): { name: string; sprite: string; next: nu
   if (food >= 6) return { name: '슬라임', sprite: 'slime', next: 15 }
   if (food >= 2) return { name: '아기 슬라임', sprite: 'babyslime', next: 6 }
   return { name: '알', sprite: 'egg', next: 2 }
+}
+
+// 펫 컨디션: 새벽엔 자고, 오래 안 먹이면 배고픔
+export type PetMood = 'sleeping' | 'hungry' | 'full' | 'ok'
+
+export function petMood(s: { petFedAt?: number }, now = Date.now()): PetMood {
+  const h = new Date(now).getHours()
+  if (h >= 0 && h < 7) return 'sleeping'
+  if (!s.petFedAt) return 'ok'
+  const ago = now - s.petFedAt
+  if (ago > 24 * 3600_000) return 'hungry'
+  if (ago < 6 * 3600_000) return 'full'
+  return 'ok'
+}
+
+export const PET_MOOD_LABEL: Record<PetMood, string> = {
+  sleeping: '자는 중 💤',
+  hungry: '배고파한다…',
+  full: '배부르다!',
+  ok: '심심해한다',
 }

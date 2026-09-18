@@ -1,5 +1,17 @@
 import { Pixel } from '../Pixel'
-import { DoneQuest, LOOT, GameState, lootById, monsterOf, streakDays, weekCounts } from '../game'
+import { sfx } from '../sound'
+import { shareCard } from '../shareCard'
+import {
+  ALL_MONSTERS,
+  DoneQuest,
+  LOOT,
+  GameState,
+  MONSTER_NAMES,
+  lootById,
+  monsterOf,
+  streakDays,
+  weekCounts,
+} from '../game'
 
 function dayKey(ts: number) {
   const d = new Date(ts)
@@ -28,6 +40,22 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
     .sort((a, b) => (b.retreats ?? 0) - (a.retreats ?? 0))
     .slice(0, 3)
 
+  // 몬스터 도감: 처치 수 집계
+  const kills: Record<string, number> = {}
+  for (const d of state.done) {
+    const m = monsterOf(d)
+    kills[m] = (kills[m] ?? 0) + 1
+  }
+  const dexCount = ALL_MONSTERS.filter((m) => (kills[m] ?? 0) > 0).length
+
+  const makeCard = async () => {
+    sfx.draw()
+    const res = await shareCard(state)
+    if (res === 'shared') onToast('카드를 공유했어요!')
+    else if (res === 'downloaded') onToast('전적 카드를 저장했어요')
+    else onToast('카드 공유가 취소됐어요')
+  }
+
   return (
     <div className="journal">
       <div className="pixel-panel stats-row">
@@ -49,9 +77,13 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
         </div>
       </div>
 
-      <button
-        className="btn btn-sub share-btn"
-        onClick={() => {
+      <div className="share-row">
+        <button className="btn btn-sub share-btn" onClick={makeCard}>
+          🖼 전적 카드 공유
+        </button>
+        <button
+          className="btn btn-sub share-btn"
+          onClick={() => {
           const today = state.done.filter((d) => dayKey(d.completedAt) === dayKey(Date.now())).length
           const text = `⚔ 일타 전적\n오늘 ${today}몹 처치 | 총 ${state.done.length}처치 | 보스 ${bossKills} | 🔥${streak}일 연속 | ${state.gold}G`
           navigator.clipboard
@@ -60,8 +92,9 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
             .catch(() => onToast('복사 실패…'))
         }}
       >
-        전적 복사하기
-      </button>
+          전적 복사하기
+        </button>
+      </div>
 
       <div className="pixel-panel week-chart">
         <div className="field-label">최근 7일</div>
@@ -99,6 +132,22 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
             <div key={l.id} className={`loot-cell ${count === 0 ? 'loot-locked' : ''}`} title={l.name}>
               <Pixel name={l.sprite} size={3} />
               {count > 1 && <span className="loot-count">x{count}</span>}
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="field-label">
+        몬스터 도감 <span className="dim">{dexCount}/{ALL_MONSTERS.length} 수집</span>
+      </div>
+      <div className="dex-grid">
+        {ALL_MONSTERS.map((m) => {
+          const n = kills[m] ?? 0
+          return (
+            <div key={m} className={`dex-cell ${n === 0 ? 'dex-locked' : ''}`} title={n > 0 ? `${n}마리 처치` : '미발견'}>
+              <Pixel name={m} size={3} />
+              <div className="dex-name">{n > 0 ? MONSTER_NAMES[m] : '???'}</div>
+              {n > 1 && <div className="dex-count">x{n}</div>}
             </div>
           )
         })}

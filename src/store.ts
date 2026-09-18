@@ -275,7 +275,7 @@ export function useGame() {
       const before = petStage(s.petFood).name
       const food = s.petFood + 1
       res = petStage(food).name !== before ? 'evolved' : 'fed'
-      return { ...s, gold: s.gold - PET_FEED_COST, petFood: food }
+      return { ...s, gold: s.gold - PET_FEED_COST, petFood: food, petFedAt: Date.now() }
     })
     return res
   }, [])

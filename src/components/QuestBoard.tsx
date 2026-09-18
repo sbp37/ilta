@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Pixel } from '../Pixel'
+import { Hero } from './Hero'
 import { sfx } from '../sound'
 import { ActiveQuest, DAILY_GOAL, MAX_ACTIVE, Task, monsterOf } from '../game'
 import { QuestCard } from './QuestCard'
@@ -20,6 +21,7 @@ interface Props {
   onAddSub: (id: string, title: string) => void
   onToggleSub: (id: string, subId: string) => void
   heroPal?: Record<string, string>
+  equipped?: string[]
 }
 
 function EmptySlot({ onQuickAdd }: { onQuickAdd: (title: string) => void }) {
@@ -87,6 +89,7 @@ export function QuestBoard({
   onAddSub,
   onToggleSub,
   heroPal,
+  equipped,
 }: Props) {
   const emptySlots = MAX_ACTIVE - active.length
   const goalDone = doneToday >= DAILY_GOAL
@@ -130,7 +133,7 @@ export function QuestBoard({
       {active.length === 0 && (
         <div className="empty-scene">
           <div className="camp-scene">
-            <Pixel name="knight" size={3} className="bob" palette={heroPal} />
+            <Hero size={3} className="bob" palette={heroPal} equipped={equipped} />
             <Pixel name="campfire" size={4} className="flicker" />
             <Pixel name="slime" size={3} className="bob delay1" />
           </div>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Pixel } from '../Pixel'
+import { Hero } from './Hero'
 import { sfx } from '../sound'
 import { Task, drawWeight, monsterOf } from '../game'
 
@@ -8,11 +9,12 @@ interface Props {
   pool: Task[]
   strikeSet: boolean
   heroPal?: Record<string, string>
+  equipped?: string[]
   onStart: (name?: string) => void
   onPickStrike: (id: string) => void
 }
 
-export function TitleScreen({ heroName, pool, strikeSet, heroPal, onStart, onPickStrike }: Props) {
+export function TitleScreen({ heroName, pool, strikeSet, heroPal, equipped, onStart, onPickStrike }: Props) {
   const [name, setName] = useState(heroName ?? '')
   const [phase, setPhase] = useState<'title' | 'ritual'>('title')
   const needsName = !heroName
@@ -78,7 +80,7 @@ export function TitleScreen({ heroName, pool, strikeSet, heroPal, onStart, onPic
         <Pixel name="mushroom" size={4} className="bob" />
         <Pixel name="skeleton" size={4} className="bob delay1" />
         <Pixel name="campfire" size={5} className="flicker" />
-        <Pixel name="knight" size={4} className="bob delay2" palette={heroPal} />
+        <Hero size={4} className="bob delay2" palette={heroPal} equipped={equipped} />
         <Pixel name="demon" size={4} className="bob delay3" />
       </div>
 

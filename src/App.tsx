@@ -6,6 +6,7 @@ import {
   ActiveQuest,
   DAILY_GOAL,
   DAILY_GOAL_BONUS,
+  LOOT,
   MAX_ACTIVE,
   STARTER_BONUS_XP,
   STRIKE_BONUS,
@@ -70,7 +71,19 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [encounter, setEncounter] = useState<Task | null>(null)
   const [muted, setMuted] = useState(isMuted())
+  const [installEvt, setInstallEvt] = useState<Event | null>(null)
   const encounterShown = useRef(false)
+
+  // PWA 설치 유도 — 브라우저가 설치 가능하다고 알려주면 배너 표시
+  useEffect(() => {
+    if (localStorage.getItem('ilta-install-dismissed') === '1') return
+    const handler = (e: Event) => {
+      e.preventDefault()
+      setInstallEvt(e)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
   const [tab, setTab] = useState<Tab>('quest')
   const [drawing, setDrawing] = useState(false)
   const [timer, setTimer] = useState<TimerState | null>(null)
@@ -218,6 +231,12 @@ export default function App() {
 
   const doneToday = state.done.filter((d) => sameDay(d.completedAt, Date.now())).length
 
+  // 장착 장비 — Hero 스프라이트에 실제로 붙는 전리품 (레어순 3개)
+  const equippedIds = LOOT.filter((l) => (state.loot[l.id] ?? 0) > 0)
+    .sort((a, b) => b.rarity - a.rarity)
+    .slice(0, 3)
+    .map((l) => l.id)
+
   // 오늘의 일격: 오늘 지정된 게 있고 아직 수집함/슬롯에 살아있으면 표시
   const strikeSet = state.strike?.day === todayKey()
   const strikeTask = strikeSet
@@ -234,6 +253,7 @@ export default function App() {
           pool={state.pool}
           strikeSet={!!strikeSet}
           heroPal={heroPalette(state)}
+          equipped={equippedIds}
           onStart={(name) => {
             if (name) setHeroName(name)
             setStarted(true)
@@ -309,6 +329,7 @@ export default function App() {
             onAddSub={addSub}
             onToggleSub={handleToggleSub}
             heroPal={heroPalette(state)}
+            equipped={equippedIds}
           />
         )}
         {tab === 'pool' && (
@@ -450,6 +471,31 @@ export default function App() {
             showToast('도망쳤다! 몬스터는 수집함에서 기다리고 있습니다…')
           }}
         />
+      )}
+
+      {installEvt && (
+        <div className="install-banner pixel-panel">
+          <span>홈화면에 ILTA를 설치할 수 있어요</span>
+          <button
+            className="btn btn-go"
+            onClick={() => {
+              ;(installEvt as { prompt?: () => Promise<unknown> }).prompt?.()
+              setInstallEvt(null)
+              localStorage.setItem('ilta-install-dismissed', '1')
+            }}
+          >
+            설치
+          </button>
+          <button
+            className="icon-btn"
+            onClick={() => {
+              setInstallEvt(null)
+              localStorage.setItem('ilta-install-dismissed', '1')
+            }}
+          >
+            ×
+          </button>
+        </div>
       )}
 
       {toast && (
