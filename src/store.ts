@@ -15,6 +15,7 @@ import {
   POTION_CONVERT,
   RAID_MAX_HP,
   RAID_REWARD,
+  SAVE_VERSION,
   Task,
   XP_BOOST_MULT,
   applyFreezes,
@@ -26,6 +27,7 @@ import {
   lootById,
   petStage,
   slotsFor,
+  xpAtLevel,
   randomMonster,
   rollLoot,
   sameDay,
@@ -38,6 +40,7 @@ import {
 const KEY = 'quest-do-save-v1'
 
 const empty: GameState = {
+  version: SAVE_VERSION,
   pool: [],
   active: [],
   done: [],
@@ -49,12 +52,28 @@ const empty: GameState = {
   petFood: 0,
 }
 
+// 저장 데이터 마이그레이션. 오래된 세이브를 현재 스키마로 올린다.
+export function migrate(saved: GameState): GameState {
+  // 버전은 반드시 저장된 값에서 읽는다. empty 의 기본값을 먼저 펼치면
+  // 버전 없던 옛 세이브가 최신으로 오인돼 마이그레이션이 건너뛰어진다.
+  const from = saved.version ?? 1
+  let s: GameState = { ...empty, ...saved, version: from }
+  // v1 → v2: 레벨 커브가 "레벨당 100XP 고정"에서 "5레벨 이후 +20XP씩"으로
+  // 바뀌면서 같은 XP의 레벨이 내려감. 기존 레벨을 유지하도록 XP를 채워준다.
+  if (from < 2) {
+    const oldLevel = Math.floor(s.xp / 100) + 1
+    const need = xpAtLevel(oldLevel)
+    if (s.xp < need) s = { ...s, xp: need }
+    s = { ...s, version: 2 }
+  }
+  return { ...s, version: SAVE_VERSION }
+}
+
 function load(): GameState {
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return empty
-    const parsed = JSON.parse(raw) as GameState
-    return { ...empty, ...parsed }
+    return migrate(JSON.parse(raw) as GameState)
   } catch {
     return empty
   }
@@ -502,7 +521,7 @@ export function useGame() {
       const parsed = JSON.parse(text)
       const data = (parsed?.data ?? parsed) as GameState
       if (!Array.isArray(data.pool) || !Array.isArray(data.done) || !Array.isArray(data.active)) return false
-      setState({ ...empty, ...data })
+      setState(migrate(data))
       return true
     } catch {
       return false

@@ -48,7 +48,10 @@ export interface Purchase {
   at: number
 }
 
+export const SAVE_VERSION = 2
+
 export interface GameState {
+  version?: number // 저장 데이터 스키마 버전 (없으면 1)
   pool: Task[]
   active: ActiveQuest[]
   done: DoneQuest[]
@@ -105,6 +108,13 @@ export function levelProgress(xp: number): { cur: number; need: number } {
     level++
   }
   return { cur: rest, need: xpNeed(level) }
+}
+
+// 해당 레벨에 도달하는 데 필요한 누적 XP (마이그레이션·테스트용)
+export function xpAtLevel(level: number): number {
+  let total = 0
+  for (let l = 1; l < level; l++) total += xpNeed(l)
+  return total
 }
 
 // 레벨업 축하 골드 = 새 레벨 × 10
@@ -493,12 +503,16 @@ export const RAID_MAX_HP = 300
 export const RAID_REWARD = 100
 const RAID_BOSSES = ['dragon', 'golem', 'lich', 'mimic', 'demon']
 
-// ISO-ish 주차 키 (같은 주면 같은 키)
+// 주차 키 — 그 주 월요일 날짜로 만든다. 월요일 0시에만 바뀌므로
+// 연말이나 서머타임에 주가 엉키지 않는다. (이전 방식은 1월 1일의 요일에
+// 따라 주 경계가 수·금 등으로 밀려서 주간 보스가 엉뚱한 날 초기화됐다)
 export function weekKey(now = Date.now()): string {
   const d = new Date(now)
-  const jan1 = new Date(d.getFullYear(), 0, 1)
-  const week = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7)
-  return `${d.getFullYear()}-W${week}`
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)) // 월요일로 이동
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-W${mm}${dd}`
 }
 
 export function raidBoss(key: string): string {

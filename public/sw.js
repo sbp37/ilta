@@ -1,9 +1,9 @@
-const CACHE = 'ilta-v2'
+const CACHE = 'ilta-v3'
 
 self.addEventListener('install', (e) => {
   // 앱이 배포된 실제 경로(예: /ilta/)를 캐시 — 루트가 아닐 수 있음
   const base = new URL('./', self.location.href).pathname
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll([base])))
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll([base, base + 'fonts/neodgm.woff2'])))
   self.skipWaiting()
 })
 

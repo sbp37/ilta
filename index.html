@@ -7,16 +7,26 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="ILTA" />
     <title>ILTA — 일타 · 할일 처치 RPG</title>
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/neodgm/neodgm-webfont@1.530/neodgm/style.css" />
+    <link rel="preload" href="./fonts/neodgm.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      /* 한글 픽셀 폰트 동봉 — CDN이 느리거나 막혀도, 오프라인에서도 글꼴 유지 */
+      @font-face {
+        font-family: 'NeoDunggeunmo';
+        font-weight: normal;
+        font-style: normal;
+        font-display: block;
+        src: url('./fonts/neodgm.woff2') format('woff2');
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>
