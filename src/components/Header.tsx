@@ -7,6 +7,7 @@ import {
   PET_MOOD_LABEL,
   XP_PER_LEVEL,
   heroPalette,
+  heroSprite,
   levelOf,
   levelProgress,
   petMood,
@@ -32,10 +33,12 @@ export function Header({
   const pet = petStage(state.petFood)
   const mood = petMood(state)
 
-  // 보유 전리품 = 장비 (레어 높은 순 최대 3개)
-  const equipped = LOOT.filter((l) => (state.loot[l.id] ?? 0) > 0)
+  // 장착 장비(상점) 우선 + 보유 전리품 (레어 높은 순 최대 3개)
+  const lootEquip = LOOT.filter((l) => (state.loot[l.id] ?? 0) > 0)
     .sort((a, b) => b.rarity - a.rarity)
     .slice(0, 3)
+  const equipped = [...(state.equippedGear ?? []), ...lootEquip.map((l) => l.id)]
+  const displayLoot = LOOT.filter((l) => equipped.includes(l.id)).slice(0, 3)
 
   return (
     <header className="header">
@@ -44,13 +47,14 @@ export function Header({
           <Hero
             size={3}
             palette={heroPalette(state)}
-            equipped={equipped.map((l) => l.id)}
+            equipped={equipped}
+            variant={heroSprite(state.heroClass)}
             className="bob"
           />
         </button>
-        {equipped.length > 0 && (
+        {displayLoot.length > 0 && (
           <div className="equip-row" title="획득한 전리품이 장비가 됩니다">
-            {equipped.map((l) => (
+            {displayLoot.map((l) => (
               <Pixel key={l.id} name={l.sprite} size={2} />
             ))}
           </div>

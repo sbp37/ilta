@@ -2,7 +2,9 @@ import { SPRITES } from './sprites'
 import {
   GameState,
   LOOT,
+  equipOverlays,
   heroPalette,
+  heroSprite,
   levelOf,
   monsterOf,
   petStage,
@@ -78,24 +80,19 @@ export async function makeShareCard(state: GameState): Promise<Blob | null> {
   ctx.font = '14px "NeoDunggeunmo", monospace'
   ctx.fillText('할 일 처치 RPG', 320, 88)
 
-  // 용사 (장비 포함 최대 3개)
+  // 용사 (직업 변형 + 장착 장비)
   const hx = 90
   const hy = 120
-  drawSprite(ctx, 'knight', hx, hy, PX, heroPalette(state))
-  const equipped = LOOT.filter((l) => (state.loot[l.id] ?? 0) > 0)
-    .sort((a, b) => b.rarity - a.rarity)
-    .slice(0, 3)
-  const EQUIP_POS: Record<string, { x: number; y: number }> = {
-    crown: { x: 2, y: -2 },
-    sword: { x: 9, y: 5 },
-    shield: { x: -3, y: 6 },
-    gem: { x: 4, y: 8 },
-    star: { x: 10, y: -3 },
-    potion: { x: -1, y: 10 },
-  }
-  for (const item of equipped) {
-    const pos = EQUIP_POS[item.id]
-    if (pos) drawSprite(ctx, item.sprite, hx + pos.x * PX, hy + pos.y * PX, PX)
+  drawSprite(ctx, heroSprite(state.heroClass), hx, hy, PX, heroPalette(state))
+  const equipped = [
+    ...(state.equippedGear ?? []),
+    ...LOOT.filter((l) => (state.loot[l.id] ?? 0) > 0)
+      .sort((a, b) => b.rarity - a.rarity)
+      .slice(0, 3)
+      .map((l) => l.id),
+  ]
+  for (const e of equipOverlays(equipped)) {
+    drawSprite(ctx, e.sprite, hx + e.x * PX, hy + e.y * PX, PX)
   }
 
   // 가장 강한 처치 몬스터 (보스 > 정예 > 잡몹, 최근 우선)

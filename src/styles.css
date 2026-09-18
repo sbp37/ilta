@@ -1874,3 +1874,92 @@ body[data-theme='dungeon'] {
   gap: 4px;
   margin-bottom: 12px;
 }
+
+/* ---------- 상점 리디자인 ---------- */
+
+.shopkeeper {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.shopkeeper .bubble {
+  flex: 1;
+  margin-bottom: 6px;
+}
+
+.shop-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 60px;
+}
+
+.shop-hero .dim {
+  font-size: 10px;
+}
+
+.shop-gold-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.gear-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.gear-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.gear-sprite {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+}
+
+.gear-name {
+  font-size: 13px;
+}
+
+.gear-slot {
+  font-size: 10px;
+  color: var(--dim);
+  border: 1px solid var(--dim);
+  padding: 0 4px;
+  margin-left: 2px;
+}
+
+.gear-desc {
+  font-size: 11px;
+  min-height: 14px;
+}
+
+.gear-btn {
+  width: 100%;
+  font-size: 12px;
+  padding: 6px 0;
+}
+
+.gear-equipped {
+  border-color: var(--gold);
+}
+
+@media (max-width: 420px) {
+  .gear-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

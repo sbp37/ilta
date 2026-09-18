@@ -22,6 +22,7 @@ interface Props {
   onToggleSub: (id: string, subId: string) => void
   heroPal?: Record<string, string>
   equipped?: string[]
+  heroVariant?: string
   raid?: { key: string; hp: number; max: number }
   onReview: () => void
 }
@@ -92,6 +93,7 @@ export function QuestBoard({
   onToggleSub,
   heroPal,
   equipped,
+  heroVariant,
   raid,
   onReview,
 }: Props) {
@@ -164,7 +166,7 @@ export function QuestBoard({
       {active.length === 0 && (
         <div className="empty-scene">
           <div className="camp-scene">
-            <Hero size={3} className="bob" palette={heroPal} equipped={equipped} />
+            <Hero size={3} className="bob" palette={heroPal} equipped={equipped} variant={heroVariant} />
             <Pixel name="campfire" size={4} className="flicker" />
             <Pixel name="slime" size={3} className="bob delay1" />
           </div>

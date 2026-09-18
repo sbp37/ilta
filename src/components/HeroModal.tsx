@@ -1,7 +1,7 @@
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import { sfx } from '../sound'
-import { CLASSES, GameState, HERO_HAIRS, HERO_TUNICS, HeroClass, LOOT } from '../game'
+import { CLASSES, GameState, HERO_HAIRS, HERO_TUNICS, HeroClass, LOOT, heroSprite } from '../game'
 
 interface Props {
   state: GameState
@@ -13,17 +13,20 @@ interface Props {
 export function HeroModal({ state, onLook, onClass, onClose }: Props) {
   const hair = state.heroHair ?? HERO_HAIRS[0].color
   const tunic = state.heroTunic ?? HERO_TUNICS[0].color
-  const equipped = LOOT.filter((l) => (state.loot[l.id] ?? 0) > 0)
-    .sort((a, b) => b.rarity - a.rarity)
-    .slice(0, 3)
-    .map((l) => l.id)
+  const equipped = [
+    ...(state.equippedGear ?? []),
+    ...LOOT.filter((l) => (state.loot[l.id] ?? 0) > 0)
+      .sort((a, b) => b.rarity - a.rarity)
+      .slice(0, 3)
+      .map((l) => l.id),
+  ]
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal pixel-panel" onClick={(e) => e.stopPropagation()}>
         <div className="modal-title">용사 꾸미기</div>
         <div className="hero-preview">
-          <Hero size={6} palette={{ H: hair, T: tunic }} equipped={equipped} />
+          <Hero size={6} palette={{ H: hair, T: tunic }} equipped={equipped} variant={heroSprite(state.heroClass)} />
         </div>
 
         <div className="field-label">직업</div>

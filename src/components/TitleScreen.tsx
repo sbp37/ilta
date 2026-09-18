@@ -10,11 +10,12 @@ interface Props {
   strikeSet: boolean
   heroPal?: Record<string, string>
   equipped?: string[]
+  heroVariant?: string
   onStart: (name?: string) => void
   onPickStrike: (id: string) => void
 }
 
-export function TitleScreen({ heroName, pool, strikeSet, heroPal, equipped, onStart, onPickStrike }: Props) {
+export function TitleScreen({ heroName, pool, strikeSet, heroPal, equipped, heroVariant, onStart, onPickStrike }: Props) {
   const [name, setName] = useState(heroName ?? '')
   const [phase, setPhase] = useState<'title' | 'ritual'>('title')
   const needsName = !heroName
@@ -80,7 +81,7 @@ export function TitleScreen({ heroName, pool, strikeSet, heroPal, equipped, onSt
         <Pixel name="mushroom" size={4} className="bob" />
         <Pixel name="skeleton" size={4} className="bob delay1" />
         <Pixel name="campfire" size={5} className="flicker" />
-        <Hero size={4} className="bob delay2" palette={heroPal} equipped={equipped} />
+        <Hero size={4} className="bob delay2" palette={heroPal} equipped={equipped} variant={heroVariant} />
         <Pixel name="demon" size={4} className="bob delay3" />
       </div>
 

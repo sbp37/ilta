@@ -68,6 +68,8 @@ export interface GameState {
   notif?: boolean
   heroClass?: HeroClass
   raid?: { key: string; hp: number; max: number }
+  gear?: string[]
+  equippedGear?: string[]
 }
 
 export const MAX_ACTIVE = 3
@@ -383,3 +385,75 @@ export const PET_MOOD_LABEL: Record<PetMood, string> = {
   full: '배부르다!',
   ok: '심심해한다',
 }
+
+// ---------- 직업별 용사 스프라이트 ----------
+
+export function heroSprite(cls?: HeroClass): string {
+  if (cls === 'warrior') return 'knight_warrior'
+  if (cls === 'mage') return 'knight_mage'
+  if (cls === 'rogue') return 'knight_rogue'
+  return 'knight'
+}
+
+// ---------- 장착 오버레이 (전리품 + 상점 장비) ----------
+
+export interface EquipDef {
+  sprite: string
+  x: number
+  y: number
+  slot: string
+}
+
+export const EQUIP_MAP: Record<string, EquipDef> = {
+  // 전리품 (자동 장착)
+  potion: { sprite: 'potion', x: -1, y: 10, slot: 'acc' },
+  sword: { sprite: 'sword', x: 9, y: 5, slot: 'hand' },
+  shield: { sprite: 'shield', x: -3, y: 6, slot: 'hand' },
+  gem: { sprite: 'gem', x: 4, y: 8, slot: 'acc' },
+  star: { sprite: 'star', x: 10, y: -3, slot: 'acc' },
+  crown: { sprite: 'crown', x: 2, y: -2, slot: 'head' },
+  // 상점 장비
+  g_potion: { sprite: 'potion', x: -1, y: 10, slot: 'acc' },
+  g_boots: { sprite: 'boots', x: 2, y: 9, slot: 'feet' },
+  g_amulet: { sprite: 'amulet', x: 4, y: 7, slot: 'acc' },
+  g_armor: { sprite: 'armor', x: 2, y: 7, slot: 'body' },
+  g_cape: { sprite: 'cape', x: -2, y: 6, slot: 'back' },
+  g_wizardhat: { sprite: 'wizardhat', x: 2, y: -3, slot: 'head' },
+  g_helmet: { sprite: 'helmet', x: 2, y: -2, slot: 'head' },
+  g_crown: { sprite: 'crown', x: 2, y: -2, slot: 'head' },
+}
+
+// 장착 목록 → 슬롯 중복 제거한 오버레이 목록 (앞에 온 게 우선)
+export function equipOverlays(equipped: string[]): EquipDef[] {
+  const seen = new Set<string>()
+  const out: EquipDef[] = []
+  for (const id of equipped) {
+    const e = EQUIP_MAP[id]
+    if (!e || seen.has(e.slot)) continue
+    seen.add(e.slot)
+    out.push(e)
+  }
+  return out
+}
+
+// ---------- 상점 장비 카탈로그 ----------
+
+export interface GearItem {
+  id: string
+  name: string
+  sprite: string
+  cost: number
+  slot: string
+  desc: string
+}
+
+export const GEAR: GearItem[] = [
+  { id: 'g_potion', name: '포션 벨트', sprite: 'potion', cost: 50, slot: 'acc', desc: '허리에 포션을 차고 다닌다' },
+  { id: 'g_boots', name: '가벼운 장화', sprite: 'boots', cost: 70, slot: 'feet', desc: '발이 가벼워 보인다' },
+  { id: 'g_amulet', name: '행운의 목걸이', sprite: 'amulet', cost: 90, slot: 'acc', desc: '목에 걸면 운이 따를 것 같다' },
+  { id: 'g_armor', name: '가죽 갑옷', sprite: 'armor', cost: 110, slot: 'body', desc: '몸을 든든하게 감싼다' },
+  { id: 'g_cape', name: '모험가 망토', sprite: 'cape', cost: 130, slot: 'back', desc: '뒷모습이 모험가답다' },
+  { id: 'g_wizardhat', name: '뾰족 마법모자', sprite: 'wizardhat', cost: 160, slot: 'head', desc: '쓰면 지혜로워 보인다' },
+  { id: 'g_helmet', name: '기사 투구', sprite: 'helmet', cost: 190, slot: 'head', desc: '묵직한 철 투구' },
+  { id: 'g_crown', name: '황금 왕관', sprite: 'crown', cost: 260, slot: 'head', desc: '진짜 용사의 증표' },
+]

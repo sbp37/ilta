@@ -13,6 +13,7 @@ import {
   Task,
   enraged,
   heroPalette,
+  heroSprite,
   monsterOf,
   sameDay,
   todayKey,
@@ -61,6 +62,8 @@ export default function App() {
     addReward,
     removeReward,
     buyReward,
+    buyGear,
+    toggleGear,
     feedPet,
     setPetName,
     setStrike,
@@ -239,11 +242,14 @@ export default function App() {
 
   const doneToday = state.done.filter((d) => sameDay(d.completedAt, Date.now())).length
 
-  // 장착 장비 — Hero 스프라이트에 실제로 붙는 전리품 (레어순 3개)
-  const equippedIds = LOOT.filter((l) => (state.loot[l.id] ?? 0) > 0)
-    .sort((a, b) => b.rarity - a.rarity)
-    .slice(0, 3)
-    .map((l) => l.id)
+  // 장착 장비 — 상점 장비 우선, 전리품 (레어순 3개) 뒤에
+  const equippedIds = [
+    ...(state.equippedGear ?? []),
+    ...LOOT.filter((l) => (state.loot[l.id] ?? 0) > 0)
+      .sort((a, b) => b.rarity - a.rarity)
+      .slice(0, 3)
+      .map((l) => l.id),
+  ]
 
   // 오늘의 일격: 오늘 지정된 게 있고 아직 수집함/슬롯에 살아있으면 표시
   const strikeSet = state.strike?.day === todayKey()
@@ -262,6 +268,7 @@ export default function App() {
           strikeSet={!!strikeSet}
           heroPal={heroPalette(state)}
           equipped={equippedIds}
+          heroVariant={heroSprite(state.heroClass)}
           onStart={(name) => {
             if (name) setHeroName(name)
             setStarted(true)
@@ -338,6 +345,7 @@ export default function App() {
             onToggleSub={handleToggleSub}
             heroPal={heroPalette(state)}
             equipped={equippedIds}
+            heroVariant={heroSprite(state.heroClass)}
             raid={state.raid}
             onReview={() => {
               sfx.click()
@@ -366,6 +374,8 @@ export default function App() {
             onAddReward={addReward}
             onRemoveReward={removeReward}
             onBuy={buyReward}
+            onBuyGear={buyGear}
+            onToggleGear={toggleGear}
             onToast={showToast}
           />
         )}

@@ -4,6 +4,7 @@ import {
   CRIT_CHANCE,
   CRIT_MULT,
   DoneQuest,
+  GEAR,
   GameState,
   HeroClass,
   MAX_ACTIVE,
@@ -286,6 +287,31 @@ export function useGame() {
     return ok
   }, [])
 
+  // ---------- 장비 상점 ----------
+  // 구매하면 자동 장착 (즉시 보상감)
+  const buyGear = useCallback((id: string): boolean => {
+    let ok = false
+    setState((s) => {
+      const item = GEAR.find((g) => g.id === id)
+      if (!item || s.gold < item.cost || (s.gear ?? []).includes(id)) return s
+      ok = true
+      return {
+        ...s,
+        gold: s.gold - item.cost,
+        gear: [...(s.gear ?? []), id],
+        equippedGear: [...(s.equippedGear ?? []), id],
+      }
+    })
+    return ok
+  }, [])
+
+  const toggleGear = useCallback((id: string) => {
+    setState((s) => {
+      const eq = s.equippedGear ?? []
+      return { ...s, equippedGear: eq.includes(id) ? eq.filter((x) => x !== id) : [...eq, id] }
+    })
+  }, [])
+
   // ---------- 펫 / 오늘의 일격 ----------
   // 먹이 주기: 골드 10G 소비 → 끼니+1. 진화하면 'evolved'
   const feedPet = useCallback((): 'nogold' | 'fed' | 'evolved' => {
@@ -354,6 +380,8 @@ export function useGame() {
     addReward,
     removeReward,
     buyReward,
+    buyGear,
+    toggleGear,
     feedPet,
     setPetName,
     setStrike,
