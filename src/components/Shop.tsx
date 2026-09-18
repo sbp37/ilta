@@ -118,7 +118,7 @@ export function Shop({
     const r = onUseXpPotion()
     if (r === 'ok') {
       sfx.levelup()
-      onToast('⚗ XP 포션 사용! 다음 처치 XP 1.5배')
+      onToast('XP 포션 사용! 다음 처치 XP 1.5배')
     } else if (r === 'already') {
       sfx.deny()
       onToast('이미 포션이 적용 중이에요. 먼저 하나 처치하세요')

@@ -112,7 +112,7 @@ export function QuestBoard({
         <div className="pixel-panel strike-banner">
           <Pixel name={monsterOf(strikeTask)} size={3} className="bob" />
           <div className="strike-body">
-            <div className="strike-label">⚔ 오늘의 일격</div>
+            <div className="strike-label">오늘의 일격</div>
             <div className="strike-title">{strikeTask.title}</div>
           </div>
           {strikeInPool && (

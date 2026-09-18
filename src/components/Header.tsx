@@ -81,7 +81,7 @@ export function Header({
           {streak >= 2 && <span className="streak-badge">🔥{streak}일</span>}
           {freezes > 0 && (
             <span className="freeze-badge" title="휴식일 부적 — 하루 빠져도 연속 기록 유지">
-              🛡{freezes}
+              부적 {freezes}
             </span>
           )}
         </div>
@@ -94,7 +94,7 @@ export function Header({
           </span>
           {state.xpBoost && (
             <span className="boost-badge" title="XP 포션 적용 중">
-              ⚗ x{XP_BOOST_MULT}
+              포션 x{XP_BOOST_MULT}
             </span>
           )}
           {combo > 0 ? (

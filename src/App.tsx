@@ -190,7 +190,7 @@ export default function App() {
       const actions: ToastAction[] = [undoAction()]
       if (state.pool.length > 0 && state.active.length < slotsFor(levelOf(state.xp)))
         actions.push({ label: '다음 뽑기 →', fn: () => setDrawing(true) })
-      const boostText = result.boosted ? '⚗포션 ' : ''
+      const boostText = result.boosted ? '포션 효과! ' : ''
       const potionText = result.potionsConverted ? ' · 빨간 포션 5개 → XP 포션!' : ''
       // 오늘의 일격 처치 → 대축하 + 보너스
       const isStrike = state.strike?.day === todayKey() && state.strike.id === id
@@ -277,11 +277,11 @@ export default function App() {
       else if (timerLeft(timer.startedAt, timer.seconds) <= 0) handleTimerFinish(true)
     }
     const used = checkFreezes()
-    if (used > 0) showToast(`🛡 휴식일 부적 ${used}개가 연속 기록을 지켜줬어요`)
+    if (used > 0) showToast(`휴식일 부적 ${used}개가 연속 기록을 지켜줬어요`)
     // 날짜가 바뀌면 다시 확인
     const t = setInterval(() => {
       const n = checkFreezes()
-      if (n > 0) showToast(`🛡 휴식일 부적 ${n}개가 연속 기록을 지켜줬어요`)
+      if (n > 0) showToast(`휴식일 부적 ${n}개가 연속 기록을 지켜줬어요`)
     }, 60_000)
     return () => clearInterval(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -448,7 +448,7 @@ export default function App() {
             onFight={handleFight}
             onAbandon={(id) => {
               const r = abandon(id)
-              showToast(r === 'shielded' ? '🛡 나무 방패가 막아줬다! 도망 기록 없이 수집함으로' : '퀘스트를 수집함으로 되돌렸습니다.')
+              showToast(r === 'shielded' ? '나무 방패가 막아줬다! 도망 기록 없이 수집함으로' : '퀘스트를 수집함으로 되돌렸습니다.')
             }}
             onQuickAdd={handleQuickAdd}
             onAcceptStrike={(id) => {
@@ -478,7 +478,7 @@ export default function App() {
             onEdit={setEditing}
             calmCount={itemCount(state, 'calm')}
             onCalm={(id) => {
-              if (useCalm(id)) showToast('✿ 진정의 향을 피웠다… 몬스터가 차분해졌다')
+              if (useCalm(id)) showToast('진정의 향을 피웠다… 몬스터가 차분해졌다')
             }}
             onMove={move}
             onToggleUrgent={toggleUrgent}
@@ -636,7 +636,7 @@ export default function App() {
             // 도망치기 = 후퇴 처리 (도망 기록 남음)
             setTimer(null)
             const r = abandon(timer.questId)
-            showToast(r === 'shielded' ? '🛡 나무 방패 덕에 도망 기록은 안 남았다!' : '도망쳤다! 몬스터는 수집함에서 기다리고 있습니다…')
+            showToast(r === 'shielded' ? '나무 방패 덕에 도망 기록은 안 남았다!' : '도망쳤다! 몬스터는 수집함에서 기다리고 있습니다…')
           }}
         />
       )}

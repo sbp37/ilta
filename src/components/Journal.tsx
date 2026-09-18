@@ -87,7 +87,7 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
           className="btn btn-sub share-btn"
           onClick={() => {
           const today = state.done.filter((d) => dayKey(d.completedAt) === dayKey(Date.now())).length
-          const text = `⚔ 일타 전적\n오늘 ${today}몹 처치 | 총 ${state.done.length}처치 | 보스 ${bossKills} | 🔥${streak}일 연속 | ${state.gold}G`
+          const text = `일타 전적\n오늘 ${today}몹 처치 | 총 ${state.done.length}처치 | 보스 ${bossKills} | 🔥${streak}일 연속 | ${state.gold}G`
           navigator.clipboard
             .writeText(text)
             .then(() => onToast('전적을 복사했어요! 자랑하러 가자'))

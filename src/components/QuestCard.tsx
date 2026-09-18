@@ -81,7 +81,7 @@ export function QuestCard({
         <Pixel name={monsterOf(quest)} size={3} className={mad ? 'shake-slow' : 'bob'} />
         <div className="quest-title-wrap">
           <div className="quest-title">
-            {isStrike && <span className="strike-tag">⚔일격</span>}
+            {isStrike && <span className="strike-tag">일격</span>}
             {mad && <span className="enraged-tag">광폭</span>}
             {quest.repeat && <span className="repeat-tag">🔁</span>}
             {quest.title}
@@ -95,16 +95,6 @@ export function QuestCard({
           </div>
           {quest.cost && <div className="cost-line">안 하면 → {quest.cost}</div>}
         </div>
-        <button
-          className="icon-btn edit-btn"
-          title="수정"
-          onClick={() => {
-            sfx.click()
-            onEdit(quest)
-          }}
-        >
-          ✎
-        </button>
       </div>
 
       {(subs.length > 0 || subsOpen) && (
@@ -144,7 +134,7 @@ export function QuestCard({
       )}
       {subs.length === 0 && !subsOpen && (
         <button className="sub-toggle" onClick={() => setSubsOpen(true)}>
-          ▸ 잡몹으로 쪼개기 (큰 일을 작게 나누기)
+          + 잡몹으로 쪼개기 (큰 일을 작게 나누기)
         </button>
       )}
 
@@ -168,6 +158,16 @@ export function QuestCard({
           title="수집함으로 되돌리기 (도망 기록 남음)"
         >
           {confirming ? '정말 도망?' : '후퇴'}
+        </button>
+        <button
+          className="btn btn-ghost"
+          title="제목·난이도·시간·마감 고치기"
+          onClick={() => {
+            sfx.click()
+            onEdit(quest)
+          }}
+        >
+          수정
         </button>
       </div>
     </div>
