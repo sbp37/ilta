@@ -12,6 +12,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 // PWA: 오프라인에서도 앱 셸이 열리게
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {})
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {})
   })
 }

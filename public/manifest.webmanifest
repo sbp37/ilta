@@ -2,19 +2,19 @@
   "name": "ILTA — 일타 · 할일 처치 RPG",
   "short_name": "ILTA",
   "description": "할 일이 퀘스트가 되는 곳. 몬스터를 처치하고 세상을 밝히자.",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0d0e1a",
   "theme_color": "#0d0e1a",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
