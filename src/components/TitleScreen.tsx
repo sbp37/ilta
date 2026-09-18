@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import { sfx } from '../sound'
-import { Task, drawWeight, monsterOf } from '../game'
+import { Task, awake, drawWeight, monsterOf } from '../game'
 
 interface Props {
   heroName?: string
@@ -22,7 +22,7 @@ export function TitleScreen({ heroName, pool, strikeSet, heroPal, equipped, hero
 
   // 아침 의식: 가중치 상위 3개를 "오늘의 일격" 후보로 제시
   const candidates = useMemo(
-    () => [...pool].sort((a, b) => drawWeight(b) - drawWeight(a)).slice(0, 3),
+    () => awake(pool).sort((a, b) => drawWeight(b) - drawWeight(a)).slice(0, 3),
     [pool],
   )
 

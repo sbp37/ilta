@@ -1,6 +1,8 @@
 export type Difficulty = 'slime' | 'elite' | 'boss'
 export type Energy = 'low' | 'mid' | 'high'
 export type HeroClass = 'warrior' | 'mage' | 'rogue'
+export type Category = 'study' | 'home' | 'work' | 'health' | 'etc'
+export type Repeat = 'daily' | 'weekdays' | 'weekly'
 
 export interface SubTask {
   id: string
@@ -19,7 +21,9 @@ export interface Task {
   monster?: string
   cost?: string // 안 하면 생기는 일
   retreats?: number // 도망친 횟수
-  repeat?: 'daily' // 처치해도 다음날 다시 나타나는 반복 몬스터
+  repeat?: Repeat // 처치해도 다시 나타나는 반복 몬스터
+  availableAt?: number // 이 시각 전에는 잠들어 있음 (반복 몹 대기)
+  category?: Category // 할 일 분류 — 몬스터 종류가 여기서 정해진다
   subs?: SubTask[] // 큰 몬스터를 잡몹으로 쪼갠 목록
   createdAt: number
 }
@@ -77,6 +81,9 @@ export interface GameState {
   freezeUsed?: string[] // 부적으로 지켜낸 날짜 키
   items?: Record<string, number> // 소모품 보유 수 (reroll / xppotion / calm)
   xpBoost?: boolean // XP 포션 적용 중 — 다음 처치 XP 1.5배
+  achieved?: string[] // 획득한 업적 id
+  raidKills?: number // 처치한 주간·챕터 보스 수
+  chapterClears?: string[] // 클리어한 챕터 키
 }
 
 export const MAX_ACTIVE = 3 // 기본 슬롯 수 — 레벨 해금은 slotsFor() 참고
@@ -143,11 +150,52 @@ export const DIFF: Record<Difficulty, { label: string; xp: number; sprite: strin
   boss: { label: '보스', xp: 60, sprite: 'demon', color: '#ff4d5e' },
 }
 
-// 난이도별 등장 몬스터 — 태스크 생성 때 랜덤 배정
+// 난이도별 등장 몬스터 — 분류를 안 고르면 이 중에서 랜덤 배정
 export const MONSTERS: Record<Difficulty, string[]> = {
-  slime: ['slime', 'mushroom', 'ghost', 'blueslime'],
-  elite: ['imp', 'skeleton', 'witch'],
+  slime: ['slime', 'mushroom', 'ghost', 'blueslime', 'bat'],
+  elite: ['imp', 'skeleton', 'witch', 'ogre', 'gargoyle'],
   boss: ['demon', 'dragon', 'lich', 'golem', 'mimic'],
+}
+
+// 할 일 분류 — 분류마다 전담 몬스터가 난이도별로 하나씩 있다.
+// 도감을 보면 "내가 어느 쪽 일을 많이 잡았는지"가 그대로 드러난다.
+export const CATEGORIES: Record<
+  Category,
+  { name: string; color: string; monsters: Record<Difficulty, string> }
+> = {
+  study: {
+    name: '공부',
+    color: '#a86bff',
+    monsters: { slime: 'mushroom', elite: 'witch', boss: 'lich' },
+  },
+  home: {
+    name: '집안일',
+    color: '#43d675',
+    monsters: { slime: 'slime', elite: 'skeleton', boss: 'golem' },
+  },
+  work: {
+    name: '회사',
+    color: '#4a9ad8',
+    monsters: { slime: 'ghost', elite: 'imp', boss: 'demon' },
+  },
+  health: {
+    name: '건강',
+    color: '#ff8a5c',
+    monsters: { slime: 'blueslime', elite: 'ogre', boss: 'dragon' },
+  },
+  etc: {
+    name: '기타',
+    color: '#8a8fa8',
+    monsters: { slime: 'bat', elite: 'gargoyle', boss: 'mimic' },
+  },
+}
+
+export const CATEGORY_IDS = Object.keys(CATEGORIES) as Category[]
+
+// 분류가 있으면 전담 몬스터, 없으면 난이도 풀에서 랜덤
+export function monsterFor(difficulty: Difficulty, category?: Category): string {
+  if (category && CATEGORIES[category]) return CATEGORIES[category].monsters[difficulty]
+  return randomMonster(difficulty)
 }
 
 export function randomMonster(d: Difficulty): string {
@@ -161,6 +209,9 @@ export function monsterOf(t: { monster?: string; difficulty: Difficulty }): stri
 
 // 몬스터 도감 이름표
 export const MONSTER_NAMES: Record<string, string> = {
+  bat: '박쥐',
+  ogre: '오거',
+  gargoyle: '가고일',
   slime: '슬라임',
   mushroom: '독버섯',
   ghost: '유령',
@@ -176,6 +227,40 @@ export const MONSTER_NAMES: Record<string, string> = {
 }
 
 export const ALL_MONSTERS: string[] = [...MONSTERS.slime, ...MONSTERS.elite, ...MONSTERS.boss]
+
+export const REPEAT_LABEL: Record<Repeat, string> = {
+  daily: '매일',
+  weekdays: '평일만',
+  weekly: '주 1회',
+}
+
+// 반복 몹이 다시 나타날 시각 — 그 날 0시 기준
+export function nextAvailable(repeat: Repeat, now = Date.now()): number {
+  const d = new Date(now)
+  d.setHours(0, 0, 0, 0)
+  if (repeat === 'weekly') {
+    d.setDate(d.getDate() + 7)
+    return d.getTime()
+  }
+  d.setDate(d.getDate() + 1)
+  if (repeat === 'weekdays') {
+    // 토(6)·일(0)은 건너뛰고 다음 평일로
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1)
+  }
+  return d.getTime()
+}
+
+// 잠들어 있는(대기 중) 몹은 뽑기·수락·습격 대상에서 빠진다
+export function isAvailable(t: { availableAt?: number }, now = Date.now()): boolean {
+  return !t.availableAt || t.availableAt <= now
+}
+
+export function availableLabel(t: { availableAt?: number }, now = Date.now()): string | null {
+  if (isAvailable(t, now)) return null
+  const days = Math.ceil((t.availableAt! - now) / 86400000)
+  if (days <= 1) return '내일 다시 나타남'
+  return `${days}일 뒤 다시 나타남`
+}
 
 export const DAILY_GOAL = 3
 export const DAILY_GOAL_BONUS = 20
@@ -208,7 +293,7 @@ function enrageSeverity(t: { due?: string; retreats?: number; createdAt: number 
 
 // 실제로 "광폭"으로 표시할 몹 id 집합 — 심각한 순으로 ENRAGE_CAP개까지만
 export function enragedSet(tasks: Task[], now = Date.now()): Set<string> {
-  const mad = tasks.filter((t) => enraged(t, now))
+  const mad = tasks.filter((t) => isAvailable(t, now) && enraged(t, now))
   mad.sort((a, b) => enrageSeverity(b, now) - enrageSeverity(a, now))
   return new Set(mad.slice(0, ENRAGE_CAP).map((t) => t.id))
 }
@@ -293,7 +378,7 @@ export function drawWeight(t: Task, now = Date.now()): number {
 }
 
 export function pickWeighted(tasks: Task[], excludeId?: string, now = Date.now()): Task | null {
-  const candidates = excludeId ? tasks.filter((t) => t.id !== excludeId) : tasks
+  const candidates = tasks.filter((t) => t.id !== excludeId && isAvailable(t, now))
   if (candidates.length === 0) return null
   // 수집함 위쪽에 있을수록 가중치 보너스 (유저가 ▲▼로 정한 우선순위)
   const weightOf = (t: Task, i: number) => drawWeight(t, now) + (candidates.length - i) * 0.4
@@ -306,9 +391,16 @@ export function pickWeighted(tasks: Task[], excludeId?: string, now = Date.now()
   return candidates[candidates.length - 1]
 }
 
-// 현재 상태(시간/에너지)에 맞는 퀘스트만 필터
-export function filterDoable(pool: Task[], minutes: number, energy: Energy): Task[] {
-  return pool.filter((t) => t.minutes <= minutes && ENERGY_RANK[t.energy] <= ENERGY_RANK[energy])
+// 현재 상태(시간/에너지)에 맞고 깨어 있는 퀘스트만 필터
+export function filterDoable(pool: Task[], minutes: number, energy: Energy, now = Date.now()): Task[] {
+  return pool.filter(
+    (t) => isAvailable(t, now) && t.minutes <= minutes && ENERGY_RANK[t.energy] <= ENERGY_RANK[energy],
+  )
+}
+
+// 지금 손댈 수 있는 몹만 (일격 후보·습격·조건 무시 뽑기용)
+export function awake<T extends { availableAt?: number }>(tasks: T[], now = Date.now()): T[] {
+  return tasks.filter((t) => isAvailable(t, now))
 }
 
 function lootRarity(d: Difficulty): number {
@@ -503,6 +595,62 @@ export const RAID_MAX_HP = 300
 export const RAID_REWARD = 100
 const RAID_BOSSES = ['dragon', 'golem', 'lich', 'mimic', 'demon']
 
+// ---------- 시즌(챕터): 4주 = 1챕터, 마지막 주는 챕터 보스 ----------
+
+export const CHAPTER_WEEKS = 4
+export const CHAPTER_BOSS_HP = 600
+export const CHAPTER_REWARD = 300
+
+// 챕터 기준 월요일 (이 주가 1챕터 1주차)
+const CHAPTER_EPOCH = new Date(2026, 0, 5).getTime()
+
+export const CHAPTERS = [
+  { name: '잠든 숲', boss: 'dragon', title: '숲의 해방자' },
+  { name: '무너진 성', boss: 'golem', title: '성벽의 파괴자' },
+  { name: '검은 서고', boss: 'lich', title: '금서의 봉인자' },
+  { name: '탐욕의 금고', boss: 'mimic', title: '금고를 연 자' },
+  { name: '불타는 왕좌', boss: 'demon', title: '왕좌의 도전자' },
+] as const
+
+// 기준 월요일로부터 몇 번째 주인지 (0부터)
+export function weekIndex(now = Date.now()): number {
+  const d = new Date(now)
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)) // 그 주 월요일
+  return Math.max(0, Math.round((d.getTime() - CHAPTER_EPOCH) / (7 * 86400000)))
+}
+
+export interface ChapterInfo {
+  key: string // 챕터 식별자
+  index: number // 0부터
+  name: string
+  week: number // 챕터 안에서 몇 주차 (1..CHAPTER_WEEKS)
+  isFinal: boolean // 마지막 주 = 챕터 보스
+  boss: string // 이번 주 보스 스프라이트
+  title: string // 챕터 클리어 칭호
+  maxHp: number
+  reward: number
+}
+
+export function chapterOf(now = Date.now()): ChapterInfo {
+  const wi = weekIndex(now)
+  const index = Math.floor(wi / CHAPTER_WEEKS)
+  const week = (wi % CHAPTER_WEEKS) + 1
+  const ch = CHAPTERS[index % CHAPTERS.length]
+  const isFinal = week === CHAPTER_WEEKS
+  return {
+    key: `C${index}`,
+    index,
+    name: ch.name,
+    week,
+    isFinal,
+    boss: isFinal ? ch.boss : RAID_BOSSES[wi % RAID_BOSSES.length],
+    title: ch.title,
+    maxHp: isFinal ? CHAPTER_BOSS_HP : RAID_MAX_HP,
+    reward: isFinal ? CHAPTER_REWARD : RAID_REWARD,
+  }
+}
+
 // 주차 키 — 그 주 월요일 날짜로 만든다. 월요일 0시에만 바뀌므로
 // 연말이나 서머타임에 주가 엉키지 않는다. (이전 방식은 1월 1일의 요일에
 // 따라 주 경계가 수·금 등으로 밀려서 주간 보스가 엉뚱한 날 초기화됐다)
@@ -608,6 +756,157 @@ export function equipOverlays(equipped: string[]): EquipDef[] {
     out.push(e)
   }
   return out
+}
+
+// ---------- 업적 ----------
+
+export interface Achievement {
+  id: string
+  name: string
+  desc: string
+  gold: number
+  done: (s: GameState, now?: number) => boolean
+}
+
+const killsOf = (s: GameState) => s.done.length
+const bossKills = (s: GameState) => s.done.filter((d) => d.difficulty === 'boss').length
+
+// 하루 최다 처치
+export function bestDay(done: DoneQuest[]): number {
+  const byDay = new Map<string, number>()
+  for (const d of done) {
+    const k = dayKeyOf(d.completedAt)
+    byDay.set(k, (byDay.get(k) ?? 0) + 1)
+  }
+  return Math.max(0, ...byDay.values())
+}
+
+// 처치한 몬스터 종류 수
+export function dexCount(done: DoneQuest[]): number {
+  const seen = new Set(done.map((d) => monsterOf(d)))
+  return ALL_MONSTERS.filter((m) => seen.has(m)).length
+}
+
+// 처치한 분류 수
+export function categoriesCleared(done: DoneQuest[]): number {
+  const seen = new Set(done.map((d) => d.category).filter(Boolean))
+  return seen.size
+}
+
+export const ACHIEVEMENTS: Achievement[] = [
+  { id: 'first', name: '첫 발걸음', desc: '몬스터를 1마리 처치', gold: 20, done: (s) => killsOf(s) >= 1 },
+  { id: 'kill10', name: '견습 사냥꾼', desc: '10마리 처치', gold: 30, done: (s) => killsOf(s) >= 10 },
+  { id: 'kill50', name: '숙련 사냥꾼', desc: '50마리 처치', gold: 60, done: (s) => killsOf(s) >= 50 },
+  { id: 'kill100', name: '백몹 학살자', desc: '100마리 처치', gold: 120, done: (s) => killsOf(s) >= 100 },
+  { id: 'boss5', name: '보스 도전자', desc: '보스 5마리 처치', gold: 80, done: (s) => bossKills(s) >= 5 },
+  { id: 'boss20', name: '보스 사냥꾼', desc: '보스 20마리 처치', gold: 200, done: (s) => bossKills(s) >= 20 },
+  { id: 'combo5', name: '폭주 기관차', desc: '하루에 5마리 처치', gold: 60, done: (s) => bestDay(s.done) >= 5 },
+  {
+    id: 'streak7',
+    name: '일주일의 약속',
+    desc: '7일 연속 처치',
+    gold: 100,
+    done: (s, now) => streakDays(s.done, now, s.freezeUsed) >= 7,
+  },
+  {
+    id: 'streak30',
+    name: '한 달의 습관',
+    desc: '30일 연속 처치',
+    gold: 300,
+    done: (s, now) => streakDays(s.done, now, s.freezeUsed) >= 30,
+  },
+  {
+    id: 'facedFear',
+    name: '두려움을 마주하다',
+    desc: '3번 이상 도망친 몹을 처치',
+    gold: 80,
+    done: (s) => s.done.some((d) => (d.retreats ?? 0) >= 3),
+  },
+  {
+    id: 'nightOwl',
+    name: '새벽의 용사',
+    desc: '0시~5시에 처치',
+    gold: 40,
+    done: (s) => s.done.some((d) => new Date(d.completedAt).getHours() < 5),
+  },
+  {
+    id: 'earlyBird',
+    name: '아침형 용사',
+    desc: '5시~8시에 처치',
+    gold: 40,
+    done: (s) =>
+      s.done.some((d) => {
+        const h = new Date(d.completedAt).getHours()
+        return h >= 5 && h < 8
+      }),
+  },
+  {
+    id: 'dexHalf',
+    name: '도감 절반',
+    desc: `몬스터 ${Math.ceil(ALL_MONSTERS.length / 2)}종 발견`,
+    gold: 80,
+    done: (s) => dexCount(s.done) >= Math.ceil(ALL_MONSTERS.length / 2),
+  },
+  {
+    id: 'dexFull',
+    name: '도감 완성',
+    desc: '모든 몬스터 발견',
+    gold: 200,
+    done: (s) => dexCount(s.done) >= ALL_MONSTERS.length,
+  },
+  {
+    id: 'allCategories',
+    name: '삶의 균형',
+    desc: '5가지 분류를 모두 처치',
+    gold: 80,
+    done: (s) => categoriesCleared(s.done) >= CATEGORY_IDS.length,
+  },
+  {
+    id: 'raid3',
+    name: '주말의 사냥',
+    desc: '주간 보스 3번 처치',
+    gold: 100,
+    done: (s) => (s.raidKills ?? 0) >= 3,
+  },
+  {
+    id: 'chapter1',
+    name: '첫 챕터 클리어',
+    desc: '챕터 보스를 처치',
+    gold: 150,
+    done: (s) => (s.chapterClears ?? []).length >= 1,
+  },
+  {
+    id: 'geared',
+    name: '완전무장',
+    desc: '장비 5개 보유',
+    gold: 60,
+    done: (s) => (s.gear ?? []).length >= 5,
+  },
+  {
+    id: 'petMax',
+    name: '최고의 파트너',
+    desc: '펫을 최종 진화까지 키움',
+    gold: 100,
+    done: (s) => petStage(s.petFood).next === null,
+  },
+  {
+    id: 'splitter',
+    name: '쪼개기의 달인',
+    desc: '잡몹으로 쪼갠 몹을 처치',
+    gold: 50,
+    done: (s) => s.done.some((d) => (d.subs?.length ?? 0) >= 3),
+  },
+]
+
+// 지금 조건을 만족하는 업적 id
+export function earnedAchievements(s: GameState, now = Date.now()): string[] {
+  return ACHIEVEMENTS.filter((a) => a.done(s, now)).map((a) => a.id)
+}
+
+// 아직 안 받은 업적만
+export function newAchievements(s: GameState, now = Date.now()): Achievement[] {
+  const have = new Set(s.achieved ?? [])
+  return ACHIEVEMENTS.filter((a) => !have.has(a.id) && a.done(s, now))
 }
 
 // ---------- 상점 장비 카탈로그 ----------

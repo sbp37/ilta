@@ -2,13 +2,17 @@ import { Pixel } from '../Pixel'
 import { sfx } from '../sound'
 import { shareCard } from '../shareCard'
 import {
+  ACHIEVEMENTS,
   ALL_MONSTERS,
+  CATEGORIES,
+  CATEGORY_IDS,
   DoneQuest,
   LOOT,
   LOOT_EFFECT,
   LOOT_STACK_CAP,
   GameState,
   MONSTER_NAMES,
+  chapterOf,
   lootById,
   monsterOf,
   streakDays,
@@ -49,6 +53,17 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
     kills[m] = (kills[m] ?? 0) + 1
   }
   const dexCount = ALL_MONSTERS.filter((m) => (kills[m] ?? 0) > 0).length
+
+  // 분류별 처치 수 — 내가 어느 쪽 일을 많이 잡았는지
+  const catKills = CATEGORY_IDS.map((c) => ({
+    id: c,
+    ...CATEGORIES[c],
+    count: state.done.filter((d) => d.category === c).length,
+  })).filter((c) => c.count > 0)
+  const catTotal = catKills.reduce((sum, c) => sum + c.count, 0)
+
+  const achieved = new Set(state.achieved ?? [])
+  const chapter = chapterOf()
 
   const makeCard = async () => {
     sfx.draw()
@@ -111,6 +126,74 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
             </div>
           ))}
         </div>
+      </div>
+
+      {catKills.length > 0 && (
+        <div className="pixel-panel cat-stats">
+          <div className="field-label">분류별 처치</div>
+          <div className="cat-bar">
+            {catKills.map((c) => (
+              <div
+                key={c.id}
+                className="cat-seg"
+                style={{ width: `${(c.count / catTotal) * 100}%`, background: c.color }}
+                title={`${c.name} ${c.count}마리`}
+              />
+            ))}
+          </div>
+          <div className="cat-legend">
+            {catKills.map((c) => (
+              <span key={c.id} className="cat-legend-item">
+                <span className="cat-dot" style={{ background: c.color }} />
+                {c.name} {c.count}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="pixel-panel chapter-card">
+        <div className="field-label">
+          챕터 {chapter.index + 1} · {chapter.name}
+          <span className="dim"> {chapter.week}/4주차</span>
+        </div>
+        <div className="chapter-weeks">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className={`chapter-week ${i + 1 < chapter.week ? 'week-past' : ''} ${
+                i + 1 === chapter.week ? 'week-now' : ''
+              } ${i === 3 ? 'week-final' : ''}`}
+            >
+              {i === 3 ? '보스' : i + 1}
+            </div>
+          ))}
+        </div>
+        <div className="dim chapter-hint">
+          {chapter.isFinal
+            ? `챕터 보스 주간! 잡으면 칭호 「${chapter.title}」 획득`
+            : `4주차에 챕터 보스가 나타나요 (칭호: ${chapter.title})`}
+        </div>
+        {(state.chapterClears ?? []).length > 0 && (
+          <div className="goal-done">클리어한 챕터 {(state.chapterClears ?? []).length}개</div>
+        )}
+      </div>
+
+      <div className="field-label">
+        업적 <span className="dim">{achieved.size}/{ACHIEVEMENTS.length} 달성</span>
+      </div>
+      <div className="pixel-panel ach-list">
+        {ACHIEVEMENTS.map((a) => {
+          const got = achieved.has(a.id)
+          return (
+            <div key={a.id} className={`ach-row ${got ? '' : 'ach-locked'}`}>
+              <span className="ach-mark">{got ? '★' : '☆'}</span>
+              <span className="ach-name">{a.name}</span>
+              <span className="ach-desc">{a.desc}</span>
+              <span className="ach-gold">{got ? '완료' : `+${a.gold}G`}</span>
+            </div>
+          )
+        })}
       </div>
 
       {fled.length > 0 && (

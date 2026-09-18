@@ -10,6 +10,7 @@ import {
   STARTER_BONUS_XP,
   STRIKE_BONUS,
   Task,
+  awake,
   enragedSet,
   heroPalette,
   heroSprite,
@@ -94,6 +95,7 @@ export default function App() {
     toggleGear,
     buyFreeze,
     buyItem,
+    claimAchievements,
     consumeItem,
     useXpPotion,
     useCalm,
@@ -139,15 +141,43 @@ export default function App() {
     else localStorage.removeItem(TIMER_KEY)
   }, [timer])
 
-  const showToast = useCallback((msg: string, action?: ToastAction | ToastAction[], ms = 3200) => {
-    setToast(msg)
-    setToastActions(action ? (Array.isArray(action) ? action : [action]) : [])
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => {
+  // 토스트는 한 번에 하나씩, 겹치면 줄을 세운다.
+  // (업적 알림이 처치 결과를 덮어써서 뭘 얻었는지 못 보는 문제)
+  const toastQueue = useRef<{ msg: string; actions: ToastAction[]; ms: number }[]>([])
+  const toastShowing = useRef(false)
+
+  const runToast = useCallback(() => {
+    const next = toastQueue.current.shift()
+    if (!next) {
+      toastShowing.current = false
       setToast('')
       setToastActions([])
-    }, ms)
+      return
+    }
+    toastShowing.current = true
+    setToast(next.msg)
+    setToastActions(next.actions)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(runToast, next.ms)
   }, [])
+
+  const showToast = useCallback(
+    (msg: string, action?: ToastAction | ToastAction[], ms = 3200) => {
+      const actions = action ? (Array.isArray(action) ? action : [action]) : []
+      // 같은 문구가 연달아 오면 무시, 줄은 2개까지만
+      if (toastQueue.current.some((t) => t.msg === msg)) return
+      if (toastQueue.current.length >= 2) toastQueue.current.shift()
+      toastQueue.current.push({ msg, actions, ms })
+      if (!toastShowing.current) runToast()
+    },
+    [runToast],
+  )
+
+  // 토스트의 버튼을 누르면 그 토스트는 끝내고 다음으로 넘어간다
+  const closeToast = useCallback(() => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    runToast()
+  }, [runToast])
 
   const undoAction = useCallback(
     (label = '되돌리기'): ToastAction => ({
@@ -179,6 +209,19 @@ export default function App() {
     [updateTask, showToast],
   )
 
+  // 업적: 조건을 새로 만족하면 골드와 함께 알린다
+  useEffect(() => {
+    if (!started) return
+    const earned = claimAchievements()
+    if (earned.length === 0) return
+    sfx.levelup()
+    setFlash((f) => f + 1)
+    const names = earned.map((a) => `「${a.name}」`).join(' ')
+    const bonus = earned.reduce((sum, a) => sum + a.gold, 0)
+    showToast(`업적 달성! ${names} +${bonus}G`, undefined, 6000)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [started, state.done.length, state.loot, state.gear, state.petFood, state.raidKills, state.chapterClears])
+
   const handleComplete = useCallback(
     (id: string) => {
       const result = complete(id)
@@ -200,7 +243,11 @@ export default function App() {
         sfx.levelup()
       }
       const strikeText = isStrike ? `오늘의 일격 성공! +${STRIKE_BONUS}G ` : ''
-      const raidText = result.raidKilled ? ' · 주간 보스 처치! +100G' : ''
+      const raidText = result.raidKilled
+        ? result.chapterCleared
+          ? ` · 챕터 클리어! 칭호 「${result.chapter.title}」 +${result.chapter.reward}G`
+          : ` · 주간 보스 처치! +${result.chapter.reward}G`
+        : ''
       if (result.raidKilled) {
         sfx.bossReveal()
         setFlash((f) => f + 1)
@@ -308,12 +355,14 @@ export default function App() {
   useEffect(() => {
     if (!started || encounterShown.current) return
     encounterShown.current = true
-    if (state.pool.length === 0 || state.active.length >= slotsFor(levelOf(state.xp))) return
+    if (awake(state.pool).length === 0 || state.active.length >= slotsFor(levelOf(state.xp))) return
     if (Math.random() > 0.45) return
     const t = setTimeout(() => {
-      const madIds = enragedSet(state.pool)
-      const mad = state.pool.filter((x) => madIds.has(x.id))
-      const pick = mad[0] ?? state.pool[Math.floor(Math.random() * state.pool.length)]
+      const ready = awake(state.pool)
+      if (ready.length === 0) return
+      const madIds = enragedSet(ready)
+      const mad = ready.filter((x) => madIds.has(x.id))
+      const pick = mad[0] ?? ready[Math.floor(Math.random() * ready.length)]
       setEncounter(pick)
       sfx.bossReveal()
     }, 2500)
@@ -679,8 +728,7 @@ export default function App() {
                   className="toast-btn"
                   onClick={() => {
                     sfx.click()
-                    setToast('')
-                    setToastActions([])
+                    closeToast()
                     a.fn()
                   }}
                 >

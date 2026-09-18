@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  Achievement,
   ActiveQuest,
   CONSUMABLES,
   CRIT_CHANCE,
   CRIT_MULT,
+  ChapterInfo,
   DoneQuest,
   FREEZE_COST,
   FREEZE_MAX,
@@ -13,27 +15,30 @@ import {
   ITEM_MAX,
   PET_FEED_COST,
   POTION_CONVERT,
-  RAID_MAX_HP,
-  RAID_REWARD,
+  Repeat,
   SAVE_VERSION,
   Task,
   XP_BOOST_MULT,
   applyFreezes,
+  chapterOf,
   goldFor,
+  isAvailable,
   itemCount,
   levelOf,
   levelUpGold,
   lootBonus,
   lootById,
+  monsterFor,
+  newAchievements,
+  nextAvailable,
   petStage,
-  slotsFor,
-  xpAtLevel,
-  randomMonster,
   rollLoot,
   sameDay,
+  slotsFor,
   todayKey,
   uid,
   weekKey,
+  xpAtLevel,
   xpFor,
 } from './game'
 
@@ -87,6 +92,8 @@ export interface CompleteResult {
   combo: number
   crit: boolean
   raidKilled: boolean
+  chapterCleared: boolean
+  chapter: ChapterInfo
   boosted: boolean // XP 포션이 적용됨
   potionsConverted: boolean // 빨간 포션이 모여 XP 포션으로 변함
   newLevel: number
@@ -120,7 +127,7 @@ export function useGame() {
   }, [])
 
   const addTask = useCallback((t: Omit<Task, 'id' | 'createdAt'>) => {
-    const monster = t.monster ?? randomMonster(t.difficulty)
+    const monster = t.monster ?? monsterFor(t.difficulty, t.category)
     setState((s) => ({ ...s, pool: [...s.pool, { ...t, monster, id: uid(), createdAt: Date.now() }] }))
   }, [])
 
@@ -144,12 +151,18 @@ export function useGame() {
     setState((s) => ({ ...s, notif }))
   }, [])
 
-  // 매일 반복 토글 — 처치해도 수집함에 다시 나타남
+  // 반복 순환: 꺼짐 → 매일 → 평일만 → 주 1회 → 꺼짐
+  const REPEAT_CYCLE: (Repeat | undefined)[] = [undefined, 'daily', 'weekdays', 'weekly']
   const toggleRepeat = useCallback((id: string) => {
     setState((s) => ({
       ...s,
-      pool: s.pool.map((t) => (t.id === id ? { ...t, repeat: t.repeat ? undefined : 'daily' } : t)),
+      pool: s.pool.map((t) => {
+        if (t.id !== id) return t
+        const next = REPEAT_CYCLE[(REPEAT_CYCLE.indexOf(t.repeat) + 1) % REPEAT_CYCLE.length]
+        return { ...t, repeat: next, availableAt: next ? t.availableAt : undefined }
+      }),
     }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // 보스 레이드: 큰 몬스터를 잡몹으로 쪼개기 (수집함/슬롯 둘 다 가능)
@@ -186,11 +199,20 @@ export function useGame() {
 
   // 할 일 편집 — 수집함/슬롯 어디 있든. 난이도가 바뀌면 몬스터도 새로 배정
   const updateTask = useCallback(
-    (id: string, patch: Partial<Pick<Task, 'title' | 'difficulty' | 'minutes' | 'energy' | 'due' | 'cost' | 'repeat'>>) => {
+    (
+      id: string,
+      patch: Partial<
+        Pick<Task, 'title' | 'difficulty' | 'minutes' | 'energy' | 'due' | 'cost' | 'repeat' | 'category'>
+      >,
+    ) => {
       const apply = <T extends Task>(t: T): T => {
-        if (t.id !== id) return t
         const next = { ...t, ...patch }
-        if (patch.difficulty && patch.difficulty !== t.difficulty) next.monster = randomMonster(patch.difficulty)
+        if (t.id !== id) return t
+        const diffChanged = patch.difficulty !== undefined && patch.difficulty !== t.difficulty
+        const catChanged = 'category' in patch && patch.category !== t.category
+        if (diffChanged || catChanged) next.monster = monsterFor(next.difficulty, next.category)
+        // 반복을 끄면 대기도 풀어준다
+        if ('repeat' in patch && !patch.repeat) next.availableAt = undefined
         return next
       }
       setState((s) => ({ ...s, pool: s.pool.map(apply), active: s.active.map(apply) }))
@@ -216,7 +238,7 @@ export function useGame() {
       difficulty: 'slime',
       minutes: 15,
       energy: 'low',
-      monster: randomMonster('slime'),
+      monster: monsterFor('slime'),
       createdAt: Date.now(),
     }
     setState((s) => {
@@ -254,6 +276,7 @@ export function useGame() {
     setState((s) => {
       const task = s.pool.find((t) => t.id === id)
       if (!task || s.active.length >= slotsFor(levelOf(s.xp))) return s
+      if (!isAvailable(task)) return s
       ok = true
       const quest: ActiveQuest = { ...task, acceptedAt: Date.now() }
       return { ...s, pool: s.pool.filter((t) => t.id !== id), active: [...s.active, quest] }
@@ -308,12 +331,15 @@ export function useGame() {
         items.xppotion = (items.xppotion ?? 0) + 1
       }
       const doneQuest: DoneQuest = { ...q, completedAt: now, xp, lootId: loot.id }
-      // 주간 보스 레이드: 얻은 XP만큼 보스 HP 감소
+      // 주간 보스 / 챕터 보스: 얻은 XP만큼 HP 감소. 챕터 마지막 주는 더 단단하다
       const wk = weekKey(now)
-      const raid = s.raid && s.raid.key === wk ? s.raid : { key: wk, hp: RAID_MAX_HP, max: RAID_MAX_HP }
+      const chapter = chapterOf(now)
+      const raid =
+        s.raid && s.raid.key === wk ? s.raid : { key: wk, hp: chapter.maxHp, max: chapter.maxHp }
       const raidHp = Math.max(0, raid.hp - xp)
       const raidKilled = raid.hp > 0 && raidHp === 0
-      if (raidKilled) gold += RAID_REWARD
+      if (raidKilled) gold += chapter.reward
+      const chapterCleared = raidKilled && chapter.isFinal
       result = {
         xp,
         gold,
@@ -322,12 +348,15 @@ export function useGame() {
         combo: doneToday + 1,
         crit,
         raidKilled,
+        chapterCleared,
+        chapter,
         boosted,
         potionsConverted,
         newLevel: nextLevel,
         levelGold,
       }
-      // 반복 몬스터는 처치해도 수집함에 리스폰
+      // 반복 몬스터는 수집함에 리스폰하되, 다음 차례까지 잠들어 있는다
+      // (매일=내일, 평일만=다음 평일, 주 1회=다음 주)
       const respawn: Task[] = q.repeat
         ? [
             {
@@ -340,7 +369,9 @@ export function useGame() {
               urgent: q.urgent,
               monster: q.monster,
               cost: q.cost,
+              category: q.category,
               repeat: q.repeat,
+              availableAt: nextAvailable(q.repeat, now),
               subs: q.subs?.map((x) => ({ ...x, done: undefined })),
               createdAt: now,
             },
@@ -357,6 +388,10 @@ export function useGame() {
         items,
         xpBoost: false,
         raid: { ...raid, hp: raidHp },
+        raidKills: (s.raidKills ?? 0) + (raidKilled ? 1 : 0),
+        chapterClears: chapterCleared
+          ? [...new Set([...(s.chapterClears ?? []), chapter.key])]
+          : s.chapterClears,
       }
     })
     return result
@@ -505,6 +540,22 @@ export function useGame() {
     setState((s) => ({ ...s, strike: { id, day: day ?? todayKey() } }))
   }, [])
 
+  // ---------- 업적 ----------
+  // 조건을 새로 만족한 업적을 받아 골드를 준다. 받은 목록을 돌려준다.
+  const claimAchievements = useCallback((): Achievement[] => {
+    const earned = newAchievements(stateRef.current)
+    if (earned.length === 0) return []
+    const ids = earned.map((a) => a.id)
+    const bonus = earned.reduce((sum, a) => sum + a.gold, 0)
+    setState((s) => {
+      const have = new Set(s.achieved ?? [])
+      const fresh = ids.filter((id) => !have.has(id))
+      if (fresh.length === 0) return s
+      return { ...s, achieved: [...(s.achieved ?? []), ...fresh], gold: s.gold + bonus }
+    })
+    return earned
+  }, [])
+
   // ---------- 백업 / 복원 ----------
   const exportSave = useCallback(
     () =>
@@ -557,6 +608,7 @@ export function useGame() {
     toggleGear,
     buyFreeze,
     buyItem,
+    claimAchievements,
     consumeItem,
     useXpPotion,
     useCalm,

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Pixel } from '../Pixel'
 import { sfx } from '../sound'
-import { DAILY_GOAL, GameState, drawWeight, monsterOf, sameDay, todayKey } from '../game'
+import { DAILY_GOAL, GameState, awake, drawWeight, monsterOf, sameDay, todayKey } from '../game'
 
 interface Props {
   state: GameState
@@ -18,7 +18,7 @@ export function ReviewModal({ state, onPickTomorrow, onClose }: Props) {
 
   // 내일의 일격 후보: 가중치 상위 3개
   const candidates = useMemo(
-    () => [...state.pool].sort((a, b) => drawWeight(b) - drawWeight(a)).slice(0, 3),
+    () => awake(state.pool).sort((a, b) => drawWeight(b) - drawWeight(a)).slice(0, 3),
     [state.pool],
   )
 

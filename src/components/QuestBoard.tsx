@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import { sfx } from '../sound'
-import { ActiveQuest, DAILY_GOAL, MONSTER_NAMES, Task, monsterOf, raidBoss } from '../game'
+import { ActiveQuest, DAILY_GOAL, MONSTER_NAMES, Task, chapterOf, monsterOf } from '../game'
 import { QuestCard } from './QuestCard'
 
 interface Props {
@@ -105,6 +105,7 @@ export function QuestBoard({
 }: Props) {
   const emptySlots = Math.max(0, maxActive - active.length)
   const goalDone = doneToday >= DAILY_GOAL
+  const chapter = chapterOf()
 
   return (
     <div className="board">
@@ -124,16 +125,15 @@ export function QuestBoard({
       )}
 
       {raid && (
-        <div className="pixel-panel raid-panel">
-          <Pixel
-            name={raidBoss(raid.key)}
-            size={3}
-            className={raid.hp > 0 ? 'boss-glow' : ''}
-          />
+        <div className={`pixel-panel raid-panel ${chapter.isFinal ? 'raid-final' : ''}`}>
+          <Pixel name={chapter.boss} size={3} className={raid.hp > 0 ? 'boss-glow' : ''} />
           <div className="raid-body">
             <div className="raid-label">
-              주간 보스 — {MONSTER_NAMES[raidBoss(raid.key)]}
+              {chapter.isFinal ? '챕터 보스' : '주간 보스'} — {MONSTER_NAMES[chapter.boss]}
               <span className="dim"> HP {raid.hp}/{raid.max}</span>
+            </div>
+            <div className="dim chapter-line">
+              챕터 {chapter.index + 1} 「{chapter.name}」 · {chapter.week}/4주차
             </div>
             <div className="xp-bar raid-bar">
               <div
@@ -142,9 +142,13 @@ export function QuestBoard({
               />
             </div>
             {raid.hp === 0 ? (
-              <div className="goal-done">이번 주 보스 처치 완료!</div>
+              <div className="goal-done">
+                {chapter.isFinal ? `챕터 클리어! 칭호 「${chapter.title}」` : '이번 주 보스 처치 완료!'}
+              </div>
             ) : (
-              <div className="dim raid-hint">퀘스트 처치 XP만큼 데미지 — 이번 주 안에 잡으면 +100G</div>
+              <div className="dim raid-hint">
+                퀘스트 처치 XP만큼 데미지 — 이번 주 안에 잡으면 +{chapter.reward}G
+              </div>
             )}
           </div>
         </div>

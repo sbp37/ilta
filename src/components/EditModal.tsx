@@ -1,9 +1,27 @@
 import { useState } from 'react'
 import { Pixel } from '../Pixel'
 import { sfx } from '../sound'
-import { COST_PRESETS, DIFF, Difficulty, ENERGY_LABEL, Energy, MINUTE_OPTIONS, Task, monsterOf } from '../game'
+import {
+  CATEGORIES,
+  CATEGORY_IDS,
+  COST_PRESETS,
+  Category,
+  DIFF,
+  Difficulty,
+  ENERGY_LABEL,
+  Energy,
+  MINUTE_OPTIONS,
+  REPEAT_LABEL,
+  Repeat,
+  Task,
+  monsterFor,
+} from '../game'
 
-export type TaskPatch = Partial<Pick<Task, 'title' | 'difficulty' | 'minutes' | 'energy' | 'due' | 'cost' | 'repeat'>>
+export type TaskPatch = Partial<
+  Pick<Task, 'title' | 'difficulty' | 'minutes' | 'energy' | 'due' | 'cost' | 'repeat' | 'category'>
+>
+
+const REPEAT_CYCLE: (Repeat | undefined)[] = [undefined, 'daily', 'weekdays', 'weekly']
 
 interface Props {
   task: Task
@@ -18,7 +36,8 @@ export function EditModal({ task, onSave, onClose }: Props) {
   const [energy, setEnergy] = useState<Energy>(task.energy)
   const [due, setDue] = useState(task.due ?? '')
   const [cost, setCost] = useState(task.cost ?? '')
-  const [repeat, setRepeat] = useState(!!task.repeat)
+  const [repeat, setRepeat] = useState<Repeat | undefined>(task.repeat)
+  const [category, setCategory] = useState<Category | undefined>(task.category)
 
   const save = () => {
     const trimmed = title.trim()
@@ -34,7 +53,8 @@ export function EditModal({ task, onSave, onClose }: Props) {
       energy,
       due: due || undefined,
       cost: cost.trim() || undefined,
-      repeat: repeat ? 'daily' : undefined,
+      repeat,
+      category,
     })
     onClose()
   }
@@ -44,7 +64,15 @@ export function EditModal({ task, onSave, onClose }: Props) {
       <div className="modal pixel-panel edit-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-title">몬스터 정보 수정</div>
         <div className="edit-head">
-          <Pixel name={monsterOf({ ...task, difficulty })} size={3} className="bob" />
+          <Pixel
+            name={
+              difficulty === task.difficulty && category === task.category
+                ? (task.monster ?? monsterFor(difficulty, category))
+                : monsterFor(difficulty, category)
+            }
+            size={3}
+            className="bob"
+          />
           <input
             className="text-input"
             value={title}
@@ -57,6 +85,20 @@ export function EditModal({ task, onSave, onClose }: Props) {
               if (e.key === 'Escape') onClose()
             }}
           />
+        </div>
+
+        <div className="field-label">분류</div>
+        <div className="chip-row">
+          {CATEGORY_IDS.map((c) => (
+            <button
+              key={c}
+              className={`chip cat-chip ${category === c ? 'chip-on' : ''}`}
+              style={category === c ? { borderColor: CATEGORIES[c].color, color: CATEGORIES[c].color } : undefined}
+              onClick={() => setCategory(category === c ? undefined : c)}
+            >
+              {CATEGORIES[c].name}
+            </button>
+          ))}
         </div>
 
         <div className="field-label">난이도</div>
@@ -74,7 +116,9 @@ export function EditModal({ task, onSave, onClose }: Props) {
             </button>
           ))}
         </div>
-        {difficulty !== task.difficulty && <div className="dim edit-hint">난이도를 바꾸면 몬스터가 새로 배정돼요</div>}
+        {(difficulty !== task.difficulty || category !== task.category) && (
+          <div className="dim edit-hint">난이도나 분류를 바꾸면 몬스터가 새로 배정돼요</div>
+        )}
 
         <div className="field-label">예상 시간</div>
         <div className="chip-row">
@@ -120,9 +164,18 @@ export function EditModal({ task, onSave, onClose }: Props) {
           ))}
         </div>
 
-        <button className={`chip repeat-chip ${repeat ? 'chip-on' : ''}`} onClick={() => setRepeat((r) => !r)}>
-          🔁 매일 반복 {repeat ? '켜짐' : '꺼짐'}
-        </button>
+        <div className="field-label">반복</div>
+        <div className="chip-row">
+          {REPEAT_CYCLE.map((r) => (
+            <button
+              key={r ?? 'off'}
+              className={`chip ${repeat === r ? 'chip-on' : ''}`}
+              onClick={() => setRepeat(r)}
+            >
+              {r ? REPEAT_LABEL[r] : '반복 없음'}
+            </button>
+          ))}
+        </div>
 
         <div className="row-actions">
           <button className="btn btn-go" onClick={save}>

@@ -9,6 +9,7 @@ import {
   MINUTE_OPTIONS,
   NUDGE_LINES,
   Task,
+  awake,
   dueLabel,
   filterDoable,
   monsterOf,
@@ -44,7 +45,7 @@ export function DrawModal({ pool, activeFull, maxActive, enragedIds, tickets, on
   const [accepted, setAccepted] = useState<ActiveQuest | null>(null)
 
   const candidates = useMemo(
-    () => (ignoreFilter ? pool : filterDoable(pool, minutes, energy)),
+    () => (ignoreFilter ? awake(pool) : filterDoable(pool, minutes, energy)),
     [pool, minutes, energy, ignoreFilter],
   )
 

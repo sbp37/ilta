@@ -23,7 +23,7 @@ test('처치한 퀘스트를 되돌리면 XP·골드까지 원상복구된다', 
 
 test('퀘스트 카드에서 제목과 난이도를 고칠 수 있다', async ({ page }) => {
   await enterGame(page, { active: [activeTask()] })
-  await page.locator('.quest-card').getByRole('button', { name: '수정' }).click()
+  await page.locator('.quest-card .edit-link').click()
   await expect(page.locator('.edit-modal')).toBeVisible()
 
   await page.locator('.edit-modal .edit-head input').fill('수정된 몬스터')
@@ -45,9 +45,9 @@ test('수집함에서 삭제해도 되돌릴 수 있고, 반복도 켤 수 있�
   await expect(page.locator('.pool-item', { hasText: '지울 몹' })).toHaveCount(1)
 
   await page.locator('.pool-item').getByRole('button', { name: '수정' }).click()
-  await page.locator('.edit-modal .repeat-chip').click()
+  await page.locator('.edit-modal .chip', { hasText: '매일' }).click()
   await page.locator('.edit-modal').getByRole('button', { name: '저장' }).click()
-  await expect(page.locator('.pool-item .repeat-tag')).toHaveCount(1)
+  await expect(page.locator('.pool-item .repeat-tag')).toContainText('매일')
 })
 
 test('수집함 버튼은 글자 라벨이고 켜진 상태가 보인다', async ({ page }) => {

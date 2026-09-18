@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Pixel } from '../Pixel'
 import { sfx } from '../sound'
-import { ActiveQuest, DIFF, ENERGY_LABEL, Task, dueLabel, monsterOf } from '../game'
+import { ActiveQuest, CATEGORIES, DIFF, ENERGY_LABEL, REPEAT_LABEL, Task, dueLabel, monsterOf } from '../game'
 
 interface Props {
   quest: ActiveQuest
@@ -83,10 +83,13 @@ export function QuestCard({
           <div className="quest-title">
             {isStrike && <span className="strike-tag">일격</span>}
             {mad && <span className="enraged-tag">광폭</span>}
-            {quest.repeat && <span className="repeat-tag">🔁</span>}
+            {quest.repeat && <span className="repeat-tag">🔁{REPEAT_LABEL[quest.repeat]}</span>}
             {quest.title}
           </div>
           <div className="quest-meta">
+            {quest.category && (
+              <span style={{ color: CATEGORIES[quest.category].color }}>{CATEGORIES[quest.category].name}</span>
+            )}
             <span style={{ color: diff.color }}>{diff.label}</span>
             <span>{quest.minutes}분</span>
             <span>{ENERGY_LABEL[quest.energy]}</span>
@@ -95,6 +98,16 @@ export function QuestCard({
           </div>
           {quest.cost && <div className="cost-line">안 하면 → {quest.cost}</div>}
         </div>
+        <button
+          className="edit-link"
+          title="제목·난이도·분류·시간·마감 고치기"
+          onClick={() => {
+            sfx.click()
+            onEdit(quest)
+          }}
+        >
+          수정
+        </button>
       </div>
 
       {(subs.length > 0 || subsOpen) && (
@@ -159,16 +172,7 @@ export function QuestCard({
         >
           {confirming ? '정말 도망?' : '후퇴'}
         </button>
-        <button
-          className="btn btn-ghost"
-          title="제목·난이도·시간·마감 고치기"
-          onClick={() => {
-            sfx.click()
-            onEdit(quest)
-          }}
-        >
-          수정
-        </button>
+
       </div>
     </div>
   )
