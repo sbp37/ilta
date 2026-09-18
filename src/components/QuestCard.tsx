@@ -1,23 +1,35 @@
 import { useRef, useState } from 'react'
 import { Pixel } from '../Pixel'
 import { sfx } from '../sound'
-import { ActiveQuest, DIFF, ENERGY_LABEL, dueLabel, enraged, monsterOf } from '../game'
+import { ActiveQuest, DIFF, ENERGY_LABEL, Task, dueLabel, monsterOf } from '../game'
 
 interface Props {
   quest: ActiveQuest
   isStrike?: boolean
+  mad: boolean
   onComplete: (id: string) => void
   onStarter: (quest: ActiveQuest) => void
   onFight: (quest: ActiveQuest) => void
   onAbandon: (id: string) => void
   onAddSub: (id: string, title: string) => void
   onToggleSub: (id: string, subId: string) => void
+  onEdit: (task: Task) => void
 }
 
-export function QuestCard({ quest, isStrike, onComplete, onStarter, onFight, onAbandon, onAddSub, onToggleSub }: Props) {
+export function QuestCard({
+  quest,
+  isStrike,
+  mad,
+  onComplete,
+  onStarter,
+  onFight,
+  onAbandon,
+  onAddSub,
+  onToggleSub,
+  onEdit,
+}: Props) {
   const diff = DIFF[quest.difficulty]
   const due = quest.due ? dueLabel(quest.due) : null
-  const mad = enraged(quest)
   const [confirming, setConfirming] = useState(false)
   const [dying, setDying] = useState(false)
   const [subsOpen, setSubsOpen] = useState(false)
@@ -69,7 +81,7 @@ export function QuestCard({ quest, isStrike, onComplete, onStarter, onFight, onA
         <Pixel name={monsterOf(quest)} size={3} className={mad ? 'shake-slow' : 'bob'} />
         <div className="quest-title-wrap">
           <div className="quest-title">
-            {isStrike && <span className="strike-tag">⚔일격</span>}
+            {isStrike && <span className="strike-tag">일격</span>}
             {mad && <span className="enraged-tag">광폭</span>}
             {quest.repeat && <span className="repeat-tag">🔁</span>}
             {quest.title}
@@ -122,7 +134,7 @@ export function QuestCard({ quest, isStrike, onComplete, onStarter, onFight, onA
       )}
       {subs.length === 0 && !subsOpen && (
         <button className="sub-toggle" onClick={() => setSubsOpen(true)}>
-          ▸ 잡몹으로 쪼개기 (큰 일을 작게 나누기)
+          + 잡몹으로 쪼개기 (큰 일을 작게 나누기)
         </button>
       )}
 
@@ -146,6 +158,16 @@ export function QuestCard({ quest, isStrike, onComplete, onStarter, onFight, onA
           title="수집함으로 되돌리기 (도망 기록 남음)"
         >
           {confirming ? '정말 도망?' : '후퇴'}
+        </button>
+        <button
+          className="btn btn-ghost"
+          title="제목·난이도·시간·마감 고치기"
+          onClick={() => {
+            sfx.click()
+            onEdit(quest)
+          }}
+        >
+          수정
         </button>
       </div>
     </div>

@@ -46,7 +46,7 @@ export function ReviewModal({ state, onPickTomorrow, onClose }: Props) {
           <div className={goalDone ? 'goal-done' : 'dim'}>
             일일 목표 {Math.min(todayDone.length, DAILY_GOAL)}/{DAILY_GOAL} {goalDone ? '달성!' : ''}
           </div>
-          {strikeToday && <div className="goal-done">⚔ 오늘의 일격 성공!</div>}
+          {strikeToday && <div className="goal-done">오늘의 일격 성공!</div>}
         </div>
 
         {candidates.length > 0 && (

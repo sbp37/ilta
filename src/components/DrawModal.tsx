@@ -10,7 +10,6 @@ import {
   NUDGE_LINES,
   Task,
   dueLabel,
-  enraged,
   filterDoable,
   monsterOf,
   pickWeighted,
@@ -19,6 +18,10 @@ import {
 interface Props {
   pool: Task[]
   activeFull: boolean
+  maxActive: number
+  enragedIds: Set<string>
+  tickets: number // 다시뽑기권 보유 수
+  onUseTicket: () => boolean
   onAccept: (id: string) => boolean
   onClose: () => void
 }
@@ -31,7 +34,7 @@ const NPC_LINES = [
   '조건만 말씀해 주시면 제가 골라드리죠.',
 ]
 
-export function DrawModal({ pool, activeFull, onAccept, onClose }: Props) {
+export function DrawModal({ pool, activeFull, maxActive, enragedIds, tickets, onUseTicket, onAccept, onClose }: Props) {
   const [phase, setPhase] = useState<Phase>('setup')
   const [minutes, setMinutes] = useState<number>(30)
   const [energy, setEnergy] = useState<Energy>('mid')
@@ -64,9 +67,13 @@ export function DrawModal({ pool, activeFull, onAccept, onClose }: Props) {
   }
 
   const reroll = () => {
-    if (rerolls <= 0) return
-    setRerolls((r) => r - 1)
-    roll()
+    if (rerolls > 0) {
+      setRerolls((r) => r - 1)
+      roll()
+      return
+    }
+    // 무료 횟수를 다 썼으면 다시뽑기권 소모
+    if (tickets > 0 && onUseTicket()) roll()
   }
 
   const handleAccept = () => {
@@ -80,7 +87,7 @@ export function DrawModal({ pool, activeFull, onAccept, onClose }: Props) {
   }
 
   const diff = picked ? DIFF[picked.difficulty] : null
-  const mad = picked ? enraged(picked) : false
+  const mad = picked ? enragedIds.has(picked.id) : false
   // 이 퀘스트를 미루면 생기는 일: 등록된 대가 > 마감 경고 > 일반 푸시 대사
   const nudge = picked
     ? picked.cost ??
@@ -129,7 +136,7 @@ export function DrawModal({ pool, activeFull, onAccept, onClose }: Props) {
                 </button>
               ))}
             </div>
-            {activeFull && <div className="warn">퀘스트 슬롯이 가득 찼습니다! (최대 3개)</div>}
+            {activeFull && <div className="warn">퀘스트 슬롯이 가득 찼습니다! (최대 {maxActive}개)</div>}
             <button className="btn btn-big btn-go" onClick={roll} disabled={activeFull || pool.length === 0}>
               {pool.length === 0 ? '수집함이 비었어요' : '퀘스트 뽑기!'}
             </button>
@@ -162,8 +169,8 @@ export function DrawModal({ pool, activeFull, onAccept, onClose }: Props) {
               <button className="btn btn-go" onClick={handleAccept}>
                 수락한다!
               </button>
-              <button className="btn btn-sub" onClick={reroll} disabled={rerolls <= 0}>
-                다시 뽑기 ({rerolls}회)
+              <button className="btn btn-sub" onClick={reroll} disabled={rerolls <= 0 && tickets <= 0}>
+                {rerolls > 0 ? `다시 뽑기 (${rerolls}회)` : tickets > 0 ? `🎫 뽑기권 사용 (${tickets})` : '다시 뽑기 (0회)'}
               </button>
             </div>
           </>

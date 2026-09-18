@@ -5,6 +5,8 @@ import {
   ALL_MONSTERS,
   DoneQuest,
   LOOT,
+  LOOT_EFFECT,
+  LOOT_STACK_CAP,
   GameState,
   MONSTER_NAMES,
   lootById,
@@ -27,7 +29,7 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
   const dayList = [...days.entries()].reverse()
 
   const bossKills = state.done.filter((d) => d.difficulty === 'boss').length
-  const streak = streakDays(state.done)
+  const streak = streakDays(state.done, Date.now(), state.freezeUsed)
   // 최고 콤보 = 하루 최다 처치 수
   let bestCombo = 0
   for (const quests of days.values()) bestCombo = Math.max(bestCombo, quests.length)
@@ -85,7 +87,7 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
           className="btn btn-sub share-btn"
           onClick={() => {
           const today = state.done.filter((d) => dayKey(d.completedAt) === dayKey(Date.now())).length
-          const text = `⚔ 일타 전적\n오늘 ${today}몹 처치 | 총 ${state.done.length}처치 | 보스 ${bossKills} | 🔥${streak}일 연속 | ${state.gold}G`
+          const text = `일타 전적\n오늘 ${today}몹 처치 | 총 ${state.done.length}처치 | 보스 ${bossKills} | 🔥${streak}일 연속 | ${state.gold}G`
           navigator.clipboard
             .writeText(text)
             .then(() => onToast('전적을 복사했어요! 자랑하러 가자'))
@@ -124,14 +126,20 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
         </div>
       )}
 
-      <div className="field-label">전리품</div>
-      <div className="loot-grid">
+      <div className="field-label">
+        전리품 <span className="dim">모을수록 강해져요 (최대 {LOOT_STACK_CAP}개까지 효과)</span>
+      </div>
+      <div className="pixel-panel loot-effects">
         {LOOT.map((l) => {
           const count = state.loot[l.id] ?? 0
           return (
-            <div key={l.id} className={`loot-cell ${count === 0 ? 'loot-locked' : ''}`} title={l.name}>
-              <Pixel name={l.sprite} size={3} />
-              {count > 1 && <span className="loot-count">x{count}</span>}
+            <div key={l.id} className={`loot-effect-row ${count === 0 ? 'loot-row-locked' : ''}`}>
+              <Pixel name={l.sprite} size={2} />
+              <span className="loot-effect-name">{l.name}</span>
+              <span className="loot-effect-count">
+                {count > 0 ? `x${Math.min(count, LOOT_STACK_CAP)}` : '미획득'}
+              </span>
+              <span className="loot-effect-desc">{LOOT_EFFECT[l.id]}</span>
             </div>
           )
         })}

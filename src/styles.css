@@ -1963,3 +1963,241 @@ body[data-theme='dungeon'] {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ---------- v0.4: 편집 / 되돌리기 / 휴식일 부적 / 타이머 ---------- */
+
+.quest-top .quest-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-modal {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.edit-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.edit-head .text-input {
+  flex: 1;
+  min-width: 0;
+}
+.edit-hint {
+  font-size: 11px;
+  margin-top: 4px;
+}
+.repeat-chip {
+  margin-top: 10px;
+  align-self: flex-start;
+}
+
+.toast-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+.toast-actions .toast-btn {
+  white-space: nowrap;
+  margin: 0;
+}
+
+.freeze-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+.freeze-body {
+  flex: 1;
+  min-width: 0;
+}
+.freeze-card .gear-btn {
+  flex-shrink: 0;
+}
+.freeze-badge {
+  font-size: 11px;
+  color: var(--green);
+  background: var(--ink);
+  padding: 3px 6px;
+}
+
+.timer-hint {
+  font-size: 11px;
+}
+
+body[data-theme='sakura'] {
+  background:
+    radial-gradient(2px 2px at 20% 15%, #ffb7d5aa 50%, transparent 50%),
+    radial-gradient(2px 2px at 85% 25%, #ffc9e088 50%, transparent 50%),
+    radial-gradient(1px 1px at 65% 8%, #fff7 50%, transparent 50%),
+    radial-gradient(2px 2px at 40% 40%, #ffb7d566 50%, transparent 50%),
+    linear-gradient(180deg, #1d0f22 0%, #3a1a3d 55%, #5a2a48 100%);
+}
+
+/* ---------- v0.5: 소모품 / 전리품 효과 / 레벨 해금 ---------- */
+
+.boost-badge {
+  font-size: 11px;
+  color: var(--purple);
+  background: var(--ink);
+  padding: 3px 6px;
+  margin-right: 6px;
+}
+.gear-locked {
+  opacity: 0.55;
+}
+.gear-locked .gear-btn {
+  font-size: 11px;
+}
+.item-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.chip-locked {
+  opacity: 0.5;
+}
+.calm-btn {
+  color: var(--purple);
+}
+.loot-effects {
+  padding: 8px 10px;
+  margin: 6px 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+/* 한 줄로 흐르게 — 좁은 화면에서도 최대 2줄. 줄바꿈되면 글자에 맞춰 들여씀 */
+.loot-effect-row {
+  font-size: 12px;
+  line-height: 1.5;
+  padding-left: 22px;
+  text-indent: -22px;
+}
+.loot-effect-row .pixel-sprite {
+  display: inline-grid;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.loot-effect-count {
+  color: var(--gold);
+  margin-left: 5px;
+}
+.loot-effect-desc {
+  color: var(--dim);
+  margin-left: 6px;
+}
+.loot-row-locked {
+  opacity: 0.5;
+}
+.loot-row-locked .loot-effect-count {
+  color: var(--dim);
+}
+
+
+/* ---------- v0.6: 좁은 화면 레이아웃 + 라벨 붙은 버튼 ---------- */
+
+/* 수집함 카드: 내용 한 줄 + 라벨 버튼 줄 (좁은 화면에서 제목이 밀리지 않게) */
+.pool-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.pool-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.pool-item-title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+.pool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pool-act {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--dim);
+  background: var(--panel2);
+  border: 2px solid var(--ink);
+  padding: 5px 9px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pool-act:hover {
+  color: var(--text);
+}
+.pool-act.act-on {
+  color: var(--ink);
+  background: var(--gold);
+  border-color: var(--gold);
+}
+.pool-act.act-urgent {
+  color: var(--text);
+  background: var(--red);
+  border-color: var(--red);
+}
+.pool-act.act-calm {
+  color: var(--purple);
+  border-color: var(--purple);
+}
+.pool-act.act-del {
+  margin-left: auto;
+  color: #c77a7a;
+}
+.pool-act.act-del:hover {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* 소모품·부적 카드: 버튼이 설명을 밀어내지 않게 */
+.freeze-card {
+  flex-wrap: wrap;
+}
+.freeze-body {
+  flex: 1 1 150px;
+}
+.freeze-card .gear-btn,
+.item-btns .gear-btn {
+  width: auto;
+  min-width: 68px;
+  padding: 6px 12px;
+}
+.item-btns {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+/* 좁은 화면 보정 */
+@media (max-width: 400px) {
+  .pool-act {
+    font-size: 11px;
+    padding: 5px 7px;
+  }
+  .quest-actions .btn {
+    flex: 1 1 44%;
+  }
+  .freeze-card {
+    gap: 8px;
+  }
+  .freeze-body {
+    flex: 1 1 120px;
+  }
+}
+
+/* 부적 배지는 글자라 조금 좁게 */
+.freeze-badge,
+.boost-badge {
+  font-size: 10px;
+}

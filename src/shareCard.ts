@@ -107,7 +107,7 @@ export async function makeShareCard(state: GameState): Promise<Blob | null> {
 
   // 스탯 텍스트
   const today = state.done.filter((d) => sameDay(d.completedAt, Date.now())).length
-  const streak = streakDays(state.done)
+  const streak = streakDays(state.done, Date.now(), state.freezeUsed)
   const level = levelOf(state.xp)
   ctx.textAlign = 'left'
   ctx.fillStyle = '#f4f4f4'

@@ -2,15 +2,17 @@ import { useState } from 'react'
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import { sfx } from '../sound'
-import { ActiveQuest, DAILY_GOAL, MAX_ACTIVE, MONSTER_NAMES, Task, monsterOf, raidBoss } from '../game'
+import { ActiveQuest, DAILY_GOAL, MONSTER_NAMES, Task, monsterOf, raidBoss } from '../game'
 import { QuestCard } from './QuestCard'
 
 interface Props {
   active: ActiveQuest[]
+  maxActive: number
   poolSize: number
   doneToday: number
   strikeTask?: Task
   strikeInPool: boolean
+  enragedIds: Set<string>
   onDraw: () => void
   onComplete: (id: string) => void
   onStarter: (quest: ActiveQuest) => void
@@ -20,6 +22,7 @@ interface Props {
   onAcceptStrike: (id: string) => void
   onAddSub: (id: string, title: string) => void
   onToggleSub: (id: string, subId: string) => void
+  onEdit: (task: Task) => void
   heroPal?: Record<string, string>
   equipped?: string[]
   heroVariant?: string
@@ -78,10 +81,12 @@ function EmptySlot({ onQuickAdd }: { onQuickAdd: (title: string) => void }) {
 
 export function QuestBoard({
   active,
+  maxActive,
   poolSize,
   doneToday,
   strikeTask,
   strikeInPool,
+  enragedIds,
   onDraw,
   onComplete,
   onStarter,
@@ -91,13 +96,14 @@ export function QuestBoard({
   onAcceptStrike,
   onAddSub,
   onToggleSub,
+  onEdit,
   heroPal,
   equipped,
   heroVariant,
   raid,
   onReview,
 }: Props) {
-  const emptySlots = MAX_ACTIVE - active.length
+  const emptySlots = Math.max(0, maxActive - active.length)
   const goalDone = doneToday >= DAILY_GOAL
 
   return (
@@ -106,7 +112,7 @@ export function QuestBoard({
         <div className="pixel-panel strike-banner">
           <Pixel name={monsterOf(strikeTask)} size={3} className="bob" />
           <div className="strike-body">
-            <div className="strike-label">⚔ 오늘의 일격</div>
+            <div className="strike-label">오늘의 일격</div>
             <div className="strike-title">{strikeTask.title}</div>
           </div>
           {strikeInPool && (
@@ -179,12 +185,14 @@ export function QuestBoard({
           key={q.id}
           quest={q}
           isStrike={strikeTask?.id === q.id}
+          mad={enragedIds.has(q.id)}
           onComplete={onComplete}
           onStarter={onStarter}
           onFight={onFight}
           onAbandon={onAbandon}
           onAddSub={onAddSub}
           onToggleSub={onToggleSub}
+          onEdit={onEdit}
         />
       ))}
 

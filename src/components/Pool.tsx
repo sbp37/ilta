@@ -10,21 +10,37 @@ import {
   MINUTE_OPTIONS,
   Task,
   dueLabel,
-  enraged,
 } from '../game'
 
 interface Props {
   pool: Task[]
   strikeId?: string
+  enragedIds: Set<string>
   onAdd: (t: Omit<Task, 'id' | 'createdAt'>) => void
   onRemove: (id: string) => void
   onMove: (id: string, dir: -1 | 1) => void
   onToggleUrgent: (id: string) => void
   onToggleRepeat: (id: string) => void
   onSetStrike: (id: string) => void
+  onEdit: (task: Task) => void
+  calmCount: number
+  onCalm: (id: string) => void
 }
 
-export function Pool({ pool, strikeId, onAdd, onRemove, onMove, onToggleUrgent, onToggleRepeat, onSetStrike }: Props) {
+export function Pool({
+  pool,
+  strikeId,
+  enragedIds,
+  onAdd,
+  onRemove,
+  onMove,
+  onToggleUrgent,
+  onToggleRepeat,
+  onSetStrike,
+  onEdit,
+  calmCount,
+  onCalm,
+}: Props) {
   const [title, setTitle] = useState('')
   const [difficulty, setDifficulty] = useState<Difficulty>('slime')
   const [minutes, setMinutes] = useState<number>(15)
@@ -139,87 +155,114 @@ export function Pool({ pool, strikeId, onAdd, onRemove, onMove, onToggleUrgent, 
         {pool.map((t, i) => {
           const diff = DIFF[t.difficulty]
           const due = t.due ? dueLabel(t.due) : null
-          const mad = enraged(t)
+          const mad = enragedIds.has(t.id)
           return (
             <div key={t.id} className={`pool-item ${mad ? 'pool-enraged' : ''}`}>
-              <div className="order-btns">
+              <div className="pool-item-main">
+                <div className="order-btns">
+                  <button
+                    className="icon-btn"
+                    disabled={i === 0}
+                    title="위로 (우선순위 UP)"
+                    onClick={() => {
+                      sfx.click()
+                      onMove(t.id, -1)
+                    }}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    className="icon-btn"
+                    disabled={i === pool.length - 1}
+                    title="아래로"
+                    onClick={() => {
+                      sfx.click()
+                      onMove(t.id, 1)
+                    }}
+                  >
+                    ▼
+                  </button>
+                </div>
+                <Pixel name={t.monster ?? diff.sprite} size={2} />
+                <div className="pool-item-body">
+                  <div className="pool-item-title">
+                    {strikeId === t.id && <span className="strike-tag">일격</span>}
+                    {mad && <span className="enraged-tag">광폭</span>}
+                    {t.repeat && <span className="repeat-tag">🔁</span>}
+                    {t.urgent && <span className="urgent-mark">!</span>}
+                    {t.title}
+                  </div>
+                  <div className="quest-meta">
+                    <span style={{ color: diff.color }}>{diff.label}</span>
+                    <span>{t.minutes}분</span>
+                    <span>{ENERGY_LABEL[t.energy]}</span>
+                    {due && <span className={due.urgent ? 'due-urgent' : ''}>{due.text}</span>}
+                    {(t.subs?.length ?? 0) > 0 && (
+                      <span className="subs-tag">잡몹 {t.subs!.filter((s) => s.done).length}/{t.subs!.length}</span>
+                    )}
+                    {(t.retreats ?? 0) > 0 && <span className="retreat-tag">도망 x{t.retreats}</span>}
+                  </div>
+                  {t.cost && <div className="cost-line">안 하면 → {t.cost}</div>}
+                </div>
+              </div>
+
+              <div className="pool-actions">
                 <button
-                  className="icon-btn"
-                  disabled={i === 0}
-                  title="위로 (우선순위 UP)"
+                  className="pool-act"
+                  title="제목·난이도·시간·마감 고치기"
                   onClick={() => {
                     sfx.click()
-                    onMove(t.id, -1)
+                    onEdit(t)
                   }}
                 >
-                  ▲
+                  수정
                 </button>
                 <button
-                  className="icon-btn"
-                  disabled={i === pool.length - 1}
-                  title="아래로"
+                  className={`pool-act ${strikeId === t.id ? 'act-on' : ''}`}
+                  title="오늘의 일격으로 지정 — 이것만 잡아도 오늘은 승리"
                   onClick={() => {
-                    sfx.click()
-                    onMove(t.id, 1)
+                    sfx.accept()
+                    onSetStrike(t.id)
                   }}
                 >
-                  ▼
+                  일격
+                </button>
+                <button
+                  className={`pool-act ${t.urgent ? 'act-on act-urgent' : ''}`}
+                  title="급해! — 뽑힐 확률 UP"
+                  onClick={() => {
+                    sfx.click()
+                    onToggleUrgent(t.id)
+                  }}
+                >
+                  급해
+                </button>
+                <button
+                  className={`pool-act ${t.repeat ? 'act-on' : ''}`}
+                  title="매일 반복 — 처치해도 다음날 다시 나타남"
+                  onClick={() => {
+                    sfx.click()
+                    onToggleRepeat(t.id)
+                  }}
+                >
+                  반복
+                </button>
+                {mad && calmCount > 0 && (
+                  <button
+                    className="pool-act act-calm"
+                    title={`진정의 향 사용 (${calmCount}개 보유) — 광폭 해제`}
+                    onClick={() => {
+                      sfx.accept()
+                      onCalm(t.id)
+                    }}
+                  >
+                    진정
+                  </button>
+                )}
+                <button className="pool-act act-del" title="수집함에서 없애기 (되돌리기 가능)" onClick={() => onRemove(t.id)}>
+                  삭제
                 </button>
               </div>
-              <Pixel name={t.monster ?? diff.sprite} size={2} />
-              <div className="pool-item-body">
-                <div className="pool-item-title">
-                  {strikeId === t.id && <span className="strike-tag">⚔일격</span>}
-                  {mad && <span className="enraged-tag">광폭</span>}
-                  {t.repeat && <span className="repeat-tag">🔁</span>}
-                  {t.urgent && <span className="urgent-mark">!</span>}
-                  {t.title}
-                </div>
-                <div className="quest-meta">
-                  <span style={{ color: diff.color }}>{diff.label}</span>
-                  <span>{t.minutes}분</span>
-                  <span>{ENERGY_LABEL[t.energy]}</span>
-                  {due && <span className={due.urgent ? 'due-urgent' : ''}>{due.text}</span>}
-                  {(t.subs?.length ?? 0) > 0 && (
-                    <span className="subs-tag">잡몹 {t.subs!.filter((s) => s.done).length}/{t.subs!.length}</span>
-                  )}
-                  {(t.retreats ?? 0) > 0 && <span className="retreat-tag">도망 x{t.retreats}</span>}
-                  {t.cost && <span className="cost-tag">안 하면: {t.cost}</span>}
-                </div>
-              </div>
-              <button
-                className={`icon-btn ${t.repeat ? 'repeat-on' : ''}`}
-                title="매일 반복 — 처치해도 다시 나타남"
-                onClick={() => {
-                  sfx.click()
-                  onToggleRepeat(t.id)
-                }}
-              >
-                ↻
-              </button>
-              <button
-                className={`icon-btn ${strikeId === t.id ? 'strike-on' : ''}`}
-                title="오늘의 일격으로 지정"
-                onClick={() => {
-                  sfx.accept()
-                  onSetStrike(t.id)
-                }}
-              >
-                ⚔
-              </button>
-              <button
-                className={`icon-btn ${t.urgent ? 'urgent-on' : ''}`}
-                title="급해! (뽑힐 확률 UP)"
-                onClick={() => {
-                  sfx.click()
-                  onToggleUrgent(t.id)
-                }}
-              >
-                !
-              </button>
-              <button className="icon-btn" title="삭제" onClick={() => onRemove(t.id)}>
-                ×
-              </button>
             </div>
           )
         })}

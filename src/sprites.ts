@@ -571,4 +571,35 @@ export const SPRITES: Record<string, Sprite> = {
       '........',
     ],
   },
+  // 소모품 — 다시뽑기권
+  ticket: {
+    palette: { K, Y, W, R },
+    rows: [
+      'KKKKKKKKKK',
+      'KYYYYYYYYK',
+      'KYWWKWWKYK',
+      'KYYYYYYYYK',
+      'KYRRRRRRYK',
+      'KYYYYYYYYK',
+      'KYWWKWWKYK',
+      'KYYYYYYYYK',
+      'KKKKKKKKKK',
+    ],
+  },
+  // 소모품 — 진정의 향
+  incense: {
+    palette: { K, W, S, P: '#a86bff', Y },
+    rows: [
+      '...S....',
+      '..S.S...',
+      '...S....',
+      '..S.....',
+      '...Y....',
+      '...K....',
+      '...K....',
+      '.KPPPPK.',
+      'KPPPPPPK',
+      '.KKKKKK.',
+    ],
+  },
 }

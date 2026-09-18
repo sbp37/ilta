@@ -3,3 +3,7 @@ dist/
 *.local
 .DS_Store
 *.tsbuildinfo
+
+# 테스트 산출물
+test-results/
+playwright-report/
