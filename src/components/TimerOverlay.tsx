@@ -15,7 +15,9 @@ interface Props {
 // 화면이 꺼져 있을 때 타이머가 끝나면 알림으로 알려줌
 function notifyDone(title: string, starter: boolean) {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
-  const body = starter ? `「${title}」 5분 시작 성공! 이어서 갈까?` : `「${title}」 전투 시간 끝! 처치 완료를 눌러줘`
+  const body = starter
+    ? `「${title}」 5분 시작 성공! 이어서 갈까?`
+    : `「${title}」 전투 시간 끝! 처치 완료를 눌러줘`
   const opts: NotificationOptions = { body, tag: 'ilta-timer' }
   navigator.serviceWorker?.ready
     .then((reg) => reg.showNotification('일타', opts))

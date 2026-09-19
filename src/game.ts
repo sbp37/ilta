@@ -273,7 +273,10 @@ export const ENRAGE_DAYS = 7 // 마감 없는 몹은 일주일 묵혀야 광폭�
 export const ENRAGE_RETREATS = 2
 export const ENRAGE_CAP = 3 // 동시에 광폭 상태로 보이는 몹 최대 수 (경고 피로 방지)
 
-export function enraged(t: { due?: string; retreats?: number; createdAt: number }, now = Date.now()): boolean {
+export function enraged(
+  t: { due?: string; retreats?: number; createdAt: number },
+  now = Date.now(),
+): boolean {
   if ((t.retreats ?? 0) >= ENRAGE_RETREATS) return true
   if (t.due && new Date(t.due + 'T23:59:59').getTime() < now) return true
   return now - t.createdAt >= ENRAGE_DAYS * 86400000
@@ -346,11 +349,12 @@ export const LOOT: LootItem[] = [
 
 export const uid = () => Math.random().toString(36).slice(2, 10)
 
-
 export function sameDay(a: number, b: number) {
   const da = new Date(a)
   const db = new Date(b)
-  return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate()
+  return (
+    da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate()
+  )
 }
 
 export function dueLabel(due: string, now = Date.now()): { text: string; urgent: boolean } {
@@ -478,9 +482,27 @@ export const ITEM_MAX = 5
 export const XP_BOOST_MULT = 1.5
 
 export const CONSUMABLES: Consumable[] = [
-  { id: 'reroll', name: '다시뽑기권', sprite: 'ticket', cost: 30, desc: '퀘스트 뽑기에서 한 번 더 뽑을 수 있다' },
-  { id: 'xppotion', name: 'XP 포션', sprite: 'potion', cost: 40, desc: `사용하면 다음 처치 XP ${XP_BOOST_MULT}배` },
-  { id: 'calm', name: '진정의 향', sprite: 'incense', cost: 45, desc: '광폭한 몹 하나를 진정시킨다 (도망·묵힌 기록 초기화)' },
+  {
+    id: 'reroll',
+    name: '다시뽑기권',
+    sprite: 'ticket',
+    cost: 30,
+    desc: '퀘스트 뽑기에서 한 번 더 뽑을 수 있다',
+  },
+  {
+    id: 'xppotion',
+    name: 'XP 포션',
+    sprite: 'potion',
+    cost: 40,
+    desc: `사용하면 다음 처치 XP ${XP_BOOST_MULT}배`,
+  },
+  {
+    id: 'calm',
+    name: '진정의 향',
+    sprite: 'incense',
+    cost: 45,
+    desc: '광폭한 몹 하나를 진정시킨다 (도망·묵힌 기록 초기화)',
+  },
 ]
 
 export const itemCount = (s: { items?: Record<string, number> }, id: string) => s.items?.[id] ?? 0
@@ -570,7 +592,10 @@ export const HERO_TUNICS = [
 ]
 
 // knight 스프라이트의 H(머리)/T(옷) 색을 덮어씀
-export function heroPalette(s: { heroHair?: string; heroTunic?: string }): Record<string, string> | undefined {
+export function heroPalette(s: {
+  heroHair?: string
+  heroTunic?: string
+}): Record<string, string> | undefined {
   if (!s.heroHair && !s.heroTunic) return undefined
   return { H: s.heroHair ?? '#7a4a2f', T: s.heroTunic ?? '#3d7ad8' }
 }
@@ -800,7 +825,13 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'kill100', name: '백몹 학살자', desc: '100마리 처치', gold: 120, done: (s) => killsOf(s) >= 100 },
   { id: 'boss5', name: '보스 도전자', desc: '보스 5마리 처치', gold: 80, done: (s) => bossKills(s) >= 5 },
   { id: 'boss20', name: '보스 사냥꾼', desc: '보스 20마리 처치', gold: 200, done: (s) => bossKills(s) >= 20 },
-  { id: 'combo5', name: '폭주 기관차', desc: '하루에 5마리 처치', gold: 60, done: (s) => bestDay(s.done) >= 5 },
+  {
+    id: 'combo5',
+    name: '폭주 기관차',
+    desc: '하루에 5마리 처치',
+    gold: 60,
+    done: (s) => bestDay(s.done) >= 5,
+  },
   {
     id: 'streak7',
     name: '일주일의 약속',
@@ -922,12 +953,57 @@ export interface GearItem {
 }
 
 export const GEAR: GearItem[] = [
-  { id: 'g_potion', name: '포션 벨트', sprite: 'potion', cost: 50, slot: 'acc', desc: '허리에 포션을 차고 다닌다' },
+  {
+    id: 'g_potion',
+    name: '포션 벨트',
+    sprite: 'potion',
+    cost: 50,
+    slot: 'acc',
+    desc: '허리에 포션을 차고 다닌다',
+  },
   { id: 'g_boots', name: '가벼운 장화', sprite: 'boots', cost: 70, slot: 'feet', desc: '발이 가벼워 보인다' },
-  { id: 'g_amulet', name: '행운의 목걸이', sprite: 'amulet', cost: 90, slot: 'acc', desc: '목에 걸면 운이 따를 것 같다' },
-  { id: 'g_armor', name: '가죽 갑옷', sprite: 'armor', cost: 110, slot: 'body', desc: '몸을 든든하게 감싼다', level: 5 },
+  {
+    id: 'g_amulet',
+    name: '행운의 목걸이',
+    sprite: 'amulet',
+    cost: 90,
+    slot: 'acc',
+    desc: '목에 걸면 운이 따를 것 같다',
+  },
+  {
+    id: 'g_armor',
+    name: '가죽 갑옷',
+    sprite: 'armor',
+    cost: 110,
+    slot: 'body',
+    desc: '몸을 든든하게 감싼다',
+    level: 5,
+  },
   { id: 'g_cape', name: '모험가 망토', sprite: 'cape', cost: 130, slot: 'back', desc: '뒷모습이 모험가답다' },
-  { id: 'g_wizardhat', name: '뾰족 마법모자', sprite: 'wizardhat', cost: 160, slot: 'head', desc: '쓰면 지혜로워 보인다' },
-  { id: 'g_helmet', name: '기사 투구', sprite: 'helmet', cost: 190, slot: 'head', desc: '묵직한 철 투구', level: 12 },
-  { id: 'g_crown', name: '황금 왕관', sprite: 'crown', cost: 260, slot: 'head', desc: '진짜 용사의 증표', level: 15 },
+  {
+    id: 'g_wizardhat',
+    name: '뾰족 마법모자',
+    sprite: 'wizardhat',
+    cost: 160,
+    slot: 'head',
+    desc: '쓰면 지혜로워 보인다',
+  },
+  {
+    id: 'g_helmet',
+    name: '기사 투구',
+    sprite: 'helmet',
+    cost: 190,
+    slot: 'head',
+    desc: '묵직한 철 투구',
+    level: 12,
+  },
+  {
+    id: 'g_crown',
+    name: '황금 왕관',
+    sprite: 'crown',
+    cost: 260,
+    slot: 'head',
+    desc: '진짜 용사의 증표',
+    level: 15,
+  },
 ]

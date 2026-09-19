@@ -61,7 +61,15 @@ export function Pool({
       sfx.deny()
       return
     }
-    onAdd({ title: trimmed, difficulty, minutes, energy, due: due || undefined, cost: cost || undefined, category })
+    onAdd({
+      title: trimmed,
+      difficulty,
+      minutes,
+      energy,
+      due: due || undefined,
+      cost: cost || undefined,
+      category,
+    })
     setTitle('')
     sfx.accept()
   }
@@ -91,7 +99,9 @@ export function Pool({
             <button
               key={c}
               className={`chip cat-chip ${category === c ? 'chip-on' : ''}`}
-              style={category === c ? { borderColor: CATEGORIES[c].color, color: CATEGORIES[c].color } : undefined}
+              style={
+                category === c ? { borderColor: CATEGORIES[c].color, color: CATEGORIES[c].color } : undefined
+              }
               title={`${CATEGORIES[c].name} — 전담 몬스터가 정해져요`}
               onClick={() => setCategory(category === c ? undefined : c)}
             >
@@ -125,7 +135,11 @@ export function Pool({
             <div className="field-label">예상 시간</div>
             <div className="chip-row">
               {MINUTE_OPTIONS.map((m) => (
-                <button key={m} className={`chip ${minutes === m ? 'chip-on' : ''}`} onClick={() => setMinutes(m)}>
+                <button
+                  key={m}
+                  className={`chip ${minutes === m ? 'chip-on' : ''}`}
+                  onClick={() => setMinutes(m)}
+                >
                   {m}분
                 </button>
               ))}
@@ -134,7 +148,11 @@ export function Pool({
             <div className="field-label">필요한 에너지</div>
             <div className="chip-row">
               {(Object.keys(ENERGY_LABEL) as Energy[]).map((e) => (
-                <button key={e} className={`chip ${energy === e ? 'chip-on' : ''}`} onClick={() => setEnergy(e)}>
+                <button
+                  key={e}
+                  className={`chip ${energy === e ? 'chip-on' : ''}`}
+                  onClick={() => setEnergy(e)}
+                >
                   {ENERGY_LABEL[e]}
                 </button>
               ))}
@@ -217,14 +235,18 @@ export function Pool({
                   </div>
                   <div className="quest-meta">
                     {t.category && (
-                      <span style={{ color: CATEGORIES[t.category].color }}>{CATEGORIES[t.category].name}</span>
+                      <span style={{ color: CATEGORIES[t.category].color }}>
+                        {CATEGORIES[t.category].name}
+                      </span>
                     )}
                     <span style={{ color: diff.color }}>{diff.label}</span>
                     <span>{t.minutes}분</span>
                     <span>{ENERGY_LABEL[t.energy]}</span>
                     {due && <span className={due.urgent ? 'due-urgent' : ''}>{due.text}</span>}
                     {(t.subs?.length ?? 0) > 0 && (
-                      <span className="subs-tag">잡몹 {t.subs!.filter((s) => s.done).length}/{t.subs!.length}</span>
+                      <span className="subs-tag">
+                        잡몹 {t.subs!.filter((s) => s.done).length}/{t.subs!.length}
+                      </span>
                     )}
                     {(t.retreats ?? 0) > 0 && <span className="retreat-tag">도망 x{t.retreats}</span>}
                   </div>
@@ -287,7 +309,11 @@ export function Pool({
                     진정
                   </button>
                 )}
-                <button className="pool-act act-del" title="수집함에서 없애기 (되돌리기 가능)" onClick={() => onRemove(t.id)}>
+                <button
+                  className="pool-act act-del"
+                  title="수집함에서 없애기 (되돌리기 가능)"
+                  onClick={() => onRemove(t.id)}
+                >
                   삭제
                 </button>
               </div>

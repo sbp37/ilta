@@ -38,9 +38,15 @@ test('무료 리롤을 다 쓰면 다시뽑기권으로 한 번 더 뽑는다', 
   await page.locator('.modal').getByRole('button', { name: '퀘스트 뽑기!' }).click()
   await expect(page.locator('.reveal-box')).toBeVisible()
 
-  await page.locator('.modal').getByRole('button', { name: /다시 뽑기 \(1회\)/ }).click()
+  await page
+    .locator('.modal')
+    .getByRole('button', { name: /다시 뽑기 \(1회\)/ })
+    .click()
   await expect(page.locator('.modal').getByRole('button', { name: /뽑기권 사용 \(1\)/ })).toBeVisible()
-  await page.locator('.modal').getByRole('button', { name: /뽑기권 사용 \(1\)/ }).click()
+  await page
+    .locator('.modal')
+    .getByRole('button', { name: /뽑기권 사용 \(1\)/ })
+    .click()
   await expect(page.locator('.modal').getByRole('button', { name: /다시 뽑기 \(0회\)/ })).toBeVisible()
 })
 
@@ -93,9 +99,7 @@ test('빨간 포션 5개가 모이면 XP 포션으로 바뀐다', async ({ page 
   await page.locator('.quest-card').getByRole('button', { name: '처치 완료!' }).click()
   await expect(toast(page)).toContainText('XP 포션!')
 
-  const items = await page.evaluate(
-    () => JSON.parse(localStorage.getItem('quest-do-save-v1') ?? '{}').items,
-  )
+  const items = await page.evaluate(() => JSON.parse(localStorage.getItem('quest-do-save-v1') ?? '{}').items)
   expect(items.xppotion).toBe(1)
 })
 

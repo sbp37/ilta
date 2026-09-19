@@ -15,7 +15,10 @@ export function toggleMute(): boolean {
 function ac(): AudioContext | null {
   if (muted) return null
   try {
-    ctx ??= new (window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+    ctx ??= new (
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    )()
     if (ctx.state === 'suspended') void ctx.resume()
     return ctx
   } catch {

@@ -12,11 +12,7 @@ interface Props {
 export function Hero({ size = 3, palette, equipped = [], variant = 'knight', className = '' }: Props) {
   const overlays = equipOverlays(equipped)
   return (
-    <div
-      className={`hero-sprite ${className}`}
-      style={{ width: 12 * size, height: 14 * size }}
-      aria-hidden
-    >
+    <div className={`hero-sprite ${className}`} style={{ width: 12 * size, height: 14 * size }} aria-hidden>
       <Pixel name={variant} size={size} palette={palette} />
       {overlays.map((e) => (
         <div key={e.sprite + e.slot} className="equip-slot" style={{ left: e.x * size, top: e.y * size }}>

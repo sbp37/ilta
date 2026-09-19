@@ -7,7 +7,14 @@ for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 800 })
     await enterGame(page, {
       pool: [
-        poolTask({ id: 'p1', title: '분기 보고서 초안 쓰기', difficulty: 'elite', minutes: 60, cost: '야근 확정', retreats: 2 }),
+        poolTask({
+          id: 'p1',
+          title: '분기 보고서 초안 쓰기',
+          difficulty: 'elite',
+          minutes: 60,
+          cost: '야근 확정',
+          retreats: 2,
+        }),
       ],
       gold: 500,
       loot: { potion: 2 },

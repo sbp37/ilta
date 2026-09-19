@@ -101,14 +101,14 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
         <button
           className="btn btn-sub share-btn"
           onClick={() => {
-          const today = state.done.filter((d) => dayKey(d.completedAt) === dayKey(Date.now())).length
-          const text = `일타 전적\n오늘 ${today}몹 처치 | 총 ${state.done.length}처치 | 보스 ${bossKills} | 🔥${streak}일 연속 | ${state.gold}G`
-          navigator.clipboard
-            .writeText(text)
-            .then(() => onToast('전적을 복사했어요! 자랑하러 가자'))
-            .catch(() => onToast('복사 실패…'))
-        }}
-      >
+            const today = state.done.filter((d) => dayKey(d.completedAt) === dayKey(Date.now())).length
+            const text = `일타 전적\n오늘 ${today}몹 처치 | 총 ${state.done.length}처치 | 보스 ${bossKills} | 🔥${streak}일 연속 | ${state.gold}G`
+            navigator.clipboard
+              .writeText(text)
+              .then(() => onToast('전적을 복사했어요! 자랑하러 가자'))
+              .catch(() => onToast('복사 실패…'))
+          }}
+        >
           전적 복사하기
         </button>
       </div>
@@ -180,7 +180,10 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
       </div>
 
       <div className="field-label">
-        업적 <span className="dim">{achieved.size}/{ACHIEVEMENTS.length} 달성</span>
+        업적{' '}
+        <span className="dim">
+          {achieved.size}/{ACHIEVEMENTS.length} 달성
+        </span>
       </div>
       <div className="pixel-panel ach-list">
         {ACHIEVEMENTS.map((a) => {
@@ -229,13 +232,20 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
       </div>
 
       <div className="field-label">
-        몬스터 도감 <span className="dim">{dexCount}/{ALL_MONSTERS.length} 수집</span>
+        몬스터 도감{' '}
+        <span className="dim">
+          {dexCount}/{ALL_MONSTERS.length} 수집
+        </span>
       </div>
       <div className="dex-grid">
         {ALL_MONSTERS.map((m) => {
           const n = kills[m] ?? 0
           return (
-            <div key={m} className={`dex-cell ${n === 0 ? 'dex-locked' : ''}`} title={n > 0 ? `${n}마리 처치` : '미발견'}>
+            <div
+              key={m}
+              className={`dex-cell ${n === 0 ? 'dex-locked' : ''}`}
+              title={n > 0 ? `${n}마리 처치` : '미발견'}
+            >
               <Pixel name={m} size={3} />
               <div className="dex-name">{n > 0 ? MONSTER_NAMES[m] : '???'}</div>
               {n > 1 && <div className="dex-count">x{n}</div>}

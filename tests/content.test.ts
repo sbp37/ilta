@@ -96,7 +96,11 @@ describe('분류와 몬스터', () => {
   })
 
   it('분류별 처치 수를 센다', () => {
-    const list = [done({ id: 'a', category: 'study' }), done({ id: 'b', category: 'home' }), done({ id: 'c' })]
+    const list = [
+      done({ id: 'a', category: 'study' }),
+      done({ id: 'b', category: 'home' }),
+      done({ id: 'c' }),
+    ]
     expect(categoriesCleared(list)).toBe(2)
   })
 })
@@ -212,7 +216,11 @@ describe('업적', () => {
   })
 
   it('도감 수집 수를 센다', () => {
-    const list = [done({ id: 'a', monster: 'slime' }), done({ id: 'b', monster: 'slime' }), done({ id: 'c', monster: 'bat' })]
+    const list = [
+      done({ id: 'a', monster: 'slime' }),
+      done({ id: 'b', monster: 'slime' }),
+      done({ id: 'c', monster: 'bat' }),
+    ]
     expect(dexCount(list)).toBe(2)
   })
 

@@ -88,7 +88,9 @@ export function QuestCard({
           </div>
           <div className="quest-meta">
             {quest.category && (
-              <span style={{ color: CATEGORIES[quest.category].color }}>{CATEGORIES[quest.category].name}</span>
+              <span style={{ color: CATEGORIES[quest.category].color }}>
+                {CATEGORIES[quest.category].name}
+              </span>
             )}
             <span style={{ color: diff.color }}>{diff.label}</span>
             <span>{quest.minutes}분</span>
@@ -127,7 +129,8 @@ export function QuestCard({
           ))}
           {subs.length > 0 && (
             <div className="sub-progress dim">
-              잡몹 {subsDone}/{subs.length} — {subsDone === subs.length ? '전멸! 본체를 처치하세요' : '다 잡으면 본체가 약해집니다'}
+              잡몹 {subsDone}/{subs.length} —{' '}
+              {subsDone === subs.length ? '전멸! 본체를 처치하세요' : '다 잡으면 본체가 약해집니다'}
             </div>
           )}
           {subs.length < 8 && (
@@ -172,7 +175,6 @@ export function QuestCard({
         >
           {confirming ? '정말 도망?' : '후퇴'}
         </button>
-
       </div>
     </div>
   )
