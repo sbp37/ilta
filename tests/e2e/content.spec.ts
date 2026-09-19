@@ -72,7 +72,14 @@ test('업적을 달성하면 골드와 함께 알려준다', async ({ page }) =>
 })
 
 test('이미 받은 업적은 다시 주지 않는다', async ({ page }) => {
-  await enterGame(page, { active: [activeTask()], done: [doneDaysAgo(3)], achieved: ['first'], gold: 100 })
+  // 시간대 업적도 미리 받은 걸로 심는다 — 새벽 실행 때 live 처치가 '새벽의 용사'를 따내면 골드 단언이 깨진다
+  const preAchieved = ['first', 'nightOwl', 'earlyBird']
+  await enterGame(page, {
+    active: [activeTask()],
+    done: [doneDaysAgo(3)],
+    achieved: preAchieved,
+    gold: 100,
+  })
   await page.locator('.quest-card').getByRole('button', { name: '처치 완료!' }).click()
   await expect(toast(page)).toContainText('처치 완료')
   await expect(toast(page)).not.toContainText('업적 달성')
@@ -81,7 +88,7 @@ test('이미 받은 업적은 다시 주지 않는다', async ({ page }) => {
   const achieved = await page.evaluate(
     () => JSON.parse(localStorage.getItem('quest-do-save-v1') ?? '{}').achieved,
   )
-  expect(achieved).toEqual(['first'])
+  expect(achieved).toEqual(preAchieved)
 })
 
 test('모험일지에 분류 통계와 챕터 진행이 보인다', async ({ page }) => {
