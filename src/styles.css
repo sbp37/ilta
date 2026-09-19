@@ -2414,6 +2414,9 @@ body[data-theme='sakura'] {
   color: var(--dim);
   margin-left: 6px;
 }
+.ach-prog {
+  margin-left: 6px;
+}
 .ach-gold {
   color: var(--green);
   margin-left: 6px;

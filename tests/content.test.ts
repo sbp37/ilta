@@ -25,6 +25,7 @@ import {
   newAchievements,
   nextAvailable,
   pickWeighted,
+  raidFor,
   weekIndex,
 } from '../src/game'
 
@@ -180,6 +181,48 @@ describe('챕터', () => {
       const c = chapterOf(start + i * 7 * DAY)
       expect(SPRITES[c.boss], `${c.boss} 없음`).toBeDefined()
     }
+  })
+})
+
+describe('레이드 이월', () => {
+  const start = new Date(2026, 0, 5, 12).getTime() // 1주차 월요일
+  const week4 = start + 3 * 7 * DAY // 챕터 보스 주간
+  const week5 = start + 4 * 7 * DAY // 다음 챕터 1주차
+
+  it('같은 주면 기존 레이드를 이어간다', () => {
+    const raid = raidFor(undefined, start)
+    const next = raidFor({ ...raid, hp: 200 }, start + 2 * DAY)
+    expect(next.hp).toBe(200)
+  })
+
+  it('일반 주간 보스는 주가 바뀌면 새 보스로 초기화된다', () => {
+    const raid = raidFor(undefined, start)
+    const next = raidFor({ ...raid, hp: 100 }, start + 7 * DAY)
+    expect(next.hp).toBe(next.max)
+    expect(next.isFinal).toBeUndefined()
+  })
+
+  it('챕터 보스 주간의 레이드는 정체를 저장한다', () => {
+    const raid = raidFor(undefined, week4)
+    expect(raid.isFinal).toBe(true)
+    expect(raid.boss).toBe(chapterOf(week4).boss)
+    expect(raid.reward).toBe(chapterOf(week4).reward)
+    expect(raid.chapterKey).toBe(chapterOf(week4).key)
+  })
+
+  it('못 잡은 챕터 보스는 주가 넘어가도 남는다', () => {
+    const raid = raidFor(undefined, week4)
+    const carried = raidFor({ ...raid, hp: 250 }, week5)
+    expect(carried.hp).toBe(250)
+    expect(carried.isFinal).toBe(true)
+    expect(carried.boss).toBe(chapterOf(week4).boss)
+  })
+
+  it('챕터 보스를 잡으면 다음 주에 새 보스가 나타난다', () => {
+    const raid = raidFor(undefined, week4)
+    const next = raidFor({ ...raid, hp: 0 }, week5)
+    expect(next.isFinal).toBeUndefined()
+    expect(next.hp).toBe(next.max)
   })
 })
 

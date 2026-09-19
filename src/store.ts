@@ -5,7 +5,6 @@ import {
   CONSUMABLES,
   CRIT_CHANCE,
   CRIT_MULT,
-  ChapterInfo,
   DoneQuest,
   FREEZE_COST,
   FREEZE_MAX,
@@ -32,13 +31,13 @@ import {
   newAchievements,
   nextAvailable,
   petStage,
+  raidFor,
   rollLoot,
   sameDay,
   slotsFor,
   strikeRespawn,
   todayKey,
   uid,
-  weekKey,
   xpAtLevel,
   xpFor,
 } from './game'
@@ -94,7 +93,8 @@ export interface CompleteResult {
   crit: boolean
   raidKilled: boolean
   chapterCleared: boolean
-  chapter: ChapterInfo
+  raidTitle: string // 처치한 보스의 칭호 (이월 챕터 보스면 지난 챕터 것)
+  raidReward: number
   boosted: boolean // XP 포션이 적용됨
   potionsConverted: boolean // 빨간 포션이 모여 XP 포션으로 변함
   newLevel: number
@@ -344,14 +344,13 @@ export function useGame() {
         items.xppotion = (items.xppotion ?? 0) + 1
       }
       const doneQuest: DoneQuest = { ...q, completedAt: now, xp, lootId: loot.id }
-      // 주간 보스 / 챕터 보스: 얻은 XP만큼 HP 감소. 챕터 마지막 주는 더 단단하다
-      const wk = weekKey(now)
-      const chapter = chapterOf(now)
-      const raid = s.raid && s.raid.key === wk ? s.raid : { key: wk, hp: chapter.maxHp, max: chapter.maxHp }
+      // 주간 보스 / 챕터 보스: 얻은 XP만큼 HP 감소.
+      // 잡지 못한 챕터 보스는 주가 넘어가도 이월돼 계속 싸운다 (raidFor)
+      const raid = raidFor(s.raid, now)
       const raidHp = Math.max(0, raid.hp - xp)
       const raidKilled = raid.hp > 0 && raidHp === 0
-      if (raidKilled) gold += chapter.reward
-      const chapterCleared = raidKilled && chapter.isFinal
+      if (raidKilled) gold += raid.reward ?? chapterOf(now).reward
+      const chapterCleared = raidKilled && !!raid.isFinal
       result = {
         xp,
         gold,
@@ -361,7 +360,8 @@ export function useGame() {
         crit,
         raidKilled,
         chapterCleared,
-        chapter,
+        raidTitle: raid.title ?? chapterOf(now).title,
+        raidReward: raid.reward ?? chapterOf(now).reward,
         boosted,
         potionsConverted,
         newLevel: nextLevel,
@@ -403,7 +403,7 @@ export function useGame() {
         raid: { ...raid, hp: raidHp },
         raidKills: (s.raidKills ?? 0) + (raidKilled ? 1 : 0),
         chapterClears: chapterCleared
-          ? [...new Set([...(s.chapterClears ?? []), chapter.key])]
+          ? [...new Set([...(s.chapterClears ?? []), raid.chapterKey ?? chapterOf(now).key])]
           : s.chapterClears,
       }
     })
