@@ -1,13 +1,10 @@
 // sprites.ts의 스프라이트들을 PNG 시트로 렌더해 눈으로 확인하기 위한 스크립트
 // 사용: node scripts/render-sprites.mjs [out.png]
-import { readFileSync, writeFileSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
 import zlib from 'node:zlib'
 
-const src = readFileSync(new URL('../src/sprites.ts', import.meta.url), 'utf8')
-const body = src
-  .replace(/export interface Sprite[\s\S]*?\n}\n/, '')
-  .replace(/export const SPRITES:\s*Record<string, Sprite>/, 'const SPRITES')
-const SPRITES = new Function(`${body}; return SPRITES`)()
+// Node >=23.6은 타입만 지워서 .ts를 그대로 import할 수 있다 (sprites.ts는 지울 수 있는 타입만 사용)
+const { SPRITES } = await import('../src/sprites.ts')
 
 const SCALE = 10
 const PAD = 2
