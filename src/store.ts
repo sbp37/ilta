@@ -178,14 +178,19 @@ export function useGame() {
   }, [])
 
   // 잡몹 하나 처치. 전부 처치하면 'cleared' (→ 보스 자동 사망)
+  // 반환값은 setState 밖에서 stateRef 기준으로 계산 — 업데이터는 지연 실행될 수 있어
+  // 그 안에서 세운 플래그는 호출자가 받기 전에 stale 해질 수 있다
   const toggleSub = useCallback((id: string, subId: string): 'sub' | 'cleared' | null => {
-    let res: 'sub' | 'cleared' | null = null
+    const cur = stateRef.current
+    const q0 = cur.active.find((t) => t.id === id)
+    const sub0 = q0?.subs?.find((x) => x.id === subId)
+    if (!q0 || !sub0) return null
+    const res = !sub0.done && q0.subs!.every((x) => x.id === subId || x.done) ? 'cleared' : 'sub'
     setState((s) => {
       const q = s.active.find((t) => t.id === id)
       const sub = q?.subs?.find((x) => x.id === subId)
       if (!q || !sub) return s
       const subs = q.subs!.map((x) => (x.id === subId ? { ...x, done: !x.done } : x))
-      res = subs.length > 0 && subs.every((x) => x.done) ? 'cleared' : 'sub'
       // 마법사: 잡몹 처치(체크)할 때마다 소량 XP/골드
       const mageBonus = s.heroClass === 'mage' && !sub.done ? { xp: s.xp + 3, gold: s.gold + 3 } : {}
       return { ...s, ...mageBonus, active: s.active.map((t) => (t.id === id ? { ...t, subs } : t)) }
@@ -244,7 +249,9 @@ export function useGame() {
 
   // 빈 슬롯에 바로 적기: 슬롯 비어있으면 active로, 아니면 pool로
   const quickAdd = useCallback((title: string): 'active' | 'pool' => {
-    let where: 'active' | 'pool' = 'pool'
+    const cur = stateRef.current
+    const where: 'active' | 'pool' =
+      cur.active.length < slotsFor(levelOf(cur.xp)) ? 'active' : 'pool'
     const base: Task = {
       id: uid(),
       title,
@@ -256,7 +263,6 @@ export function useGame() {
     }
     setState((s) => {
       if (s.active.length < slotsFor(levelOf(s.xp))) {
-        where = 'active'
         return { ...s, active: [...s.active, { ...base, acceptedAt: Date.now() }] }
       }
       return { ...s, pool: [...s.pool, base] }
@@ -285,16 +291,16 @@ export function useGame() {
 
   // 수락: pool -> active (최대 3개). 성공 여부 반환
   const accept = useCallback((id: string): boolean => {
-    let ok = false
+    const cur = stateRef.current
+    const t0 = cur.pool.find((t) => t.id === id)
+    if (!t0 || cur.active.length >= slotsFor(levelOf(cur.xp)) || !isAvailable(t0)) return false
     setState((s) => {
       const task = s.pool.find((t) => t.id === id)
-      if (!task || s.active.length >= slotsFor(levelOf(s.xp))) return s
-      if (!isAvailable(task)) return s
-      ok = true
+      if (!task || s.active.length >= slotsFor(levelOf(s.xp)) || !isAvailable(task)) return s
       const quest: ActiveQuest = { ...task, acceptedAt: Date.now() }
       return { ...s, pool: s.pool.filter((t) => t.id !== id), active: [...s.active, quest] }
     })
-    return ok
+    return true
   }, [])
 
   // 후퇴/도망: active -> pool, 도망 횟수 +1 (2번 도망치면 광폭화). 나무 방패가 있으면 50%는 기록 안 남음
@@ -311,84 +317,87 @@ export function useGame() {
   }, [])
 
   const complete = useCallback((id: string): CompleteResult | null => {
-    let result: CompleteResult | null = null
+    // 결과는 업데이터 밖에서 최신 상태(stateRef)로 계산 — 업데이터는 지연 실행될 수 있어
+    // 그 안에서 세운 값은 호출자가 받기 전에 stale 해질 수 있다
+    const cur = stateRef.current
+    const q = cur.active.find((t) => t.id === id)
+    if (!q) return null
+    const now = Date.now()
+    const doneToday = cur.done.filter((d) => sameDay(d.completedAt, now)).length
+    const bonus = lootBonus(cur.loot)
+    const crit = Math.random() < CRIT_CHANCE + bonus.critChance
+    let xp = xpFor(q.difficulty, doneToday)
+    if (cur.heroClass === 'warrior') xp += Math.min(doneToday, 5) * 2 // 전사: 콤보 보너스 2배
+    xp = Math.round(xp * (crit ? CRIT_MULT + bonus.critMult : 1) * (1 + bonus.xpMult))
+    const boosted = !!cur.xpBoost
+    if (boosted) xp = Math.round(xp * XP_BOOST_MULT) // XP 포션
+    let gold = goldFor(xp)
+    if (cur.heroClass === 'rogue') gold = Math.round(gold * 1.25) // 도적: 골드 +25%
+    gold = Math.round(gold * (1 + bonus.goldMult))
+    const loot = rollLoot(q.difficulty)
+    const prevLevel = levelOf(cur.xp)
+    const nextLevel = levelOf(cur.xp + xp)
+    // 레벨업 축하 골드 (여러 레벨 한 번에 오르면 합산)
+    let levelGold = 0
+    for (let l = prevLevel + 1; l <= nextLevel; l++) levelGold += levelUpGold(l)
+    gold += levelGold
+    // 빨간 포션이 5개 모이면 XP 포션으로
+    const potionsConverted = (cur.loot.potion ?? 0) + (loot.id === 'potion' ? 1 : 0) >= POTION_CONVERT
+    const doneQuest: DoneQuest = { ...q, completedAt: now, xp, lootId: loot.id }
+    // 주간 보스 / 챕터 보스: 얻은 XP만큼 HP 감소.
+    // 잡지 못한 챕터 보스는 주가 넘어가도 이월돼 계속 싸운다 (raidFor)
+    const raid = raidFor(cur.raid, now)
+    const raidHp = Math.max(0, raid.hp - xp)
+    const raidKilled = raid.hp > 0 && raidHp === 0
+    if (raidKilled) gold += raid.reward ?? chapterOf(now).reward
+    const chapterCleared = raidKilled && !!raid.isFinal
+    const result: CompleteResult = {
+      xp,
+      gold,
+      lootName: lootById(loot.id)?.name,
+      leveledUp: nextLevel > prevLevel,
+      combo: doneToday + 1,
+      crit,
+      raidKilled,
+      chapterCleared,
+      raidTitle: raid.title ?? chapterOf(now).title,
+      raidReward: raid.reward ?? chapterOf(now).reward,
+      boosted,
+      potionsConverted,
+      newLevel: nextLevel,
+      levelGold,
+    }
+    // 반복 몬스터는 수집함에 리스폰하되, 다음 차례까지 잠들어 있는다
+    // (매일=내일, 평일만=다음 평일, 주 1회=다음 주)
+    const respawn: Task[] = q.repeat
+      ? [
+          {
+            id: uid(),
+            title: q.title,
+            difficulty: q.difficulty,
+            minutes: q.minutes,
+            energy: q.energy,
+            due: q.due,
+            urgent: q.urgent,
+            monster: q.monster,
+            cost: q.cost,
+            category: q.category,
+            repeat: q.repeat,
+            availableAt: nextAvailable(q.repeat, now),
+            subs: q.subs?.map((x) => ({ ...x, done: undefined })),
+            createdAt: now,
+          },
+        ]
+      : []
     setState((s) => {
-      const q = s.active.find((t) => t.id === id)
-      if (!q) return s
+      if (!s.active.some((t) => t.id === id)) return s // 이미 처리됨
       undoRef.current = s
-      const now = Date.now()
-      const doneToday = s.done.filter((d) => sameDay(d.completedAt, now)).length
-      const bonus = lootBonus(s.loot)
-      const crit = Math.random() < CRIT_CHANCE + bonus.critChance
-      let xp = xpFor(q.difficulty, doneToday)
-      if (s.heroClass === 'warrior') xp += Math.min(doneToday, 5) * 2 // 전사: 콤보 보너스 2배
-      xp = Math.round(xp * (crit ? CRIT_MULT + bonus.critMult : 1) * (1 + bonus.xpMult))
-      const boosted = !!s.xpBoost
-      if (boosted) xp = Math.round(xp * XP_BOOST_MULT) // XP 포션
-      let gold = goldFor(xp)
-      if (s.heroClass === 'rogue') gold = Math.round(gold * 1.25) // 도적: 골드 +25%
-      gold = Math.round(gold * (1 + bonus.goldMult))
-      const loot = rollLoot(q.difficulty)
-      const prevLevel = levelOf(s.xp)
-      const nextLevel = levelOf(s.xp + xp)
-      // 레벨업 축하 골드 (여러 레벨 한 번에 오르면 합산)
-      let levelGold = 0
-      for (let l = prevLevel + 1; l <= nextLevel; l++) levelGold += levelUpGold(l)
-      gold += levelGold
-      // 빨간 포션이 5개 모이면 XP 포션으로
       const lootNext = { ...s.loot, [loot.id]: (s.loot[loot.id] ?? 0) + 1 }
-      const potionsConverted = (lootNext.potion ?? 0) >= POTION_CONVERT
       const items = { ...(s.items ?? {}) }
       if (potionsConverted) {
-        lootNext.potion -= POTION_CONVERT
+        lootNext.potion = (lootNext.potion ?? 0) - POTION_CONVERT
         items.xppotion = (items.xppotion ?? 0) + 1
       }
-      const doneQuest: DoneQuest = { ...q, completedAt: now, xp, lootId: loot.id }
-      // 주간 보스 / 챕터 보스: 얻은 XP만큼 HP 감소.
-      // 잡지 못한 챕터 보스는 주가 넘어가도 이월돼 계속 싸운다 (raidFor)
-      const raid = raidFor(s.raid, now)
-      const raidHp = Math.max(0, raid.hp - xp)
-      const raidKilled = raid.hp > 0 && raidHp === 0
-      if (raidKilled) gold += raid.reward ?? chapterOf(now).reward
-      const chapterCleared = raidKilled && !!raid.isFinal
-      result = {
-        xp,
-        gold,
-        lootName: lootById(loot.id)?.name,
-        leveledUp: nextLevel > prevLevel,
-        combo: doneToday + 1,
-        crit,
-        raidKilled,
-        chapterCleared,
-        raidTitle: raid.title ?? chapterOf(now).title,
-        raidReward: raid.reward ?? chapterOf(now).reward,
-        boosted,
-        potionsConverted,
-        newLevel: nextLevel,
-        levelGold,
-      }
-      // 반복 몬스터는 수집함에 리스폰하되, 다음 차례까지 잠들어 있는다
-      // (매일=내일, 평일만=다음 평일, 주 1회=다음 주)
-      const respawn: Task[] = q.repeat
-        ? [
-            {
-              id: uid(),
-              title: q.title,
-              difficulty: q.difficulty,
-              minutes: q.minutes,
-              energy: q.energy,
-              due: q.due,
-              urgent: q.urgent,
-              monster: q.monster,
-              cost: q.cost,
-              category: q.category,
-              repeat: q.repeat,
-              availableAt: nextAvailable(q.repeat, now),
-              subs: q.subs?.map((x) => ({ ...x, done: undefined })),
-              createdAt: now,
-            },
-          ]
-        : []
       return {
         ...s,
         active: s.active.filter((t) => t.id !== id),
@@ -428,28 +437,29 @@ export function useGame() {
 
   // 구매: 골드 부족하면 false
   const buyReward = useCallback((id: string): boolean => {
-    let ok = false
+    const cur = stateRef.current
+    if (!cur.rewards.some((x) => x.id === id && cur.gold >= x.cost)) return false
     setState((s) => {
       const r = s.rewards.find((x) => x.id === id)
       if (!r || s.gold < r.cost) return s
-      ok = true
       return {
         ...s,
         gold: s.gold - r.cost,
         purchases: [...s.purchases, { id: uid(), name: r.name, cost: r.cost, at: Date.now() }],
       }
     })
-    return ok
+    return true
   }, [])
 
   // ---------- 장비 상점 ----------
   // 구매하면 자동 장착 (즉시 보상감)
   const buyGear = useCallback((id: string): boolean => {
-    let ok = false
+    const cur = stateRef.current
+    const item0 = GEAR.find((g) => g.id === id)
+    if (!item0 || cur.gold < item0.cost || (cur.gear ?? []).includes(id)) return false
     setState((s) => {
       const item = GEAR.find((g) => g.id === id)
       if (!item || s.gold < item.cost || (s.gear ?? []).includes(id)) return s
-      ok = true
       return {
         ...s,
         gold: s.gold - item.cost,
@@ -457,7 +467,7 @@ export function useGame() {
         equippedGear: [...(s.equippedGear ?? []), id],
       }
     })
-    return ok
+    return true
   }, [])
 
   const toggleGear = useCallback((id: string) => {
@@ -539,13 +549,12 @@ export function useGame() {
   // ---------- 펫 / 오늘의 일격 ----------
   // 먹이 주기: 골드 10G 소비 → 끼니+1. 진화하면 'evolved'
   const feedPet = useCallback((): 'nogold' | 'fed' | 'evolved' => {
-    let res: 'nogold' | 'fed' | 'evolved' = 'nogold'
+    const cur = stateRef.current
+    if (cur.gold < PET_FEED_COST) return 'nogold'
+    const res = petStage(cur.petFood + 1).name !== petStage(cur.petFood).name ? 'evolved' : 'fed'
     setState((s) => {
       if (s.gold < PET_FEED_COST) return s
-      const before = petStage(s.petFood).name
-      const food = s.petFood + 1
-      res = petStage(food).name !== before ? 'evolved' : 'fed'
-      return { ...s, gold: s.gold - PET_FEED_COST, petFood: food, petFedAt: Date.now() }
+      return { ...s, gold: s.gold - PET_FEED_COST, petFood: s.petFood + 1, petFedAt: Date.now() }
     })
     return res
   }, [])
