@@ -101,6 +101,9 @@ export interface CompleteResult {
   levelGold: number
 }
 
+// 반복 순환: 꺼짐 → 매일 → 평일만 → 주 1회 → 꺼짐
+const REPEAT_CYCLE: (Repeat | undefined)[] = [undefined, 'daily', 'weekdays', 'weekly']
+
 export function useGame() {
   const [state, setState] = useState<GameState>(load)
   // 되돌리기용 스냅샷 — 처치/삭제 직전 상태를 통째로 보관
@@ -117,7 +120,6 @@ export function useGame() {
     const next = fn(stateRef.current)
     stateRef.current = next
     setState(next)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- stateRef/setState는 안정된 참조
   }, [])
 
   useEffect(() => {
@@ -179,8 +181,6 @@ export function useGame() {
     [apply],
   )
 
-  // 반복 순환: 꺼짐 → 매일 → 평일만 → 주 1회 → 꺼짐
-  const REPEAT_CYCLE: (Repeat | undefined)[] = [undefined, 'daily', 'weekdays', 'weekly']
   const toggleRepeat = useCallback(
     (id: string) => {
       apply((s) => ({
