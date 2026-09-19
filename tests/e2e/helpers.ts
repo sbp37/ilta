@@ -46,9 +46,11 @@ export async function gold(page: Page): Promise<number> {
   return Number(text.replace(/\D/g, ''))
 }
 
-/** 오늘 기준 n일 전 날짜의 완료 기록 하나. */
+/** 오늘 기준 n일 전 날짜의 완료 기록 하나. 낮 12시로 고정해 실행 시각(새벽 등)에 안 흔들리게 한다. */
 export function doneDaysAgo(days: number, id = `d${days}`) {
-  const at = Date.now() - days * DAY
+  const d = new Date(Date.now() - days * DAY)
+  d.setHours(12, 0, 0, 0)
+  const at = d.getTime()
   return {
     id,
     title: `${days}일 전에 잡은 몹`,
