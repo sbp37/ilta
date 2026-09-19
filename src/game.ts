@@ -278,7 +278,8 @@ export function enraged(
   now = Date.now(),
 ): boolean {
   if ((t.retreats ?? 0) >= ENRAGE_RETREATS) return true
-  if (t.due && new Date(t.due + 'T23:59:59').getTime() < now) return true
+  // 마감이 있는 몹은 마감만 본다 — 멀리 잡아둔 마감 때문에 방치 판정을 받으면 안 됨
+  if (t.due) return new Date(t.due + 'T23:59:59').getTime() < now
   return now - t.createdAt >= ENRAGE_DAYS * 86400000
 }
 
@@ -319,6 +320,26 @@ export const PET_FEED_COST = 10
 export function todayKey(now = Date.now()): string {
   const d = new Date(now)
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
+
+// 일격 대상이 처치된 뒤의 strike 정리.
+// - 미래 날짜로 예약된 일격이 리스폰했으면 새 id를 따라간다
+// - 미래 예약인데 리스폰이 없으면(반복 아님) 죽은 id를 가리키므로 해제한다
+// - 오늘/과거 일격은 그대로 둔다 — done 목록에서 "달성"으로 보여주거나 자연 만료
+export function strikeRespawn(
+  strike: { id: string; day: string } | undefined,
+  completedId: string,
+  respawnId: string | undefined,
+  now = Date.now(),
+): { id: string; day: string } | undefined {
+  if (!strike || strike.id !== completedId) return strike
+  // day는 'Y-M-D' 포맷이라 문자열 비교가 틀어진다 ('2026-8-2' > '2026-8-19') — 날짜로 환산해 비교
+  const dayMs = (k: string) => {
+    const [y, m, d] = k.split('-').map(Number)
+    return new Date(y, m, d).getTime()
+  }
+  if (dayMs(strike.day) <= dayMs(todayKey(now))) return strike
+  return respawnId ? { id: respawnId, day: strike.day } : undefined
 }
 
 export const ENERGY_LABEL: Record<Energy, string> = {

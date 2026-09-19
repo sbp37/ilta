@@ -35,6 +35,7 @@ import {
   rollLoot,
   sameDay,
   slotsFor,
+  strikeRespawn,
   todayKey,
   uid,
   weekKey,
@@ -159,7 +160,10 @@ export function useGame() {
       pool: s.pool.map((t) => {
         if (t.id !== id) return t
         const next = REPEAT_CYCLE[(REPEAT_CYCLE.indexOf(t.repeat) + 1) % REPEAT_CYCLE.length]
-        return { ...t, repeat: next, availableAt: next ? t.availableAt : undefined }
+        // 잠든 상태에서 주기를 바꾸면 남은 대기도 새 주기로 다시 계산한다
+        const sleeping = t.availableAt !== undefined && t.availableAt > Date.now()
+        const availableAt = next ? (sleeping ? nextAvailable(next) : t.availableAt) : undefined
+        return { ...t, repeat: next, availableAt }
       }),
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -212,7 +216,16 @@ export function useGame() {
         const catChanged = 'category' in patch && patch.category !== t.category
         if (diffChanged || catChanged) next.monster = monsterFor(next.difficulty, next.category)
         // 반복을 끄면 대기도 풀어준다
-        if ('repeat' in patch && !patch.repeat) next.availableAt = undefined
+        if ('repeat' in patch) {
+          if (!patch.repeat) next.availableAt = undefined
+          // 잠든 상태에서 주기를 바꾸면 새 주기로 다시 잠든다
+          else if (
+            patch.repeat !== t.repeat &&
+            next.availableAt !== undefined &&
+            next.availableAt > Date.now()
+          )
+            next.availableAt = nextAvailable(patch.repeat)
+        }
         return next
       }
       setState((s) => ({ ...s, pool: s.pool.map(apply), active: s.active.map(apply) }))
@@ -386,6 +399,7 @@ export function useGame() {
         loot: lootNext,
         items,
         xpBoost: false,
+        strike: strikeRespawn(s.strike, id, respawn[0]?.id, now),
         raid: { ...raid, hp: raidHp },
         raidKills: (s.raidKills ?? 0) + (raidKilled ? 1 : 0),
         chapterClears: chapterCleared
