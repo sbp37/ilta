@@ -253,8 +253,8 @@ export default function App() {
       const strikeText = isStrike ? `오늘의 일격 성공! +${STRIKE_BONUS}G ` : ''
       const raidText = result.raidKilled
         ? result.chapterCleared
-          ? ` · 챕터 클리어! 칭호 「${result.chapter.title}」 +${result.chapter.reward}G`
-          : ` · 주간 보스 처치! +${result.chapter.reward}G`
+          ? ` · 챕터 클리어! 칭호 「${result.raidTitle}」 +${result.raidReward}G`
+          : ` · 주간 보스 처치! +${result.raidReward}G`
         : ''
       if (result.raidKilled) {
         sfx.bossReveal()

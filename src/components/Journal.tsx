@@ -17,6 +17,7 @@ import {
   monsterOf,
   streakDays,
   weekCounts,
+  weekKey,
 } from '../game'
 
 function dayKey(ts: number) {
@@ -64,6 +65,9 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
 
   const achieved = new Set(state.achieved ?? [])
   const chapter = chapterOf()
+  // 잡지 못한 챕터 보스가 주를 넘어 이어지고 있는지
+  const carriedRaid =
+    state.raid?.isFinal && state.raid.hp > 0 && state.raid.key !== weekKey() ? state.raid : undefined
 
   const makeCard = async () => {
     sfx.draw()
@@ -170,9 +174,11 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
           ))}
         </div>
         <div className="dim chapter-hint">
-          {chapter.isFinal
-            ? `챕터 보스 주간! 잡으면 칭호 「${chapter.title}」 획득`
-            : `4주차에 챕터 보스가 나타나요 (칭호: ${chapter.title})`}
+          {carriedRaid
+            ? `지난 챕터의 보스가 아직 살아있다 — HP ${carriedRaid.hp}/${carriedRaid.max}, 잡으면 칭호 「${carriedRaid.title}」`
+            : chapter.isFinal
+              ? `챕터 보스 주간! 잡으면 칭호 「${chapter.title}」 획득`
+              : `4주차에 챕터 보스가 나타나요 (칭호: ${chapter.title})`}
         </div>
         {(state.chapterClears ?? []).length > 0 && (
           <div className="goal-done">클리어한 챕터 {(state.chapterClears ?? []).length}개</div>
@@ -188,11 +194,17 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
       <div className="pixel-panel ach-list">
         {ACHIEVEMENTS.map((a) => {
           const got = achieved.has(a.id)
+          const prog = !got && a.progress ? a.progress(state) : null
           return (
             <div key={a.id} className={`ach-row ${got ? '' : 'ach-locked'}`}>
               <span className="ach-mark">{got ? '★' : '☆'}</span>
               <span className="ach-name">{a.name}</span>
               <span className="ach-desc">{a.desc}</span>
+              {prog && (
+                <span className="dim ach-prog">
+                  {prog.cur}/{prog.max}
+                </span>
+              )}
               <span className="ach-gold">{got ? '완료' : `+${a.gold}G`}</span>
             </div>
           )
