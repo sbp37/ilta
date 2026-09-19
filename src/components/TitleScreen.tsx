@@ -15,14 +15,26 @@ interface Props {
   onPickStrike: (id: string) => void
 }
 
-export function TitleScreen({ heroName, pool, strikeSet, heroPal, equipped, heroVariant, onStart, onPickStrike }: Props) {
+export function TitleScreen({
+  heroName,
+  pool,
+  strikeSet,
+  heroPal,
+  equipped,
+  heroVariant,
+  onStart,
+  onPickStrike,
+}: Props) {
   const [name, setName] = useState(heroName ?? '')
   const [phase, setPhase] = useState<'title' | 'ritual'>('title')
   const needsName = !heroName
 
   // 아침 의식: 가중치 상위 3개를 "오늘의 일격" 후보로 제시
   const candidates = useMemo(
-    () => awake(pool).sort((a, b) => drawWeight(b) - drawWeight(a)).slice(0, 3),
+    () =>
+      awake(pool)
+        .sort((a, b) => drawWeight(b) - drawWeight(a))
+        .slice(0, 3),
     [pool],
   )
 

@@ -47,7 +47,9 @@ export function PetModal({ state, onFeed, onRename, onToast, onClose }: Props) {
         <Pixel name={stage.sprite} size={6} className={petMood(state) === 'sleeping' ? '' : 'bob'} />
         <div className="reveal-title">{displayName}</div>
         <div className="pet-mood-line">{PET_MOOD_LABEL[petMood(state)]}</div>
-        <div className="dim">단계: {stage.name} · 먹인 끼니 {state.petFood}개</div>
+        <div className="dim">
+          단계: {stage.name} · 먹인 끼니 {state.petFood}개
+        </div>
 
         {toNext !== null ? (
           <div className="dim">다음 진화까지 {toNext}끼 남음</div>

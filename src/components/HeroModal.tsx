@@ -26,7 +26,12 @@ export function HeroModal({ state, onLook, onClass, onClose }: Props) {
       <div className="modal pixel-panel" onClick={(e) => e.stopPropagation()}>
         <div className="modal-title">용사 꾸미기</div>
         <div className="hero-preview">
-          <Hero size={6} palette={{ H: hair, T: tunic }} equipped={equipped} variant={heroSprite(state.heroClass)} />
+          <Hero
+            size={6}
+            palette={{ H: hair, T: tunic }}
+            equipped={equipped}
+            variant={heroSprite(state.heroClass)}
+          />
         </div>
 
         <div className="field-label">직업</div>

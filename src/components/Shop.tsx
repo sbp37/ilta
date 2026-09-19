@@ -2,7 +2,18 @@ import { useMemo, useState } from 'react'
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import { sfx } from '../sound'
-import { CONSUMABLES, FREEZE_COST, FREEZE_MAX, GEAR, GameState, ITEM_MAX, heroPalette, heroSprite, itemCount, levelOf } from '../game'
+import {
+  CONSUMABLES,
+  FREEZE_COST,
+  FREEZE_MAX,
+  GEAR,
+  GameState,
+  ITEM_MAX,
+  heroPalette,
+  heroSprite,
+  itemCount,
+  levelOf,
+} from '../game'
 
 interface Props {
   state: GameState
@@ -60,7 +71,7 @@ export function Shop({
 
   const equippedGear = state.equippedGear ?? []
   const lootIds = Object.keys(state.loot)
-    .sort((a, b) => (LOOT_ORDER.indexOf(a) - LOOT_ORDER.indexOf(b)))
+    .sort((a, b) => LOOT_ORDER.indexOf(a) - LOOT_ORDER.indexOf(b))
     .slice(0, 3)
   const equipped = [...equippedGear, ...lootIds]
 
@@ -164,7 +175,10 @@ export function Shop({
           const affordable = state.gold >= g.cost
           const locked = !owned && (g.level ?? 1) > level
           return (
-            <div key={g.id} className={`pixel-panel gear-card ${equippedNow ? 'gear-equipped' : ''} ${locked ? 'gear-locked' : ''}`}>
+            <div
+              key={g.id}
+              className={`pixel-panel gear-card ${equippedNow ? 'gear-equipped' : ''} ${locked ? 'gear-locked' : ''}`}
+            >
               <div className="gear-sprite">
                 <Pixel name={g.sprite} size={4} />
               </div>
@@ -203,9 +217,14 @@ export function Shop({
         <Pixel name="shield" size={4} />
         <div className="freeze-body">
           <div className="gear-name">
-            휴식일 부적 <span className="gear-slot">보유 {freezes}/{FREEZE_MAX}</span>
+            휴식일 부적{' '}
+            <span className="gear-slot">
+              보유 {freezes}/{FREEZE_MAX}
+            </span>
           </div>
-          <div className="dim gear-desc">하루 빠져도 🔥연속 기록이 깨지지 않아요. 빈 날이 생기면 자동으로 쓰여요.</div>
+          <div className="dim gear-desc">
+            하루 빠져도 🔥연속 기록이 깨지지 않아요. 빈 날이 생기면 자동으로 쓰여요.
+          </div>
         </div>
         <button
           className="btn btn-gold gear-btn"
@@ -223,7 +242,10 @@ export function Shop({
             <Pixel name={c.sprite} size={4} />
             <div className="freeze-body">
               <div className="gear-name">
-                {c.name} <span className="gear-slot">보유 {have}/{ITEM_MAX}</span>
+                {c.name}{' '}
+                <span className="gear-slot">
+                  보유 {have}/{ITEM_MAX}
+                </span>
               </div>
               <div className="dim gear-desc">{c.desc}</div>
             </div>
@@ -289,7 +311,11 @@ export function Shop({
             <div className="pool-item-body">
               <div className="pool-item-title">{r.name}</div>
             </div>
-            <button className="btn btn-gold buy-btn" disabled={state.gold < r.cost} onClick={() => buy(r.id, r.name)}>
+            <button
+              className="btn btn-gold buy-btn"
+              disabled={state.gold < r.cost}
+              onClick={() => buy(r.id, r.name)}
+            >
               {r.cost}G
             </button>
             <button className="icon-btn" title="삭제" onClick={() => onRemoveReward(r.id)}>
