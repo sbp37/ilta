@@ -334,8 +334,7 @@ export function useGame() {
       // 주간 보스 / 챕터 보스: 얻은 XP만큼 HP 감소. 챕터 마지막 주는 더 단단하다
       const wk = weekKey(now)
       const chapter = chapterOf(now)
-      const raid =
-        s.raid && s.raid.key === wk ? s.raid : { key: wk, hp: chapter.maxHp, max: chapter.maxHp }
+      const raid = s.raid && s.raid.key === wk ? s.raid : { key: wk, hp: chapter.maxHp, max: chapter.maxHp }
       const raidHp = Math.max(0, raid.hp - xp)
       const raidKilled = raid.hp > 0 && raidHp === 0
       if (raidKilled) gold += chapter.reward
@@ -506,13 +505,19 @@ export function useGame() {
   }, [])
 
   // 진정의 향: 광폭 몹의 도망 기록·묵힌 날 초기화 (마감은 그대로)
-  const useCalm = useCallback((taskId: string): boolean => {
+  const applyCalm = useCallback((taskId: string): boolean => {
     if (itemCount(stateRef.current, 'calm') <= 0) return false
     setState((s) => {
       const n = itemCount(s, 'calm')
       if (n <= 0) return s
-      const calm = <T extends Task>(t: T): T => (t.id === taskId ? { ...t, retreats: 0, createdAt: Date.now() } : t)
-      return { ...s, items: { ...(s.items ?? {}), calm: n - 1 }, pool: s.pool.map(calm), active: s.active.map(calm) }
+      const calm = <T extends Task>(t: T): T =>
+        t.id === taskId ? { ...t, retreats: 0, createdAt: Date.now() } : t
+      return {
+        ...s,
+        items: { ...(s.items ?? {}), calm: n - 1 },
+        pool: s.pool.map(calm),
+        active: s.active.map(calm),
+      }
     })
     return true
   }, [])
@@ -611,7 +616,7 @@ export function useGame() {
     claimAchievements,
     consumeItem,
     useXpPotion,
-    useCalm,
+    applyCalm,
     feedPet,
     setPetName,
     setStrike,
