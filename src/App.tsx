@@ -433,9 +433,12 @@ export default function App() {
   const strikeSet = state.strike?.day === todayKey()
   const strikeTask = strikeSet
     ? (state.pool.find((t) => t.id === state.strike!.id) ??
-      state.active.find((t) => t.id === state.strike!.id))
+      state.active.find((t) => t.id === state.strike!.id) ??
+      // 오늘 일격을 이미 잡았으면 done 에서 찾아 "달성" 배너로 보여준다 (반복 리스폰으로 id가 바뀌어도 옛 id 유지)
+      state.done.find((t) => t.id === state.strike!.id && sameDay(t.completedAt, Date.now())))
     : undefined
-  const strikeInPool = !!strikeTask && state.pool.some((t) => t.id === strikeTask.id)
+  const strikeDone = !!strikeTask && 'completedAt' in strikeTask
+  const strikeInPool = !!strikeTask && !strikeDone && state.pool.some((t) => t.id === strikeTask.id)
 
   if (!started) {
     return (
@@ -506,6 +509,7 @@ export default function App() {
             poolSize={state.pool.length}
             doneToday={doneToday}
             strikeTask={strikeTask}
+            strikeDone={strikeDone}
             strikeInPool={strikeInPool}
             enragedIds={enragedIds}
             onDraw={() => setDrawing(true)}

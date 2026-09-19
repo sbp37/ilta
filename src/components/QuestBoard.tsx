@@ -11,6 +11,7 @@ interface Props {
   poolSize: number
   doneToday: number
   strikeTask?: Task
+  strikeDone: boolean
   strikeInPool: boolean
   enragedIds: Set<string>
   onDraw: () => void
@@ -85,6 +86,7 @@ export function QuestBoard({
   poolSize,
   doneToday,
   strikeTask,
+  strikeDone,
   strikeInPool,
   enragedIds,
   onDraw,
@@ -116,10 +118,14 @@ export function QuestBoard({
             <div className="strike-label">오늘의 일격</div>
             <div className="strike-title">{strikeTask.title}</div>
           </div>
-          {strikeInPool && (
-            <button className="btn btn-go" onClick={() => onAcceptStrike(strikeTask.id)}>
-              지금 잡기
-            </button>
+          {strikeDone ? (
+            <span className="goal-done">일격 달성!</span>
+          ) : (
+            strikeInPool && (
+              <button className="btn btn-go" onClick={() => onAcceptStrike(strikeTask.id)}>
+                지금 잡기
+              </button>
+            )
           )}
         </div>
       )}
