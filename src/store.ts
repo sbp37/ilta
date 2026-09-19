@@ -250,8 +250,7 @@ export function useGame() {
   // 빈 슬롯에 바로 적기: 슬롯 비어있으면 active로, 아니면 pool로
   const quickAdd = useCallback((title: string): 'active' | 'pool' => {
     const cur = stateRef.current
-    const where: 'active' | 'pool' =
-      cur.active.length < slotsFor(levelOf(cur.xp)) ? 'active' : 'pool'
+    const where: 'active' | 'pool' = cur.active.length < slotsFor(levelOf(cur.xp)) ? 'active' : 'pool'
     const base: Task = {
       id: uid(),
       title,
