@@ -82,6 +82,7 @@ const ENERGY_IDS = new Set(['low', 'mid', 'high'])
 const REPEAT_IDS = new Set(['daily', 'weekdays', 'weekly'])
 const CLASS_IDS = new Set(['warrior', 'mage', 'rogue'])
 const THEME_IDS = new Set(THEMES.map((t) => t.id))
+const GEAR_IDS = new Set(GEAR.map((g) => g.id))
 const CATEGORY_IDS_SET = new Set<string>(CATEGORY_IDS)
 
 const fin = (v: unknown, fallback: number): number =>
@@ -182,8 +183,8 @@ export function sanitize(raw: unknown): GameState {
       boss: typeof s.raid.boss === 'string' && SPRITES[s.raid.boss] ? s.raid.boss : undefined,
     }
   }
-  if (s.gear) out.gear = strArr(s.gear)?.filter((g) => g in GEAR)
-  if (s.equippedGear) out.equippedGear = strArr(s.equippedGear)?.filter((g) => g in GEAR)
+  if (s.gear) out.gear = strArr(s.gear)?.filter((g) => GEAR_IDS.has(g))
+  if (s.equippedGear) out.equippedGear = strArr(s.equippedGear)?.filter((g) => GEAR_IDS.has(g))
   if (typeof s.freezes === 'number') out.freezes = Math.max(0, s.freezes)
   if (s.freezeUsed) out.freezeUsed = strArr(s.freezeUsed)
   if (s.items) out.items = numMap(s.items)
@@ -800,7 +801,15 @@ export function useGame() {
       try {
         const parsed = JSON.parse(text)
         const data = parsed?.data ?? parsed
-        if (!data || typeof data !== 'object') return false
+        // 세이브인지 최소 확인 — 아무 JSON이나 통과시키면 기존 데이터가 빈 상태로 덮어써진다
+        const looksLikeSave =
+          data &&
+          typeof data === 'object' &&
+          (Array.isArray(data.pool) ||
+            Array.isArray(data.active) ||
+            Array.isArray(data.done) ||
+            typeof data.version === 'number')
+        if (!looksLikeSave) return false
         apply(() => migrate(sanitize(data)))
         return true
       } catch {

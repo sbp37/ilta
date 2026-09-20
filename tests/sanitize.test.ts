@@ -82,4 +82,10 @@ describe('세이브 정제 (sanitize)', () => {
     expect(s.active[0].acceptedAt).toBeGreaterThan(0)
     expect(s.done[0].completedAt).toBeGreaterThan(0)
   })
+
+  it('장비는 실제 id만 남긴다 — 로드 시 보유 장비가 사라지면 안 된다', () => {
+    const s = sanitize(save({ gear: ['g_potion', 'nope'], equippedGear: ['g_boots', 'x'] }))
+    expect(s.gear).toEqual(['g_potion'])
+    expect(s.equippedGear).toEqual(['g_boots'])
+  })
 })
