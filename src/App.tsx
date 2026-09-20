@@ -408,6 +408,18 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started])
 
+  // PWA 앱 배지 — 설치된 앱 아이콘에 오늘 남은 목표 수를 표시 (서버 없이 되는 리마인드)
+  useEffect(() => {
+    const nav = navigator as Navigator & {
+      setAppBadge?: (n?: number) => Promise<void>
+      clearAppBadge?: () => Promise<void>
+    }
+    if (!nav.setAppBadge) return
+    const left = Math.max(0, DAILY_GOAL - state.done.filter((d) => sameDay(d.completedAt, Date.now())).length)
+    if (left > 0) nav.setAppBadge(left).catch(() => {})
+    else nav.clearAppBadge?.().catch(() => {})
+  }, [state.done])
+
   const goTab = (t: Tab) => {
     sfx.click()
     setTab(t)
