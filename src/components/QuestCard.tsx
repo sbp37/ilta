@@ -75,11 +75,18 @@ export function QuestCard({
       {dying && (
         <div className="kill-fx">
           <div className="slash" />
-          <div className="kill-text">처치!</div>
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className={`kill-p kill-p${i}`} />
+          ))}
+          <div className="kill-text">{quest.difficulty === 'boss' ? '보스 격퇴!' : '처치!'}</div>
         </div>
       )}
       <div className="quest-top">
-        <Pixel name={monsterOf(quest)} size={3} className={mad ? 'shake-slow' : 'bob'} />
+        <Pixel
+          name={monsterOf(quest)}
+          size={3}
+          className={dying ? 'sprite-die' : mad ? 'shake-slow' : 'bob'}
+        />
         <div className="quest-title-wrap">
           <div className="quest-title">
             {isStrike && <span className="strike-tag">일격</span>}
