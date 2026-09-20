@@ -2454,3 +2454,35 @@ body[data-theme='sakura'] {
 .raid-final .raid-label {
   color: var(--gold);
 }
+
+/* 에러 바운더리 복구 화면 */
+.error-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.error-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 320px;
+  padding: 20px;
+  text-align: center;
+}
+.error-title {
+  color: var(--red, #ff4d5e);
+  font-size: 14px;
+}
+.error-log {
+  font-size: 10px;
+  color: var(--dim);
+  background: var(--bg);
+  padding: 8px;
+  overflow: auto;
+  max-height: 80px;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
