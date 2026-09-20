@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { activeTask, enterGame, gold, poolTask, toast } from './helpers'
+import { activeTask, enterGame, gold, poolMore, poolTask, toast } from './helpers'
 
 test('빈 슬롯에 바로 적으면 퀘스트가 된다', async ({ page }) => {
   await enterGame(page)
@@ -39,11 +39,14 @@ test('수집함에서 삭제해도 되돌릴 수 있고, 반복도 켤 수 있�
   await enterGame(page, { pool: [poolTask({ title: '지울 몹' })] })
   await page.locator('.tab', { hasText: '수집함' }).click()
 
-  await page.locator('.pool-item', { hasText: '지울 몹' }).locator('.act-del').click()
+  const delItem = page.locator('.pool-item', { hasText: '지울 몹' })
+  await poolMore(delItem)
+  await delItem.locator('.act-del').click()
   await expect(page.locator('.pool-item', { hasText: '지울 몹' })).toHaveCount(0)
   await page.locator('.toast-btn', { hasText: '되돌리기' }).click()
   await expect(page.locator('.pool-item', { hasText: '지울 몹' })).toHaveCount(1)
 
+  await poolMore(page.locator('.pool-item'))
   await page.locator('.pool-item').getByRole('button', { name: '수정' }).click()
   await page.locator('.edit-modal .chip', { hasText: '매일' }).click()
   await page.locator('.edit-modal').getByRole('button', { name: '저장' }).click()
@@ -53,6 +56,7 @@ test('수집함에서 삭제해도 되돌릴 수 있고, 반복도 켤 수 있�
 test('수집함 버튼은 글자 라벨이고 켜진 상태가 보인다', async ({ page }) => {
   await enterGame(page, { pool: [poolTask()] })
   await page.locator('.tab', { hasText: '수집함' }).click()
+  await poolMore(page.locator('.pool-item'))
 
   for (const label of ['수정', '일격', '급해', '반복', '삭제']) {
     await expect(page.locator('.pool-act', { hasText: label })).toHaveCount(1)

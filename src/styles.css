@@ -1415,22 +1415,6 @@ body {
   padding: 6px 8px;
 }
 
-.sub-toggle {
-  margin-top: 6px;
-  background: none;
-  border: none;
-  color: var(--dim);
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  padding: 2px 0;
-  text-align: left;
-}
-
-.sub-toggle:hover {
-  color: var(--gold);
-}
-
 .subs-tag {
   color: var(--purple);
   font-size: 11px;
@@ -2485,4 +2469,20 @@ body[data-theme='sakura'] {
   text-align: left;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+/* 카드 더보기 — 자주 안 쓰는 액션을 ··· 뒤에 접는다 */
+.more-btn {
+  min-width: 42px;
+  letter-spacing: 2px;
+}
+.more-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.more-toggle {
+  align-self: flex-start;
+  margin-top: 2px;
 }
