@@ -15,6 +15,7 @@ import {
   petMood,
   slotsFor,
   streakDays,
+  strikeRespawn,
   timerLeft,
   unlocksAt,
   raidBoss,
@@ -122,6 +123,13 @@ describe('광폭화', () => {
     expect(enraged(task({ id: 'a', due: '2026-09-10' }), NOW)).toBe(true)
     expect(enraged(task({ id: 'a', retreats: 2 }), NOW)).toBe(true)
     expect(enraged(task({ id: 'a', retreats: 1 }), NOW)).toBe(false)
+  })
+
+  it('미래 마감이 있는 몹은 오래 묵혀도 광폭하지 않는다', () => {
+    // 한 달 뒤 마감인데 일주일 넘게 수집함에 있었다고 광폭이면 억울하다
+    expect(enraged(task({ id: 'a', createdAt: ago(10), due: '2026-10-20' }), NOW)).toBe(false)
+    // 그래도 마감을 넘기면 광폭
+    expect(enraged(task({ id: 'a', createdAt: ago(10), due: '2026-09-10' }), NOW)).toBe(true)
   })
 
   it('표시되는 광폭 몹은 심각한 순으로 상한까지만', () => {
@@ -238,5 +246,33 @@ describe('기타 규칙', () => {
       const boss = raidBoss(weekKey(NOW + i * 7 * DAY))
       expect(ALL_MONSTERS).toContain(boss)
     }
+  })
+})
+
+describe('일격 리스폰', () => {
+  const strike = { id: 'mob1', day: dayKey(NOW) }
+  const tomorrow = { id: 'mob1', day: dayKey(NOW + DAY) }
+
+  it('오늘 일격을 잡으면 옛 id를 유지한다 (done에서 달성 표시)', () => {
+    expect(strikeRespawn(strike, 'mob1', 'mob2', NOW)).toBe(strike)
+  })
+
+  it('내일로 예약한 일격이 리스폰하면 새 id를 따라간다', () => {
+    expect(strikeRespawn(tomorrow, 'mob1', 'mob2', NOW)).toEqual({ id: 'mob2', day: tomorrow.day })
+  })
+
+  it('미래 예약인데 리스폰이 없으면 일격을 해제한다', () => {
+    expect(strikeRespawn(tomorrow, 'mob1', undefined, NOW)).toBeUndefined()
+  })
+
+  it('다른 몹을 잡거나 일격이 없으면 그대로다', () => {
+    expect(strikeRespawn(strike, 'other', 'mob2', NOW)).toBe(strike)
+    expect(strikeRespawn(undefined, 'mob1', 'mob2', NOW)).toBeUndefined()
+  })
+
+  it('날짜 비교가 문자열이 아니라 실제 날짜 순서다', () => {
+    // '2026-8-2'는 '2026-8-19'보다 문자열로는 크지만 날짜로는 과거
+    const past = { id: 'mob1', day: '2026-8-2' }
+    expect(strikeRespawn(past, 'mob1', 'mob2', NOW)).toBe(past)
   })
 })
