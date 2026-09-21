@@ -9,6 +9,7 @@ import {
   Task,
   awake,
   dailyGoalOf,
+  minimumGoalOf,
   enragedSet,
   heroPalette,
   heroSprite,
@@ -35,8 +36,9 @@ import { Shop } from './components/Shop'
 import { TimerOverlay } from './components/TimerOverlay'
 import { EditModal, TaskPatch } from './components/EditModal'
 import { TIMER_KEY, TimerState, loadTimer, remaining } from './timer'
-import { downloadSave } from './persistence'
+import { downloadSave, lastVisit, recordVisit } from './persistence'
 import { useModalFocus } from './useModalFocus'
+import { ReturnModal } from './components/ReturnModal'
 
 type Tab = 'quest' | 'pool' | 'shop' | 'journal'
 
@@ -53,6 +55,8 @@ export default function App() {
     retrySave,
     restoreBackup,
     setPreferences,
+    bulkOrganize,
+    planReturn,
     saveReview,
     returnToPool,
     finishFocus,
@@ -99,6 +103,11 @@ export default function App() {
   const [heroOpen, setHeroOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
+  const [returnOpen, setReturnOpen] = useState(false)
+  const [returnSuggested, setReturnSuggested] = useState(() => {
+    const at = lastVisit(state.lastVisitedAt)
+    return !!at && Date.now() - at >= 3 * 86400000 && state.active.length + state.pool.length > 0
+  })
   const [editing, setEditing] = useState<Task | null>(null)
   const [encounter, setEncounter] = useState<Task | null>(null)
   const [muted, setMuted] = useState(isMuted())
@@ -127,6 +136,15 @@ export default function App() {
   const [timerWarning, setTimerWarning] = useState('')
   const [clock, setClock] = useState(Date.now())
   const goal = dailyGoalOf(state)
+  useEffect(() => {
+    if (!started) return
+    recordVisit()
+    const visit = () => {
+      if (document.visibilityState === 'visible') recordVisit()
+    }
+    document.addEventListener('visibilitychange', visit)
+    return () => document.removeEventListener('visibilitychange', visit)
+  }, [started])
   const [toast, setToast] = useState('')
   const [toastActions, setToastActions] = useState<ToastAction[]>([])
   const [flash, setFlash] = useState(0)
@@ -522,6 +540,15 @@ export default function App() {
   const poolView = (
     <Pool
       pool={state.pool}
+      archived={state.archived ?? []}
+      onBulk={(ids, action) => {
+        const id = bulkOrganize(ids, action)
+        showToast(
+          `${ids.length}개 ${action.type === 'archive' ? '보관했어요' : action.type === 'restore' ? '복원했어요' : '정리했어요'}`,
+          undoAction(id),
+          5000,
+        )
+      }}
       strikeId={strikeSet ? state.strike!.id : undefined}
       enragedIds={enragedIds}
       onAdd={addTask}
@@ -633,6 +660,24 @@ export default function App() {
       )}
 
       <main className={`content ${tab === 'quest' ? 'workspace' : ''}`}>
+        {returnSuggested && tab === 'quest' && (
+          <section className="return-banner">
+            <div>
+              <strong>다시 만나서 반가워요</strong>
+              <p>오늘 할 일만 가볍게 골라볼까요?</p>
+            </div>
+            <button className="btn btn-go" onClick={() => setReturnOpen(true)}>
+              다시 고르기
+            </button>
+            <button
+              className="icon-btn"
+              aria-label="복귀 안내 닫기"
+              onClick={() => setReturnSuggested(false)}
+            >
+              ×
+            </button>
+          </section>
+        )}
         {tab === 'quest' && (
           <QuestBoard
             active={state.active}
@@ -640,6 +685,8 @@ export default function App() {
             poolSize={state.pool.length}
             doneToday={doneToday}
             goal={goal}
+            minimumGoal={minimumGoalOf(state)}
+            onOrganize={() => setReturnOpen(true)}
             goalRewarded={(state.goalAwards ?? []).includes(todayKey())}
             gentle={state.gentle !== false}
             onSetStrike={setStrike}
@@ -705,6 +752,22 @@ export default function App() {
         )}
         {tab === 'journal' && <Journal state={state} onToast={showToast} />}
       </main>
+      {returnOpen && (
+        <ReturnModal
+          state={state}
+          timerQuestId={timer?.questId}
+          onClose={() => setReturnOpen(false)}
+          onApply={(choices) => {
+            if (timer && choices[timer.questId] && choices[timer.questId] !== 'today') return false
+            const id = planReturn(choices)
+            if (!id) return false
+            setReturnSuggested(false)
+            setTab('quest')
+            showToast('오늘의 계획을 정리했어요', undoAction(id), 5000)
+            return true
+          }}
+        />
+      )}
 
       <nav className="tab-bar">
         <button className={`tab ${tab === 'quest' ? 'tab-on' : ''}`} onClick={() => goTab('quest')}>

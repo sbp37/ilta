@@ -14,9 +14,9 @@ export function revertChange(current: GameState, change: UndoChange): GameState 
   const { before, after } = change
   for (const key of new Set([...Object.keys(before), ...Object.keys(after)]) as Set<keyof GameState>) {
     if (equal(before[key], after[key])) continue
-    if (key === 'pool' || key === 'active' || key === 'done') {
-      const oldItems = before[key]
-      const newItems = after[key]
+    if (key === 'pool' || key === 'active' || key === 'done' || key === 'archived') {
+      const oldItems = before[key] ?? []
+      const newItems = after[key] ?? []
       const affected = new Set(
         [...oldItems, ...newItems]
           .map((t) => t.id)
@@ -31,13 +31,13 @@ export function revertChange(current: GameState, change: UndoChange): GameState 
       for (const id of affected) {
         if (
           !equal(
-            current[key].find((t) => t.id === id),
+            (current[key] ?? []).find((t) => t.id === id),
             newItems.find((t) => t.id === id),
           )
         )
           return null
       }
-      const items = current[key].filter((t) => !affected.has(t.id))
+      const items = (current[key] ?? []).filter((t) => !affected.has(t.id))
       for (const [index, task] of oldItems.entries()) {
         if (affected.has(task.id)) items.splice(Math.min(index, items.length), 0, task)
       }

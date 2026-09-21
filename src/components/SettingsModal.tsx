@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { sfx } from '../sound'
-import { GameState, THEMES, dailyGoalOf, levelOf } from '../game'
+import { GameState, THEMES, dailyGoalOf, minimumGoalOf, levelOf } from '../game'
 import { downloadSave } from '../persistence'
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
   onToast: (msg: string) => void
   onClose: () => void
   onPreferences: (
-    patch: Pick<Partial<GameState>, 'dailyGoal' | 'gentle' | 'readable' | 'reducedMotion'>,
+    patch: Pick<Partial<GameState>, 'dailyGoal' | 'minimumGoal' | 'gentle' | 'readable' | 'reducedMotion'>,
   ) => void
   onRestore: () => boolean
 }
@@ -78,7 +78,18 @@ export function SettingsModal({
 
         <div className="preferences">
           <label className="preference-row">
-            하루 목표
+            최소 목표
+            <input
+              aria-label="최소 목표"
+              type="number"
+              min="1"
+              max={dailyGoalOf(state)}
+              value={minimumGoalOf(state)}
+              onChange={(e) => onPreferences({ minimumGoal: Number(e.target.value) || 1 })}
+            />
+          </label>
+          <label className="preference-row">
+            하루 목표 (권장)
             <input
               aria-label="하루 목표"
               type="number"

@@ -11,6 +11,8 @@ interface Props {
   poolSize: number
   doneToday: number
   goal: number
+  minimumGoal: number
+  onOrganize: () => void
   goalRewarded: boolean
   gentle: boolean
   onSetStrike: (id: string) => void
@@ -90,6 +92,8 @@ export function QuestBoard({
   poolSize,
   doneToday,
   goal,
+  minimumGoal,
+  onOrganize,
   goalRewarded,
   gentle,
   onSetStrike,
@@ -180,6 +184,12 @@ export function QuestBoard({
         })()}
 
       <div className="pixel-panel daily-goal">
+        <div className="minimum-goal">
+          <span>{doneToday >= minimumGoal ? '최소 목표 달성' : `최소 목표 ${doneToday}/${minimumGoal}`}</span>
+          <button className="pool-act" onClick={onOrganize}>
+            오늘 다시 고르기
+          </button>
+        </div>
         <div className="goal-label">
           오늘의 목표
           {goalDone ? (

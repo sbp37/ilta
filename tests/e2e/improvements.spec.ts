@@ -137,6 +137,8 @@ test('다른 창의 저장 변경을 감지하고 덮어쓰지 않는다', async
   await enterGame(page, { active: [activeTask()] })
   const other = await context.newPage()
   await other.goto('./')
+  await expect(other.locator('.header')).toBeVisible()
+  await expect(page.locator('.save-warning')).toHaveCount(0)
   await other.getByRole('button', { name: '+ 여기에 할 일 적기', exact: true }).first().click()
   await other.locator('.slot-input').fill('다른 창에서 추가')
   await other.locator('.slot-input').press('Enter')

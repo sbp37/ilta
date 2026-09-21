@@ -59,6 +59,7 @@ export const SAVE_VERSION = 2
 export interface GameState {
   version?: number // 저장 데이터 스키마 버전 (없으면 1)
   pool: Task[]
+  archived?: Task[]
   active: ActiveQuest[]
   done: DoneQuest[]
   xp: number
@@ -87,6 +88,8 @@ export interface GameState {
   raidKills?: number // 처치한 주간·챕터 보스 수
   chapterClears?: string[] // 클리어한 챕터 키
   dailyGoal?: number
+  minimumGoal?: number
+  lastVisitedAt?: number
   goalAwards?: string[]
   strikeAwards?: string[]
   tomorrowStrike?: { id: string; day: string }
@@ -280,6 +283,8 @@ export function nextDue(due: string | undefined, repeat: Repeat, now = Date.now(
 }
 
 export const dailyGoalOf = (s: GameState) => Math.max(1, Math.min(10, Math.round(s.dailyGoal ?? 3)))
+export const minimumGoalOf = (s: GameState) =>
+  Math.max(1, Math.min(dailyGoalOf(s), Math.round(s.minimumGoal ?? 1)))
 
 // 잠들어 있는(대기 중) 몹은 뽑기·수락·습격 대상에서 빠진다
 export function isAvailable(t: { availableAt?: number }, now = Date.now()): boolean {

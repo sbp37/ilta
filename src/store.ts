@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { SPRITES } from './sprites'
 import { UndoChange, revertChange } from './undo'
 import { BACKUP_KEY, SAVE_KEY, isSave, readSave } from './persistence'
+import { BulkAction, PlanChoice, applyReturnPlan, organizeTasks } from './organization'
 import {
   Achievement,
   ActiveQuest,
@@ -29,6 +30,7 @@ import {
   applyFreezes,
   chapterOf,
   dailyGoalOf,
+  minimumGoalOf,
   goldFor,
   isAvailable,
   itemCount,
@@ -157,6 +159,7 @@ export function sanitize(raw: unknown): GameState {
   const out: GameState = {
     ...empty,
     pool: tasks(s.pool).map(({ t }) => t),
+    archived: tasks(s.archived).map(({ t }) => t),
     active: tasks(s.active).map(({ t, r }) => ({
       ...t,
       acceptedAt: fin(r.acceptedAt, Date.now()),
@@ -213,6 +216,9 @@ export function sanitize(raw: unknown): GameState {
   if (typeof s.raidKills === 'number') out.raidKills = Math.max(0, s.raidKills)
   if (s.chapterClears) out.chapterClears = strArr(s.chapterClears)
   out.dailyGoal = Math.max(1, Math.min(10, Math.round(fin(s.dailyGoal, 3))))
+  out.minimumGoal = minimumGoalOf({ ...out, minimumGoal: fin(s.minimumGoal, 1) })
+  if (typeof s.lastVisitedAt === 'number' && Number.isFinite(s.lastVisitedAt))
+    out.lastVisitedAt = s.lastVisitedAt
   if (s.goalAwards) out.goalAwards = strArr(s.goalAwards)
   if (s.strikeAwards) out.strikeAwards = strArr(s.strikeAwards)
   if (s.tomorrowStrike && typeof s.tomorrowStrike.id === 'string' && typeof s.tomorrowStrike.day === 'string')
@@ -771,8 +777,43 @@ export function useGame() {
   )
 
   const setPreferences = useCallback(
-    (patch: Pick<Partial<GameState>, 'dailyGoal' | 'gentle' | 'readable' | 'reducedMotion'>) => {
-      apply((s) => ({ ...s, ...patch, dailyGoal: dailyGoalOf({ ...s, ...patch }) }))
+    (
+      patch: Pick<Partial<GameState>, 'dailyGoal' | 'minimumGoal' | 'gentle' | 'readable' | 'reducedMotion'>,
+    ) => {
+      apply((s) => ({
+        ...s,
+        ...patch,
+        dailyGoal: dailyGoalOf({ ...s, ...patch }),
+        minimumGoal: minimumGoalOf({ ...s, ...patch }),
+      }))
+    },
+    [apply],
+  )
+
+  const bulkOrganize = useCallback(
+    (ids: string[], action: BulkAction) => {
+      const id = uid()
+      apply((s) => {
+        const next = organizeTasks(s, ids, action)
+        undoRef.current = { id, before: s, after: next }
+        return next
+      })
+      return id
+    },
+    [apply],
+  )
+
+  const planReturn = useCallback(
+    (choices: Record<string, PlanChoice>) => {
+      let id: string | null = null
+      apply((s) => {
+        const next = applyReturnPlan(s, choices)
+        if (!next) return s
+        id = uid()
+        undoRef.current = { id, before: s, after: next }
+        return next
+      })
+      return id
     },
     [apply],
   )
@@ -1033,6 +1074,8 @@ export function useGame() {
     storageWarning,
     retrySave,
     restoreBackup,
+    bulkOrganize,
+    planReturn,
     setPreferences,
     saveReview,
     returnToPool,

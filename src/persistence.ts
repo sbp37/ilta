@@ -1,5 +1,23 @@
 export const SAVE_KEY = 'quest-do-save-v1'
 export const BACKUP_KEY = 'ilta-save-backup'
+export const VISIT_KEY = 'ilta-last-visited'
+
+export function lastVisit(fallback?: number): number | undefined {
+  try {
+    const at = Number(localStorage.getItem(VISIT_KEY))
+    return Number.isFinite(at) && at > 0 ? at : fallback
+  } catch {
+    return fallback
+  }
+}
+
+export function recordVisit() {
+  try {
+    localStorage.setItem(VISIT_KEY, String(Date.now()))
+  } catch {
+    // Visit hints are optional and must not interfere with task saves.
+  }
+}
 
 export function isSave(raw: string | null): boolean {
   try {
