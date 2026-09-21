@@ -253,8 +253,8 @@ export default function App() {
       const strikeText = isStrike ? `오늘의 일격 성공! +${STRIKE_BONUS}G ` : ''
       const raidText = result.raidKilled
         ? result.chapterCleared
-          ? ` · 챕터 클리어! 칭호 「${result.chapter.title}」 +${result.chapter.reward}G`
-          : ` · 주간 보스 처치! +${result.chapter.reward}G`
+          ? ` · 챕터 클리어! 칭호 「${result.raidTitle}」 +${result.raidReward}G`
+          : ` · 주간 보스 처치! +${result.raidReward}G`
         : ''
       if (result.raidKilled) {
         sfx.bossReveal()
@@ -408,6 +408,36 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started])
 
+  // PWA 앱 배지 — 설치된 앱 아이콘에 오늘 남은 목표 수를 표시 (서버 없이 되는 리마인드)
+  useEffect(() => {
+    const nav = navigator as Navigator & {
+      setAppBadge?: (n?: number) => Promise<void>
+      clearAppBadge?: () => Promise<void>
+    }
+    if (!nav.setAppBadge) return
+    const update = () => {
+      const left = Math.max(
+        0,
+        DAILY_GOAL - state.done.filter((d) => sameDay(d.completedAt, Date.now())).length,
+      )
+      if (left > 0) nav.setAppBadge(left).catch(() => {})
+      else nav.clearAppBadge?.().catch(() => {})
+    }
+    update()
+    // 자정이 지나면 state.done이 안 바뀌어도 남은 수가 달라지므로 다음 자정에 다시 계산
+    let t: ReturnType<typeof setTimeout>
+    const arm = () => {
+      const n = new Date()
+      const midnight = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1)
+      t = setTimeout(() => {
+        update()
+        arm()
+      }, midnight.getTime() - Date.now())
+    }
+    arm()
+    return () => clearTimeout(t)
+  }, [state.done])
+
   const goTab = (t: Tab) => {
     sfx.click()
     setTab(t)
@@ -433,9 +463,12 @@ export default function App() {
   const strikeSet = state.strike?.day === todayKey()
   const strikeTask = strikeSet
     ? (state.pool.find((t) => t.id === state.strike!.id) ??
-      state.active.find((t) => t.id === state.strike!.id))
+      state.active.find((t) => t.id === state.strike!.id) ??
+      // 오늘 일격을 이미 잡았으면 done 에서 찾아 "달성" 배너로 보여준다 (반복 리스폰으로 id가 바뀌어도 옛 id 유지)
+      state.done.find((t) => t.id === state.strike!.id && sameDay(t.completedAt, Date.now())))
     : undefined
-  const strikeInPool = !!strikeTask && state.pool.some((t) => t.id === strikeTask.id)
+  const strikeDone = !!strikeTask && 'completedAt' in strikeTask
+  const strikeInPool = !!strikeTask && !strikeDone && state.pool.some((t) => t.id === strikeTask.id)
 
   if (!started) {
     return (
@@ -506,6 +539,7 @@ export default function App() {
             poolSize={state.pool.length}
             doneToday={doneToday}
             strikeTask={strikeTask}
+            strikeDone={strikeDone}
             strikeInPool={strikeInPool}
             enragedIds={enragedIds}
             onDraw={() => setDrawing(true)}

@@ -2,6 +2,12 @@ import { expect, test } from '@playwright/test'
 import { activeTask, doneDaysAgo, enterGame, gold, poolTask, toast } from './helpers'
 
 test('소모품을 사고 XP 포션을 쓰면 다음 처치 XP가 1.5배가 된다', async ({ page }) => {
+  // 크리티컬(15%)이 터지면 +15XP가 아니라 +23XP가 뜬다 — Math.random을 크리트 불가 값으로 고정
+  await page.addInitScript(() => {
+    let i = 0
+    const vals = [0.9, 0.8, 0.7, 0.6]
+    Math.random = () => vals[i++ % vals.length]
+  })
   await enterGame(page, { active: [activeTask()], gold: 500 })
   await page.locator('.tab', { hasText: '상점' }).click()
 

@@ -54,6 +54,7 @@ export function Pool({
   const [cost, setCost] = useState('')
   const [category, setCategory] = useState<Category | undefined>(undefined)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [moreId, setMoreId] = useState<string | null>(null)
 
   const submit = () => {
     const trimmed = title.trim()
@@ -253,70 +254,82 @@ export function Pool({
                   {t.cost && <div className="cost-line">안 하면 → {t.cost}</div>}
                   {availableLabel(t) && <div className="sleep-line">💤 {availableLabel(t)}</div>}
                 </div>
+                <button
+                  className="icon-btn more-toggle"
+                  title="더 많은 행동"
+                  onClick={() => {
+                    sfx.click()
+                    setMoreId(moreId === t.id ? null : t.id)
+                  }}
+                >
+                  ···
+                </button>
               </div>
 
-              <div className="pool-actions">
-                <button
-                  className="pool-act"
-                  title="제목·난이도·시간·마감 고치기"
-                  onClick={() => {
-                    sfx.click()
-                    onEdit(t)
-                  }}
-                >
-                  수정
-                </button>
-                <button
-                  className={`pool-act ${strikeId === t.id ? 'act-on' : ''}`}
-                  title="오늘의 일격으로 지정 — 이것만 잡아도 오늘은 승리"
-                  disabled={!!availableLabel(t)}
-                  onClick={() => {
-                    sfx.accept()
-                    onSetStrike(t.id)
-                  }}
-                >
-                  일격
-                </button>
-                <button
-                  className={`pool-act ${t.urgent ? 'act-on act-urgent' : ''}`}
-                  title="급해! — 뽑힐 확률 UP"
-                  onClick={() => {
-                    sfx.click()
-                    onToggleUrgent(t.id)
-                  }}
-                >
-                  급해
-                </button>
-                <button
-                  className={`pool-act ${t.repeat ? 'act-on' : ''}`}
-                  title="매일 반복 — 처치해도 다음날 다시 나타남"
-                  onClick={() => {
-                    sfx.click()
-                    onToggleRepeat(t.id)
-                  }}
-                >
-                  반복
-                </button>
-                {mad && calmCount > 0 && (
+              {moreId === t.id && (
+                <div className="pool-actions">
                   <button
-                    className="pool-act act-calm"
-                    title={`진정의 향 사용 (${calmCount}개 보유) — 광폭 해제`}
+                    className="pool-act"
+                    title="제목·난이도·시간·마감 고치기"
                     onClick={() => {
-                      sfx.accept()
-                      onCalm(t.id)
+                      sfx.click()
+                      onEdit(t)
                     }}
                   >
-                    진정
+                    수정
                   </button>
-                )}
-                <button
-                  className="pool-act act-del"
-                  title="수집함에서 없애기 (되돌리기 가능)"
-                  onClick={() => onRemove(t.id)}
-                >
-                  삭제
-                </button>
-              </div>
+                  <button
+                    className={`pool-act ${strikeId === t.id ? 'act-on' : ''}`}
+                    title="오늘의 일격으로 지정 — 이것만 잡아도 오늘은 승리"
+                    disabled={!!availableLabel(t)}
+                    onClick={() => {
+                      sfx.accept()
+                      onSetStrike(t.id)
+                    }}
+                  >
+                    일격
+                  </button>
+                  <button
+                    className={`pool-act ${t.urgent ? 'act-on act-urgent' : ''}`}
+                    title="급해! — 뽑힐 확률 UP"
+                    onClick={() => {
+                      sfx.click()
+                      onToggleUrgent(t.id)
+                    }}
+                  >
+                    급해
+                  </button>
+                  <button
+                    className={`pool-act ${t.repeat ? 'act-on' : ''}`}
+                    title="매일 반복 — 처치해도 다음날 다시 나타남"
+                    onClick={() => {
+                      sfx.click()
+                      onToggleRepeat(t.id)
+                    }}
+                  >
+                    반복
+                  </button>
+                  {mad && calmCount > 0 && (
+                    <button
+                      className="pool-act act-calm"
+                      title={`진정의 향 사용 (${calmCount}개 보유) — 광폭 해제`}
+                      onClick={() => {
+                        sfx.accept()
+                        onCalm(t.id)
+                      }}
+                    >
+                      진정
+                    </button>
+                  )}
+                  <button
+                    className="pool-act act-del"
+                    title="수집함에서 없애기 (되돌리기 가능)"
+                    onClick={() => onRemove(t.id)}
+                  >
+                    삭제
+                  </button>
+                </div>
+              )}
             </div>
           )
         })}

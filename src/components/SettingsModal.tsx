@@ -100,7 +100,10 @@ export function SettingsModal({ state, onExport, onImport, onTheme, onNotif, onT
         <button className={`btn ${state.notif ? 'btn-go' : 'btn-sub'}`} onClick={askNotif}>
           {state.notif ? '🔔 리마인드 켜짐 — 눌러서 끄기' : '🔕 리마인드 켜기'}
         </button>
-        <div className="dim settings-hint">앱이 열려있을 때 광폭 몹/오늘의 일격을 알려줘요</div>
+        <div className="dim settings-hint">
+          앱이 열려있을 때 광폭 몹/오늘의 일격을 알려줘요. 홈 화면에 설치하면 남은 오늘의 목표 수가 앱 아이콘
+          배지로 표시돼요
+        </div>
 
         <div className="field-label">저장 데이터</div>
         <div className="settings-row">

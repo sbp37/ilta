@@ -74,7 +74,7 @@ export interface GameState {
   theme?: string
   notif?: boolean
   heroClass?: HeroClass
-  raid?: { key: string; hp: number; max: number }
+  raid?: RaidState
   gear?: string[]
   equippedGear?: string[]
   freezes?: number // 휴식일 부적 보유 수
@@ -152,9 +152,9 @@ export const DIFF: Record<Difficulty, { label: string; xp: number; sprite: strin
 
 // 난이도별 등장 몬스터 — 분류를 안 고르면 이 중에서 랜덤 배정
 export const MONSTERS: Record<Difficulty, string[]> = {
-  slime: ['slime', 'mushroom', 'ghost', 'blueslime', 'bat'],
-  elite: ['imp', 'skeleton', 'witch', 'ogre', 'gargoyle'],
-  boss: ['demon', 'dragon', 'lich', 'golem', 'mimic'],
+  slime: ['slime', 'mushroom', 'ghost', 'blueslime', 'bat', 'frog', 'sprout'],
+  elite: ['imp', 'skeleton', 'witch', 'ogre', 'gargoyle', 'orc', 'harpy'],
+  boss: ['demon', 'dragon', 'lich', 'golem', 'mimic', 'treant', 'kraken'],
 }
 
 // 할 일 분류 — 분류마다 전담 몬스터가 난이도별로 하나씩 있다.
@@ -224,6 +224,12 @@ export const MONSTER_NAMES: Record<string, string> = {
   lich: '리치',
   golem: '골렘',
   mimic: '미믹',
+  frog: '개구리',
+  sprout: '새싹 슬라임',
+  orc: '오크',
+  harpy: '하피',
+  treant: '트렌트',
+  kraken: '크라켄',
 }
 
 export const ALL_MONSTERS: string[] = [...MONSTERS.slime, ...MONSTERS.elite, ...MONSTERS.boss]
@@ -278,7 +284,8 @@ export function enraged(
   now = Date.now(),
 ): boolean {
   if ((t.retreats ?? 0) >= ENRAGE_RETREATS) return true
-  if (t.due && new Date(t.due + 'T23:59:59').getTime() < now) return true
+  // 마감이 있는 몹은 마감만 본다 — 멀리 잡아둔 마감 때문에 방치 판정을 받으면 안 됨
+  if (t.due) return new Date(t.due + 'T23:59:59').getTime() < now
   return now - t.createdAt >= ENRAGE_DAYS * 86400000
 }
 
@@ -319,6 +326,26 @@ export const PET_FEED_COST = 10
 export function todayKey(now = Date.now()): string {
   const d = new Date(now)
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
+
+// 일격 대상이 처치된 뒤의 strike 정리.
+// - 미래 날짜로 예약된 일격이 리스폰했으면 새 id를 따라간다
+// - 미래 예약인데 리스폰이 없으면(반복 아님) 죽은 id를 가리키므로 해제한다
+// - 오늘/과거 일격은 그대로 둔다 — done 목록에서 "달성"으로 보여주거나 자연 만료
+export function strikeRespawn(
+  strike: { id: string; day: string } | undefined,
+  completedId: string,
+  respawnId: string | undefined,
+  now = Date.now(),
+): { id: string; day: string } | undefined {
+  if (!strike || strike.id !== completedId) return strike
+  // day는 'Y-M-D' 포맷이라 문자열 비교가 틀어진다 ('2026-8-2' > '2026-8-19') — 날짜로 환산해 비교
+  const dayMs = (k: string) => {
+    const [y, m, d] = k.split('-').map(Number)
+    return new Date(y, m, d).getTime()
+  }
+  if (dayMs(strike.day) <= dayMs(todayKey(now))) return strike
+  return respawnId ? { id: respawnId, day: strike.day } : undefined
 }
 
 export const ENERGY_LABEL: Record<Energy, string> = {
@@ -620,6 +647,39 @@ export const RAID_MAX_HP = 300
 export const RAID_REWARD = 100
 const RAID_BOSSES = ['dragon', 'golem', 'lich', 'mimic', 'demon']
 
+export interface RaidState {
+  key: string // 그 주 월요일 키 (weekKey)
+  hp: number
+  max: number
+  // 챕터 보스로 뜬 레이드는 주가 바뀌어도 잡을 때까지 남는다 — 정체를 잃지 않도록 저장
+  isFinal?: boolean
+  boss?: string
+  title?: string
+  reward?: number
+  chapterKey?: string
+}
+
+// 이번 주 레이드 상태를 만든다. 잡지 못한 챕터 보스는 주가 넘어가도 그대로 이월된다
+// (이월 중에는 그 주의 일반 주간 보스는 나타나지 않는다 — 챕터 보스가 게이트 역할)
+export function raidFor(prev: RaidState | undefined, now = Date.now()): RaidState {
+  if (prev && (prev.key === weekKey(now) || (prev.isFinal && prev.hp > 0))) return prev
+  const chapter = chapterOf(now)
+  return {
+    key: weekKey(now),
+    hp: chapter.maxHp,
+    max: chapter.maxHp,
+    ...(chapter.isFinal
+      ? {
+          isFinal: true,
+          boss: chapter.boss,
+          title: chapter.title,
+          reward: chapter.reward,
+          chapterKey: chapter.key,
+        }
+      : {}),
+  }
+}
+
 // ---------- 시즌(챕터): 4주 = 1챕터, 마지막 주는 챕터 보스 ----------
 
 export const CHAPTER_WEEKS = 4
@@ -791,7 +851,15 @@ export interface Achievement {
   desc: string
   gold: number
   done: (s: GameState, now?: number) => boolean
+  // 달성까지의 진행도 — 목표가 있는 업적만 정의 (예: 47/50)
+  progress?: (s: GameState, now?: number) => { cur: number; max: number }
 }
+
+// count/max 형태의 진행도 헬퍼
+const prog = (get: (s: GameState, now?: number) => number, max: number) => (s: GameState, now?: number) => ({
+  cur: Math.min(get(s, now), max),
+  max,
+})
 
 const killsOf = (s: GameState) => s.done.length
 const bossKills = (s: GameState) => s.done.filter((d) => d.difficulty === 'boss').length
@@ -819,18 +887,61 @@ export function categoriesCleared(done: DoneQuest[]): number {
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
-  { id: 'first', name: '첫 발걸음', desc: '몬스터를 1마리 처치', gold: 20, done: (s) => killsOf(s) >= 1 },
-  { id: 'kill10', name: '견습 사냥꾼', desc: '10마리 처치', gold: 30, done: (s) => killsOf(s) >= 10 },
-  { id: 'kill50', name: '숙련 사냥꾼', desc: '50마리 처치', gold: 60, done: (s) => killsOf(s) >= 50 },
-  { id: 'kill100', name: '백몹 학살자', desc: '100마리 처치', gold: 120, done: (s) => killsOf(s) >= 100 },
-  { id: 'boss5', name: '보스 도전자', desc: '보스 5마리 처치', gold: 80, done: (s) => bossKills(s) >= 5 },
-  { id: 'boss20', name: '보스 사냥꾼', desc: '보스 20마리 처치', gold: 200, done: (s) => bossKills(s) >= 20 },
+  {
+    id: 'first',
+    name: '첫 발걸음',
+    desc: '몬스터를 1마리 처치',
+    gold: 20,
+    done: (s) => killsOf(s) >= 1,
+    progress: prog(killsOf, 1),
+  },
+  {
+    id: 'kill10',
+    name: '견습 사냥꾼',
+    desc: '10마리 처치',
+    gold: 30,
+    done: (s) => killsOf(s) >= 10,
+    progress: prog(killsOf, 10),
+  },
+  {
+    id: 'kill50',
+    name: '숙련 사냥꾼',
+    desc: '50마리 처치',
+    gold: 60,
+    done: (s) => killsOf(s) >= 50,
+    progress: prog(killsOf, 50),
+  },
+  {
+    id: 'kill100',
+    name: '백몹 학살자',
+    desc: '100마리 처치',
+    gold: 120,
+    done: (s) => killsOf(s) >= 100,
+    progress: prog(killsOf, 100),
+  },
+  {
+    id: 'boss5',
+    name: '보스 도전자',
+    desc: '보스 5마리 처치',
+    gold: 80,
+    done: (s) => bossKills(s) >= 5,
+    progress: prog(bossKills, 5),
+  },
+  {
+    id: 'boss20',
+    name: '보스 사냥꾼',
+    desc: '보스 20마리 처치',
+    gold: 200,
+    done: (s) => bossKills(s) >= 20,
+    progress: prog(bossKills, 20),
+  },
   {
     id: 'combo5',
     name: '폭주 기관차',
     desc: '하루에 5마리 처치',
     gold: 60,
     done: (s) => bestDay(s.done) >= 5,
+    progress: prog((s) => bestDay(s.done), 5),
   },
   {
     id: 'streak7',
@@ -838,6 +949,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     desc: '7일 연속 처치',
     gold: 100,
     done: (s, now) => streakDays(s.done, now, s.freezeUsed) >= 7,
+    progress: prog((s, now) => streakDays(s.done, now, s.freezeUsed), 7),
   },
   {
     id: 'streak30',
@@ -845,6 +957,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     desc: '30일 연속 처치',
     gold: 300,
     done: (s, now) => streakDays(s.done, now, s.freezeUsed) >= 30,
+    progress: prog((s, now) => streakDays(s.done, now, s.freezeUsed), 30),
   },
   {
     id: 'facedFear',
@@ -852,6 +965,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     desc: '3번 이상 도망친 몹을 처치',
     gold: 80,
     done: (s) => s.done.some((d) => (d.retreats ?? 0) >= 3),
+    progress: prog((s) => Math.max(0, ...s.done.map((d) => d.retreats ?? 0)), 3),
   },
   {
     id: 'nightOwl',
@@ -877,6 +991,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     desc: `몬스터 ${Math.ceil(ALL_MONSTERS.length / 2)}종 발견`,
     gold: 80,
     done: (s) => dexCount(s.done) >= Math.ceil(ALL_MONSTERS.length / 2),
+    progress: prog((s) => dexCount(s.done), Math.ceil(ALL_MONSTERS.length / 2)),
   },
   {
     id: 'dexFull',
@@ -884,6 +999,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     desc: '모든 몬스터 발견',
     gold: 200,
     done: (s) => dexCount(s.done) >= ALL_MONSTERS.length,
+    progress: prog((s) => dexCount(s.done), ALL_MONSTERS.length),
   },
   {
     id: 'allCategories',
@@ -891,6 +1007,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     desc: '5가지 분류를 모두 처치',
     gold: 80,
     done: (s) => categoriesCleared(s.done) >= CATEGORY_IDS.length,
+    progress: prog((s) => categoriesCleared(s.done), CATEGORY_IDS.length),
   },
   {
     id: 'raid3',
@@ -898,6 +1015,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     desc: '주간 보스 3번 처치',
     gold: 100,
     done: (s) => (s.raidKills ?? 0) >= 3,
+    progress: prog((s) => s.raidKills ?? 0, 3),
   },
   {
     id: 'chapter1',
@@ -905,6 +1023,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     desc: '챕터 보스를 처치',
     gold: 150,
     done: (s) => (s.chapterClears ?? []).length >= 1,
+    progress: prog((s) => (s.chapterClears ?? []).length, 1),
   },
   {
     id: 'geared',
@@ -912,6 +1031,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     desc: '장비 5개 보유',
     gold: 60,
     done: (s) => (s.gear ?? []).length >= 5,
+    progress: prog((s) => (s.gear ?? []).length, 5),
   },
   {
     id: 'petMax',
@@ -919,6 +1039,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     desc: '펫을 최종 진화까지 키움',
     gold: 100,
     done: (s) => petStage(s.petFood).next === null,
+    progress: prog((s) => s.petFood, 15),
   },
   {
     id: 'splitter',
@@ -926,6 +1047,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     desc: '잡몹으로 쪼갠 몹을 처치',
     gold: 50,
     done: (s) => s.done.some((d) => (d.subs?.length ?? 0) >= 3),
+    progress: prog((s) => Math.max(0, ...s.done.map((d) => d.subs?.length ?? 0)), 3),
   },
 ]
 

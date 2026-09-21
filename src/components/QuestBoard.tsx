@@ -2,7 +2,16 @@ import { useState } from 'react'
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import { sfx } from '../sound'
-import { ActiveQuest, DAILY_GOAL, MONSTER_NAMES, Task, chapterOf, monsterOf } from '../game'
+import {
+  ActiveQuest,
+  DAILY_GOAL,
+  MONSTER_NAMES,
+  RaidState,
+  Task,
+  chapterOf,
+  monsterOf,
+  weekKey,
+} from '../game'
 import { QuestCard } from './QuestCard'
 
 interface Props {
@@ -11,6 +20,7 @@ interface Props {
   poolSize: number
   doneToday: number
   strikeTask?: Task
+  strikeDone: boolean
   strikeInPool: boolean
   enragedIds: Set<string>
   onDraw: () => void
@@ -26,7 +36,7 @@ interface Props {
   heroPal?: Record<string, string>
   equipped?: string[]
   heroVariant?: string
-  raid?: { key: string; hp: number; max: number }
+  raid?: RaidState
   onReview: () => void
 }
 
@@ -85,6 +95,7 @@ export function QuestBoard({
   poolSize,
   doneToday,
   strikeTask,
+  strikeDone,
   strikeInPool,
   enragedIds,
   onDraw,
@@ -116,43 +127,58 @@ export function QuestBoard({
             <div className="strike-label">오늘의 일격</div>
             <div className="strike-title">{strikeTask.title}</div>
           </div>
-          {strikeInPool && (
-            <button className="btn btn-go" onClick={() => onAcceptStrike(strikeTask.id)}>
-              지금 잡기
-            </button>
+          {strikeDone ? (
+            <span className="goal-done">일격 달성!</span>
+          ) : (
+            strikeInPool && (
+              <button className="btn btn-go" onClick={() => onAcceptStrike(strikeTask.id)}>
+                지금 잡기
+              </button>
+            )
           )}
         </div>
       )}
 
-      {raid && (
-        <div className={`pixel-panel raid-panel ${chapter.isFinal ? 'raid-final' : ''}`}>
-          <Pixel name={chapter.boss} size={3} className={raid.hp > 0 ? 'boss-glow' : ''} />
-          <div className="raid-body">
-            <div className="raid-label">
-              {chapter.isFinal ? '챕터 보스' : '주간 보스'} — {MONSTER_NAMES[chapter.boss]}
-              <span className="dim">
-                {' '}
-                HP {raid.hp}/{raid.max}
-              </span>
-            </div>
-            <div className="dim chapter-line">
-              챕터 {chapter.index + 1} 「{chapter.name}」 · {chapter.week}/4주차
-            </div>
-            <div className="xp-bar raid-bar">
-              <div className="xp-fill raid-fill" style={{ width: `${(raid.hp / raid.max) * 100}%` }} />
-            </div>
-            {raid.hp === 0 ? (
-              <div className="goal-done">
-                {chapter.isFinal ? `챕터 클리어! 칭호 「${chapter.title}」` : '이번 주 보스 처치 완료!'}
+      {raid &&
+        (() => {
+          // 이월된 챕터 보스는 레이드 자체에 정체를 저장해뒀다 — 달력의 현재 챕터가 아니라 그걸 보여준다
+          const carried = !!raid.isFinal && raid.key !== weekKey()
+          const boss = raid.boss ?? chapter.boss
+          const final = raid.isFinal ?? chapter.isFinal
+          const title = raid.title ?? chapter.title
+          const reward = raid.reward ?? chapter.reward
+          return (
+            <div className={`pixel-panel raid-panel ${final ? 'raid-final' : ''}`}>
+              <Pixel name={boss} size={3} className={raid.hp > 0 ? 'boss-glow' : ''} />
+              <div className="raid-body">
+                <div className="raid-label">
+                  {final ? '챕터 보스' : '주간 보스'} — {MONSTER_NAMES[boss]}
+                  <span className="dim">
+                    {' '}
+                    HP {raid.hp}/{raid.max}
+                  </span>
+                </div>
+                <div className="dim chapter-line">
+                  {carried
+                    ? '지난 챕터의 보스 — 잡을 때까지 남는다'
+                    : `챕터 ${chapter.index + 1} 「${chapter.name}」 · ${chapter.week}/4주차`}
+                </div>
+                <div className="xp-bar raid-bar">
+                  <div className="xp-fill raid-fill" style={{ width: `${(raid.hp / raid.max) * 100}%` }} />
+                </div>
+                {raid.hp === 0 ? (
+                  <div className="goal-done">
+                    {final ? `챕터 클리어! 칭호 「${title}」` : '이번 주 보스 처치 완료!'}
+                  </div>
+                ) : (
+                  <div className="dim raid-hint">
+                    퀘스트 처치 XP만큼 데미지 — {carried ? '잡으면' : '이번 주 안에 잡으면'} +{reward}G
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="dim raid-hint">
-                퀘스트 처치 XP만큼 데미지 — 이번 주 안에 잡으면 +{chapter.reward}G
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+            </div>
+          )
+        })()}
 
       <div className="pixel-panel daily-goal">
         <div className="goal-label">

@@ -1415,22 +1415,6 @@ body {
   padding: 6px 8px;
 }
 
-.sub-toggle {
-  margin-top: 6px;
-  background: none;
-  border: none;
-  color: var(--dim);
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  padding: 2px 0;
-  text-align: left;
-}
-
-.sub-toggle:hover {
-  color: var(--gold);
-}
-
 .subs-tag {
   color: var(--purple);
   font-size: 11px;
@@ -2414,6 +2398,9 @@ body[data-theme='sakura'] {
   color: var(--dim);
   margin-left: 6px;
 }
+.ach-prog {
+  margin-left: 6px;
+}
 .ach-gold {
   color: var(--green);
   margin-left: 6px;
@@ -2450,4 +2437,115 @@ body[data-theme='sakura'] {
 }
 .raid-final .raid-label {
   color: var(--gold);
+}
+
+/* 에러 바운더리 복구 화면 */
+.error-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.error-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 320px;
+  padding: 20px;
+  text-align: center;
+}
+.error-title {
+  color: var(--red, #ff4d5e);
+  font-size: 14px;
+}
+.error-log {
+  font-size: 10px;
+  color: var(--dim);
+  background: var(--bg);
+  padding: 8px;
+  overflow: auto;
+  max-height: 80px;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 카드 더보기 — 자주 안 쓰는 액션을 ··· 뒤에 접는다 */
+.more-btn {
+  min-width: 42px;
+  letter-spacing: 2px;
+}
+.more-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.more-toggle {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+/* 처치 연출: 몬스터가 하얗게 타들어가며 소멸 + 골드 파편 */
+.sprite-die {
+  animation: sprite-die 0.5s steps(5) forwards;
+}
+@keyframes sprite-die {
+  0% {
+    filter: brightness(1);
+  }
+  30% {
+    filter: brightness(3) saturate(0);
+    transform: scale(1.15);
+  }
+  100% {
+    filter: brightness(3) saturate(0);
+    transform: scale(0) translateY(6px);
+    opacity: 0;
+  }
+}
+
+.kill-p {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: var(--gold);
+  animation: kill-fly 0.45s steps(4) forwards;
+}
+.kill-p0 {
+  --dx: -46px;
+  --dy: -28px;
+}
+.kill-p1 {
+  --dx: 46px;
+  --dy: -30px;
+}
+.kill-p2 {
+  --dx: -34px;
+  --dy: 24px;
+}
+.kill-p3 {
+  --dx: 38px;
+  --dy: 26px;
+}
+.kill-p4 {
+  --dx: -8px;
+  --dy: -44px;
+  background: var(--text);
+}
+.kill-p5 {
+  --dx: 10px;
+  --dy: 40px;
+  background: var(--text);
+}
+@keyframes kill-fly {
+  from {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translate(var(--dx), var(--dy)) scale(0);
+    opacity: 0;
+  }
 }

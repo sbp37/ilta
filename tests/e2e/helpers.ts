@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test'
+import { Locator, Page, expect } from '@playwright/test'
 import type { GameState } from '../../src/game'
 
 export const DAY = 86400000
@@ -41,14 +41,23 @@ export async function enterGame(page: Page, save: Partial<GameState> = {}) {
 
 export const toast = (page: Page) => page.locator('.toast')
 
+/** 수집함 항목의 ··· 더보기를 연다 — 액션 버튼이 접혀 있을 때만 토글한다. */
+export async function poolMore(item: Locator) {
+  if ((await item.locator('.pool-act').count()) === 0) {
+    await item.locator('.more-toggle').click()
+  }
+}
+
 export async function gold(page: Page): Promise<number> {
   const text = (await page.locator('.gold-display').textContent()) ?? ''
   return Number(text.replace(/\D/g, ''))
 }
 
-/** 오늘 기준 n일 전 날짜의 완료 기록 하나. */
+/** 오늘 기준 n일 전 날짜의 완료 기록 하나. 낮 12시로 고정해 실행 시각(새벽 등)에 안 흔들리게 한다. */
 export function doneDaysAgo(days: number, id = `d${days}`) {
-  const at = Date.now() - days * DAY
+  const d = new Date(Date.now() - days * DAY)
+  d.setHours(12, 0, 0, 0)
+  const at = d.getTime()
   return {
     id,
     title: `${days}일 전에 잡은 몹`,
