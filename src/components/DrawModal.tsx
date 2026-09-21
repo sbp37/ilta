@@ -1,17 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Pixel } from '../Pixel'
 import { sfx } from '../sound'
 import {
   ActiveQuest,
   DIFF,
   ENERGY_LABEL,
-  Energy,
-  MINUTE_OPTIONS,
   NUDGE_LINES,
   Task,
   awake,
   dueLabel,
-  filterDoable,
   monsterOf,
   pickWeighted,
 } from '../game'
@@ -27,13 +24,7 @@ interface Props {
   onClose: () => void
 }
 
-type Phase = 'setup' | 'rolling' | 'reveal'
-
-const NPC_LINES = [
-  '수고 많으십니다, 모험가님.',
-  '오늘은 어떤 퀘스트를 원하시나요?',
-  '조건만 말씀해 주시면 제가 골라드리죠.',
-]
+type Phase = 'rolling' | 'reveal'
 
 export function DrawModal({
   pool,
@@ -45,23 +36,16 @@ export function DrawModal({
   onAccept,
   onClose,
 }: Props) {
-  const [phase, setPhase] = useState<Phase>('setup')
-  const [minutes, setMinutes] = useState<number>(30)
-  const [energy, setEnergy] = useState<Energy>('mid')
+  const blocked = pool.length === 0 || activeFull
+  const [phase, setPhase] = useState<Phase>('rolling')
   const [picked, setPicked] = useState<Task | null>(null)
   const [rerolls, setRerolls] = useState(1)
-  const [ignoreFilter, setIgnoreFilter] = useState(false)
   const [accepted, setAccepted] = useState<ActiveQuest | null>(null)
 
-  const candidates = useMemo(
-    () => (ignoreFilter ? awake(pool) : filterDoable(pool, minutes, energy)),
-    [pool, minutes, energy, ignoreFilter],
-  )
-
   useEffect(() => {
-    if (phase === 'rolling') {
+    if (phase === 'rolling' && !blocked) {
       const t = setTimeout(() => {
-        const pick = pickWeighted(candidates, picked?.id)
+        const pick = pickWeighted(awake(pool), picked?.id)
         setPicked(pick)
         setPhase('reveal')
         if (pick?.difficulty === 'boss') sfx.bossReveal()
@@ -112,55 +96,38 @@ export function DrawModal({
         <div className="npc-row">
           <Pixel name="npc" size={3} className="bob" />
           <div className="bubble">
-            {phase === 'setup' && NPC_LINES[1]}
-            {phase === 'rolling' && '흠… 어디 보자…'}
-            {phase === 'reveal' && picked && mad && '이건 오래 미뤄져 화가 머리끝까지 난 몬스터다!'}
-            {phase === 'reveal' && picked && !mad && '자, 이 퀘스트는 어떠신지?'}
-            {phase === 'reveal' && !picked && '조건에 맞는 퀘스트가 없군요…'}
+            {blocked && pool.length === 0 && '수집함이 텅 비었군요…'}
+            {blocked && pool.length > 0 && '슬롯이 가득 찼습니다, 모험가님.'}
+            {!blocked && phase === 'rolling' && '흠… 어디 보자…'}
+            {!blocked &&
+              phase === 'reveal' &&
+              picked &&
+              mad &&
+              '이건 오래 미뤄져 화가 머리끝까지 난 몬스터다!'}
+            {!blocked && phase === 'reveal' && picked && !mad && '자, 이 퀘스트는 어떠신지?'}
+            {!blocked && phase === 'reveal' && !picked && '깨어있는 몬스터가 없군요…'}
           </div>
         </div>
 
-        {phase === 'setup' && (
-          <>
-            <div className="field-label">남은 시간</div>
-            <div className="chip-row">
-              {MINUTE_OPTIONS.map((m) => (
-                <button
-                  key={m}
-                  className={`chip ${minutes === m ? 'chip-on' : ''}`}
-                  onClick={() => setMinutes(m)}
-                >
-                  {m}분
-                </button>
-              ))}
+        {blocked && (
+          <div className="center-col">
+            <div className="dim">
+              {pool.length === 0 ? '수집함이 비었어요' : `퀘스트 슬롯이 가득 찼습니다! (최대 ${maxActive}개)`}
             </div>
-            <div className="field-label">지금 에너지</div>
-            <div className="chip-row">
-              {(Object.keys(ENERGY_LABEL) as Energy[]).map((e) => (
-                <button
-                  key={e}
-                  className={`chip ${energy === e ? 'chip-on' : ''}`}
-                  onClick={() => setEnergy(e)}
-                >
-                  {ENERGY_LABEL[e]}
-                </button>
-              ))}
-            </div>
-            {activeFull && <div className="warn">퀘스트 슬롯이 가득 찼습니다! (최대 {maxActive}개)</div>}
-            <button className="btn btn-big btn-go" onClick={roll} disabled={activeFull || pool.length === 0}>
-              {pool.length === 0 ? '수집함이 비었어요' : '퀘스트 뽑기!'}
+            <button className="btn btn-ghost" onClick={onClose}>
+              닫기
             </button>
-          </>
+          </div>
         )}
 
-        {phase === 'rolling' && (
+        {!blocked && phase === 'rolling' && (
           <div className="rolling-box">
             <Pixel name="chest" size={6} className="shake" />
             <div className="dim center">두근두근…</div>
           </div>
         )}
 
-        {phase === 'reveal' && picked && diff && !accepted && (
+        {!blocked && phase === 'reveal' && picked && diff && !accepted && (
           <>
             <div className={`reveal-box ${picked.difficulty === 'boss' ? 'boss-flash' : ''}`}>
               <Pixel name={monsterOf(picked)} size={6} className={mad ? 'shake-slow' : 'bob'} />
@@ -190,14 +157,9 @@ export function DrawModal({
           </>
         )}
 
-        {phase === 'reveal' && !picked && (
+        {!blocked && phase === 'reveal' && !picked && (
           <div className="center-col">
-            <div className="dim">지금 조건에 맞는 퀘스트가 없어요.</div>
-            {!ignoreFilter && pool.length > 0 && (
-              <button className="btn btn-sub" onClick={() => setIgnoreFilter(true)}>
-                조건 무시하고 뽑기
-              </button>
-            )}
+            <div className="dim">지금 깨어있는 몬스터가 없어요.</div>
             <button className="btn btn-ghost" onClick={onClose}>
               닫기
             </button>

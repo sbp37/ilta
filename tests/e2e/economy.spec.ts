@@ -41,7 +41,6 @@ test('무료 리롤을 다 쓰면 다시뽑기권으로 한 번 더 뽑는다', 
     items: { reroll: 1 },
   })
   await page.locator('.draw-btn').click()
-  await page.locator('.modal').getByRole('button', { name: '퀘스트 뽑기!' }).click()
   await expect(page.locator('.reveal-box')).toBeVisible()
 
   await page
