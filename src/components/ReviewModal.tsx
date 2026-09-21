@@ -18,7 +18,10 @@ export function ReviewModal({ state, onPickTomorrow, onClose }: Props) {
 
   // 내일의 일격 후보: 가중치 상위 3개
   const candidates = useMemo(
-    () => awake(state.pool).sort((a, b) => drawWeight(b) - drawWeight(a)).slice(0, 3),
+    () =>
+      awake(state.pool)
+        .sort((a, b) => drawWeight(b) - drawWeight(a))
+        .slice(0, 3),
     [state.pool],
   )
 
@@ -42,7 +45,9 @@ export function ReviewModal({ state, onPickTomorrow, onClose }: Props) {
         )}
 
         <div className="review-summary pixel-panel">
-          <div>오늘 처치 <b>{todayDone.length}</b>몹 · +{todayXp}XP</div>
+          <div>
+            오늘 처치 <b>{todayDone.length}</b>몹 · +{todayXp}XP
+          </div>
           <div className={goalDone ? 'goal-done' : 'dim'}>
             일일 목표 {Math.min(todayDone.length, DAILY_GOAL)}/{DAILY_GOAL} {goalDone ? '달성!' : ''}
           </div>

@@ -98,7 +98,7 @@ export default function App() {
     claimAchievements,
     consumeItem,
     useXpPotion,
-    useCalm,
+    applyCalm,
     feedPet,
     setPetName,
     setStrike,
@@ -220,7 +220,15 @@ export default function App() {
     const bonus = earned.reduce((sum, a) => sum + a.gold, 0)
     showToast(`업적 달성! ${names} +${bonus}G`, undefined, 6000)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [started, state.done.length, state.loot, state.gear, state.petFood, state.raidKills, state.chapterClears])
+  }, [
+    started,
+    state.done.length,
+    state.loot,
+    state.gear,
+    state.petFood,
+    state.raidKills,
+    state.chapterClears,
+  ])
 
   const handleComplete = useCallback(
     (id: string) => {
@@ -274,7 +282,16 @@ export default function App() {
         )
       }
     },
-    [complete, showToast, bonusXp, undoAction, state.pool.length, state.active.length, state.xp],
+    [
+      complete,
+      showToast,
+      bonusXp,
+      undoAction,
+      state.pool.length,
+      state.active.length,
+      state.xp,
+      state.strike,
+    ],
   )
 
   const handleStarter = useCallback((quest: ActiveQuest) => {
@@ -378,8 +395,8 @@ export default function App() {
       const mad = enragedSet(state.pool).size
       const strike =
         state.strike?.day === todayKey()
-          ? state.pool.find((x) => x.id === state.strike!.id) ??
-            state.active.find((x) => x.id === state.strike!.id)
+          ? (state.pool.find((x) => x.id === state.strike!.id) ??
+            state.active.find((x) => x.id === state.strike!.id))
           : undefined
       if (mad > 0) {
         new Notification('일타', { body: `광폭 몬스터 ${mad}마리가 커지는 중! 지금 잡으러 가자` })
@@ -415,8 +432,8 @@ export default function App() {
   // 오늘의 일격: 오늘 지정된 게 있고 아직 수집함/슬롯에 살아있으면 표시
   const strikeSet = state.strike?.day === todayKey()
   const strikeTask = strikeSet
-    ? state.pool.find((t) => t.id === state.strike!.id) ??
-      state.active.find((t) => t.id === state.strike!.id)
+    ? (state.pool.find((t) => t.id === state.strike!.id) ??
+      state.active.find((t) => t.id === state.strike!.id))
     : undefined
   const strikeInPool = !!strikeTask && state.pool.some((t) => t.id === strikeTask.id)
 
@@ -497,7 +514,11 @@ export default function App() {
             onFight={handleFight}
             onAbandon={(id) => {
               const r = abandon(id)
-              showToast(r === 'shielded' ? '나무 방패가 막아줬다! 도망 기록 없이 수집함으로' : '퀘스트를 수집함으로 되돌렸습니다.')
+              showToast(
+                r === 'shielded'
+                  ? '나무 방패가 막아줬다! 도망 기록 없이 수집함으로'
+                  : '퀘스트를 수집함으로 되돌렸습니다.',
+              )
             }}
             onQuickAdd={handleQuickAdd}
             onAcceptStrike={(id) => {
@@ -527,7 +548,7 @@ export default function App() {
             onEdit={setEditing}
             calmCount={itemCount(state, 'calm')}
             onCalm={(id) => {
-              if (useCalm(id)) showToast('진정의 향을 피웠다… 몬스터가 차분해졌다')
+              if (applyCalm(id)) showToast('진정의 향을 피웠다… 몬스터가 차분해졌다')
             }}
             onMove={move}
             onToggleUrgent={toggleUrgent}
@@ -685,7 +706,11 @@ export default function App() {
             // 도망치기 = 후퇴 처리 (도망 기록 남음)
             setTimer(null)
             const r = abandon(timer.questId)
-            showToast(r === 'shielded' ? '나무 방패 덕에 도망 기록은 안 남았다!' : '도망쳤다! 몬스터는 수집함에서 기다리고 있습니다…')
+            showToast(
+              r === 'shielded'
+                ? '나무 방패 덕에 도망 기록은 안 남았다!'
+                : '도망쳤다! 몬스터는 수집함에서 기다리고 있습니다…',
+            )
           }}
         />
       )}

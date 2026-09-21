@@ -19,12 +19,14 @@ export function Pixel({ name, size = 4, className = '', palette }: Props) {
       aria-hidden
     >
       {sprite.rows.flatMap((row, y) =>
-        row.split('').map((ch, x) => (
-          <div
-            key={`${y}-${x}`}
-            style={{ width: size, height: size, background: pal[ch] ?? 'transparent' }}
-          />
-        )),
+        row
+          .split('')
+          .map((ch, x) => (
+            <div
+              key={`${y}-${x}`}
+              style={{ width: size, height: size, background: pal[ch] ?? 'transparent' }}
+            />
+          )),
       )}
     </div>
   )

@@ -130,16 +130,16 @@ export function QuestBoard({
           <div className="raid-body">
             <div className="raid-label">
               {chapter.isFinal ? '챕터 보스' : '주간 보스'} — {MONSTER_NAMES[chapter.boss]}
-              <span className="dim"> HP {raid.hp}/{raid.max}</span>
+              <span className="dim">
+                {' '}
+                HP {raid.hp}/{raid.max}
+              </span>
             </div>
             <div className="dim chapter-line">
               챕터 {chapter.index + 1} 「{chapter.name}」 · {chapter.week}/4주차
             </div>
             <div className="xp-bar raid-bar">
-              <div
-                className="xp-fill raid-fill"
-                style={{ width: `${(raid.hp / raid.max) * 100}%` }}
-              />
+              <div className="xp-fill raid-fill" style={{ width: `${(raid.hp / raid.max) * 100}%` }} />
             </div>
             {raid.hp === 0 ? (
               <div className="goal-done">

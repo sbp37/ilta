@@ -67,7 +67,14 @@ export async function makeShareCard(state: GameState): Promise<Blob | null> {
   // 별 장식
   ctx.fillStyle = '#f4f4f455'
   const stars: [number, number][] = [
-    [60, 40], [180, 30], [420, 45], [580, 60], [90, 90], [540, 100], [300, 35], [480, 70],
+    [60, 40],
+    [180, 30],
+    [420, 45],
+    [580, 60],
+    [90, 90],
+    [540, 100],
+    [300, 35],
+    [480, 70],
   ]
   for (const [x, y] of stars) ctx.fillRect(x, y, 3, 3)
 
@@ -97,7 +104,9 @@ export async function makeShareCard(state: GameState): Promise<Blob | null> {
 
   // 가장 강한 처치 몬스터 (보스 > 정예 > 잡몹, 최근 우선)
   const rank = { boss: 2, elite: 1, slime: 0 }
-  const best = [...state.done].sort((a, b) => rank[b.difficulty] - rank[a.difficulty] || b.completedAt - a.completedAt)[0]
+  const best = [...state.done].sort(
+    (a, b) => rank[b.difficulty] - rank[a.difficulty] || b.completedAt - a.completedAt,
+  )[0]
   if (best) {
     const m = monsterOf(best)
     drawSprite(ctx, m, 480, 140, PX)

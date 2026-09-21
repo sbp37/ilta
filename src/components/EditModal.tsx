@@ -93,7 +93,9 @@ export function EditModal({ task, onSave, onClose }: Props) {
             <button
               key={c}
               className={`chip cat-chip ${category === c ? 'chip-on' : ''}`}
-              style={category === c ? { borderColor: CATEGORIES[c].color, color: CATEGORIES[c].color } : undefined}
+              style={
+                category === c ? { borderColor: CATEGORIES[c].color, color: CATEGORIES[c].color } : undefined
+              }
               onClick={() => setCategory(category === c ? undefined : c)}
             >
               {CATEGORIES[c].name}
@@ -123,7 +125,11 @@ export function EditModal({ task, onSave, onClose }: Props) {
         <div className="field-label">예상 시간</div>
         <div className="chip-row">
           {MINUTE_OPTIONS.map((m) => (
-            <button key={m} className={`chip ${minutes === m ? 'chip-on' : ''}`} onClick={() => setMinutes(m)}>
+            <button
+              key={m}
+              className={`chip ${minutes === m ? 'chip-on' : ''}`}
+              onClick={() => setMinutes(m)}
+            >
               {m}분
             </button>
           ))}
@@ -158,7 +164,11 @@ export function EditModal({ task, onSave, onClose }: Props) {
         />
         <div className="chip-row preset-row">
           {COST_PRESETS.map((c) => (
-            <button key={c} className={`chip ${cost === c ? 'chip-on' : ''}`} onClick={() => setCost(cost === c ? '' : c)}>
+            <button
+              key={c}
+              className={`chip ${cost === c ? 'chip-on' : ''}`}
+              onClick={() => setCost(cost === c ? '' : c)}
+            >
               {c}
             </button>
           ))}
