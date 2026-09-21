@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { SPRITES } from './sprites'
 import {
   Achievement,
   ActiveQuest,
+  CATEGORY_IDS,
   CONSUMABLES,
   CRIT_CHANCE,
   CRIT_MULT,
@@ -16,6 +18,7 @@ import {
   POTION_CONVERT,
   Repeat,
   SAVE_VERSION,
+  THEMES,
   Task,
   XP_BOOST_MULT,
   applyFreezes,
@@ -74,11 +77,129 @@ export function migrate(saved: GameState): GameState {
   return { ...s, version: SAVE_VERSION }
 }
 
+const DIFF_IDS = new Set(['slime', 'elite', 'boss'])
+const ENERGY_IDS = new Set(['low', 'mid', 'high'])
+const REPEAT_IDS = new Set(['daily', 'weekdays', 'weekly'])
+const CLASS_IDS = new Set(['warrior', 'mage', 'rogue'])
+const THEME_IDS = new Set(THEMES.map((t) => t.id))
+const GEAR_IDS = new Set(GEAR.map((g) => g.id))
+const CATEGORY_IDS_SET = new Set<string>(CATEGORY_IDS)
+
+const fin = (v: unknown, fallback: number): number =>
+  typeof v === 'number' && Number.isFinite(v) ? v : fallback
+const strArr = (v: unknown): string[] | undefined =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : undefined
+const numMap = (v: unknown): Record<string, number> =>
+  v && typeof v === 'object' && !Array.isArray(v)
+    ? Object.fromEntries(Object.entries(v).filter(([, n]) => typeof n === 'number' && Number.isFinite(n)))
+    : {}
+
+// 세이브의 태스크 하나를 검증. 잘못된 필드는 버리거나 기본값으로 — 렌더가 깨지지 않는
+// 상태를 보장하는 게 목적 (없는 enum 값 하나가 앱 전체를 죽이는 걸 막는다)
+function sanitizeTask(raw: unknown): Task | null {
+  if (!raw || typeof raw !== 'object') return null
+  const t = raw as Task
+  if (typeof t.title !== 'string' || !t.title.trim()) return null
+  const category = typeof t.category === 'string' && CATEGORY_IDS_SET.has(t.category) ? t.category : undefined
+  const task: Task = {
+    id: typeof t.id === 'string' && t.id ? t.id : uid(),
+    title: t.title,
+    difficulty: DIFF_IDS.has(t.difficulty) ? t.difficulty : 'slime',
+    minutes: Math.max(1, fin(t.minutes, 15)),
+    energy: ENERGY_IDS.has(t.energy) ? t.energy : 'low',
+    createdAt: fin(t.createdAt, Date.now()),
+  }
+  if (typeof t.due === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.due)) task.due = t.due
+  if (t.urgent === true) task.urgent = true
+  // 몬스터는 스프라이트가 없으면 분류/난이도에서 다시 뽑는다
+  if (typeof t.monster === 'string' && SPRITES[t.monster]) task.monster = t.monster
+  if (typeof t.cost === 'string') task.cost = t.cost
+  if (typeof t.retreats === 'number' && Number.isFinite(t.retreats)) task.retreats = t.retreats
+  if (typeof t.repeat === 'string' && REPEAT_IDS.has(t.repeat)) task.repeat = t.repeat
+  if (typeof t.availableAt === 'number' && Number.isFinite(t.availableAt)) task.availableAt = t.availableAt
+  if (category) task.category = category
+  if (Array.isArray(t.subs))
+    task.subs = t.subs
+      .filter(
+        (s): s is { id: string; title: string; done?: boolean } =>
+          !!s && typeof s === 'object' && typeof (s as { title?: unknown }).title === 'string',
+      )
+      .map((s) => ({ id: typeof s.id === 'string' ? s.id : uid(), title: s.title, done: s.done === true }))
+  return task
+}
+
+// 외부에서 온 데이터(localStorage·불러오기)를 GameState로 정제한다.
+// 타입/enum이 하나라도 깨져 있으면 앱 전체가 크래시하므로 필드별로 검증한다.
+export function sanitize(raw: unknown): GameState {
+  if (!raw || typeof raw !== 'object') return empty
+  const s = raw as GameState
+  const tasks = (v: unknown) => (Array.isArray(v) ? v.map(sanitizeTask).filter((t): t is Task => !!t) : [])
+  const out: GameState = {
+    ...empty,
+    pool: tasks(s.pool),
+    active: tasks(s.active).map((t) => ({
+      ...t,
+      acceptedAt: fin((t as ActiveQuest).acceptedAt, Date.now()),
+    })),
+    done: tasks(s.done).map((t) => ({
+      ...t,
+      completedAt: fin((t as DoneQuest).completedAt, Date.now()),
+      xp: fin((t as DoneQuest).xp, 0),
+      lootId: typeof (t as DoneQuest).lootId === 'string' ? (t as DoneQuest).lootId : undefined,
+    })),
+    xp: Math.max(0, fin(s.xp, 0)),
+    gold: Math.max(0, fin(s.gold, 0)),
+    loot: numMap(s.loot),
+    rewards: Array.isArray(s.rewards)
+      ? s.rewards.filter((r) => r && typeof r.id === 'string' && typeof r.name === 'string')
+      : [],
+    purchases: Array.isArray(s.purchases)
+      ? s.purchases.filter((p) => p && typeof p.id === 'string' && typeof p.name === 'string')
+      : [],
+    petFood: Math.max(0, fin(s.petFood, 0)),
+    version: fin(s.version, 1),
+  }
+  if (typeof s.heroName === 'string') out.heroName = s.heroName
+  if (typeof s.heroHair === 'string') out.heroHair = s.heroHair
+  if (typeof s.heroTunic === 'string') out.heroTunic = s.heroTunic
+  if (typeof s.petName === 'string') out.petName = s.petName
+  if (typeof s.petFedAt === 'number' && Number.isFinite(s.petFedAt)) out.petFedAt = s.petFedAt
+  if (
+    s.strike &&
+    typeof s.strike === 'object' &&
+    typeof s.strike.id === 'string' &&
+    typeof s.strike.day === 'string'
+  )
+    out.strike = s.strike
+  if (typeof s.theme === 'string' && THEME_IDS.has(s.theme as (typeof THEMES)[number]['id']))
+    out.theme = s.theme
+  if (s.notif === true) out.notif = true
+  if (typeof s.heroClass === 'string' && CLASS_IDS.has(s.heroClass)) out.heroClass = s.heroClass
+  if (s.raid && typeof s.raid === 'object' && typeof s.raid.key === 'string') {
+    out.raid = {
+      ...s.raid,
+      hp: Math.max(0, fin(s.raid.hp, 0)),
+      max: Math.max(1, fin(s.raid.max, 300)),
+      boss: typeof s.raid.boss === 'string' && SPRITES[s.raid.boss] ? s.raid.boss : undefined,
+    }
+  }
+  if (s.gear) out.gear = strArr(s.gear)?.filter((g) => GEAR_IDS.has(g))
+  if (s.equippedGear) out.equippedGear = strArr(s.equippedGear)?.filter((g) => GEAR_IDS.has(g))
+  if (typeof s.freezes === 'number') out.freezes = Math.max(0, s.freezes)
+  if (s.freezeUsed) out.freezeUsed = strArr(s.freezeUsed)
+  if (s.items) out.items = numMap(s.items)
+  if (s.xpBoost === true) out.xpBoost = true
+  if (s.achieved) out.achieved = strArr(s.achieved)
+  if (typeof s.raidKills === 'number') out.raidKills = Math.max(0, s.raidKills)
+  if (s.chapterClears) out.chapterClears = strArr(s.chapterClears)
+  return out
+}
+
 function load(): GameState {
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return empty
-    return migrate(JSON.parse(raw) as GameState)
+    return migrate(sanitize(JSON.parse(raw)))
   } catch {
     return empty
   }
@@ -679,10 +800,17 @@ export function useGame() {
     (text: string): boolean => {
       try {
         const parsed = JSON.parse(text)
-        const data = (parsed?.data ?? parsed) as GameState
-        if (!Array.isArray(data.pool) || !Array.isArray(data.done) || !Array.isArray(data.active))
-          return false
-        apply(() => migrate(data))
+        const data = parsed?.data ?? parsed
+        // 세이브인지 최소 확인 — 아무 JSON이나 통과시키면 기존 데이터가 빈 상태로 덮어써진다
+        const looksLikeSave =
+          data &&
+          typeof data === 'object' &&
+          (Array.isArray(data.pool) ||
+            Array.isArray(data.active) ||
+            Array.isArray(data.done) ||
+            typeof data.version === 'number')
+        if (!looksLikeSave) return false
+        apply(() => migrate(sanitize(data)))
         return true
       } catch {
         return false
