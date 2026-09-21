@@ -66,6 +66,7 @@ test('업적을 달성하면 골드와 함께 알려준다', async ({ page }) =>
   expect(achieved).toContain('first')
 
   await page.locator('.tab', { hasText: '모험일지' }).click()
+  await page.getByRole('button', { name: '수집', exact: true }).click()
   await expect(page.locator('.ach-row').first()).not.toHaveClass(/ach-locked/)
   await expect(page.locator('.ach-row').first()).toContainText('완료')
 })
@@ -99,10 +100,11 @@ test('모험일지에 분류 통계와 챕터 진행이 보인다', async ({ pag
     ],
   })
   await page.locator('.tab', { hasText: '모험일지' }).click()
-
+  await page.getByRole('button', { name: '통계', exact: true }).click()
   await expect(page.locator('.cat-seg')).toHaveCount(2)
   await expect(page.locator('.cat-legend')).toContainText('공부 2')
   await expect(page.locator('.cat-legend')).toContainText('집안일 1')
+  await page.getByRole('button', { name: '수집', exact: true }).click()
 
   await expect(page.locator('.chapter-card')).toContainText('챕터')
   await expect(page.locator('.chapter-week')).toHaveCount(4)

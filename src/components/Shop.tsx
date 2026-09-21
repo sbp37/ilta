@@ -165,6 +165,78 @@ export function Shop({
         </div>
       </div>
 
+      <div className="field-label">내 보상 상점 — 일한 나에게 주는 선물</div>
+      <div className="pixel-panel form">
+        <div className="quick-add-row">
+          <input
+            className="text-input"
+            placeholder="보상 이름 (예: 산책 30분)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return
+              if (e.key === 'Enter' && name.trim() && Number(cost) > 0) add(name, Number(cost))
+            }}
+            maxLength={30}
+          />
+          <input
+            className="text-input cost-input"
+            placeholder="가격"
+            inputMode="numeric"
+            value={cost}
+            onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, ''))}
+          />
+          <button className="btn btn-go" onClick={() => add(name, Number(cost))}>
+            등록
+          </button>
+        </div>
+        <div className="chip-row preset-row">
+          {PRESETS.map((p) => (
+            <button key={p.name} className="chip" onClick={() => add(p.name, p.cost)}>
+              {p.name} {p.cost}G
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="pool-list">
+        {state.rewards.length === 0 && (
+          <div className="dim">비어있어요. "게임 1시간 120G" 같은 보상을 등록해보세요.</div>
+        )}
+        {state.rewards.map((r) => (
+          <div key={r.id} className="pool-item shop-item">
+            <Pixel name="star" size={2} />
+            <div className="pool-item-body">
+              <div className="pool-item-title">{r.name}</div>
+            </div>
+            <button
+              className="btn btn-gold buy-btn"
+              disabled={state.gold < r.cost}
+              onClick={() => buy(r.id, r.name)}
+            >
+              {r.cost}G
+            </button>
+            <button className="icon-btn" title="삭제" onClick={() => onRemoveReward(r.id)}>
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {state.purchases.length > 0 && (
+        <div className="pool-list">
+          <div className="field-label">최근 구매</div>
+          {[...state.purchases]
+            .sort((a, b) => b.at - a.at)
+            .slice(0, 5)
+            .map((p) => (
+              <div key={p.id} className="purchase-row dim">
+                「{p.name}」 -{p.cost}G · {new Date(p.at).toLocaleDateString('ko-KR')}
+              </div>
+            ))}
+        </div>
+      )}
+
       <div className="field-label shop-gold-line">
         장비 상점 <Pixel name="coin" size={2} /> {state.gold}G
       </div>
@@ -266,78 +338,6 @@ export function Shop({
           </div>
         )
       })}
-
-      <div className="field-label">내 보상 상점 — 일한 나에게 주는 선물</div>
-      <div className="pixel-panel form">
-        <div className="quick-add-row">
-          <input
-            className="text-input"
-            placeholder="보상 이름 (예: 산책 30분)"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.nativeEvent.isComposing) return
-              if (e.key === 'Enter' && name.trim() && Number(cost) > 0) add(name, Number(cost))
-            }}
-            maxLength={30}
-          />
-          <input
-            className="text-input cost-input"
-            placeholder="가격"
-            inputMode="numeric"
-            value={cost}
-            onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, ''))}
-          />
-          <button className="btn btn-go" onClick={() => add(name, Number(cost))}>
-            등록
-          </button>
-        </div>
-        <div className="chip-row preset-row">
-          {PRESETS.map((p) => (
-            <button key={p.name} className="chip" onClick={() => add(p.name, p.cost)}>
-              {p.name} {p.cost}G
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="pool-list">
-        {state.rewards.length === 0 && (
-          <div className="dim">비어있어요. "게임 1시간 120G" 같은 보상을 등록해보세요.</div>
-        )}
-        {state.rewards.map((r) => (
-          <div key={r.id} className="pool-item shop-item">
-            <Pixel name="star" size={2} />
-            <div className="pool-item-body">
-              <div className="pool-item-title">{r.name}</div>
-            </div>
-            <button
-              className="btn btn-gold buy-btn"
-              disabled={state.gold < r.cost}
-              onClick={() => buy(r.id, r.name)}
-            >
-              {r.cost}G
-            </button>
-            <button className="icon-btn" title="삭제" onClick={() => onRemoveReward(r.id)}>
-              ×
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {state.purchases.length > 0 && (
-        <div className="pool-list">
-          <div className="field-label">최근 구매</div>
-          {[...state.purchases]
-            .sort((a, b) => b.at - a.at)
-            .slice(0, 5)
-            .map((p) => (
-              <div key={p.id} className="purchase-row dim">
-                「{p.name}」 -{p.cost}G · {new Date(p.at).toLocaleDateString('ko-KR')}
-              </div>
-            ))}
-        </div>
-      )}
     </div>
   )
 }

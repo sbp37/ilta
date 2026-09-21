@@ -19,6 +19,7 @@ interface Props {
   maxActive: number
   enragedIds: Set<string>
   tickets: number // 다시뽑기권 보유 수
+  gentle: boolean
   onUseTicket: () => boolean
   onAccept: (id: string) => boolean
   onClose: () => void
@@ -32,6 +33,7 @@ export function DrawModal({
   maxActive,
   enragedIds,
   tickets,
+  gentle,
   onUseTicket,
   onAccept,
   onClose,
@@ -135,7 +137,7 @@ export function DrawModal({
                 {mad ? '광폭한 ' : '야생의 '}[{diff.label}] 이 나타났다!
               </div>
               <div className="reveal-title">{picked.title}</div>
-              {nudge && <div className="nudge-line">지금 안 잡으면 → {nudge}</div>}
+              {!gentle && nudge && <div className="nudge-line">지금 안 잡으면 → {nudge}</div>}
               <div className="quest-meta center">
                 <span>{picked.minutes}분</span>
                 <span>{ENERGY_LABEL[picked.energy]}</span>

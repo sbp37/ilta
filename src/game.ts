@@ -8,6 +8,7 @@ export interface SubTask {
   id: string
   title: string
   done?: boolean
+  rewarded?: boolean
 }
 
 export interface Task {
@@ -26,6 +27,7 @@ export interface Task {
   category?: Category // 할 일 분류 — 몬스터 종류가 여기서 정해진다
   subs?: SubTask[] // 큰 몬스터를 잡몹으로 쪼갠 목록
   createdAt: number
+  starterRewarded?: boolean
 }
 
 export interface ActiveQuest extends Task {
@@ -84,6 +86,15 @@ export interface GameState {
   achieved?: string[] // 획득한 업적 id
   raidKills?: number // 처치한 주간·챕터 보스 수
   chapterClears?: string[] // 클리어한 챕터 키
+  dailyGoal?: number
+  goalAwards?: string[]
+  strikeAwards?: string[]
+  tomorrowStrike?: { id: string; day: string }
+  gentle?: boolean
+  readable?: boolean
+  reducedMotion?: boolean
+  reviews?: Record<string, { win: string; obstacle: string; next: string }>
+  focusSessions?: { id: string; questId: string; title: string; seconds: number; endedAt: number }[]
 }
 
 export const MAX_ACTIVE = 3 // 기본 슬롯 수 — 레벨 해금은 slotsFor() 참고
@@ -255,6 +266,20 @@ export function nextAvailable(repeat: Repeat, now = Date.now()): number {
   }
   return d.getTime()
 }
+
+export function localDate(now = Date.now()): string {
+  const d = new Date(now)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+export function nextDue(due: string | undefined, repeat: Repeat, now = Date.now()): string | undefined {
+  if (!due) return undefined
+  const at = new Date(`${due}T00:00:00`).getTime()
+  if (!Number.isFinite(at)) return undefined
+  return localDate(nextAvailable(repeat, Math.max(at, now)))
+}
+
+export const dailyGoalOf = (s: GameState) => Math.max(1, Math.min(10, Math.round(s.dailyGoal ?? 3)))
 
 // 잠들어 있는(대기 중) 몹은 뽑기·수락·습격 대상에서 빠진다
 export function isAvailable(t: { availableAt?: number }, now = Date.now()): boolean {

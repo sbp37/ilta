@@ -25,17 +25,6 @@ export async function enterGame(page: Page, save: Partial<GameState> = {}) {
     localStorage.setItem('ilta-install-dismissed', '1')
   }, save)
   await page.reload()
-  await page.getByRole('button', { name: /모험 계속하기/ }).click()
-  // 아침 의식(오늘의 일격 고르기)이 뜨면 건너뛴다
-  await page
-    .getByRole('button', { name: '안 고르고 시작' })
-    .click({ timeout: 1500 })
-    .catch(() => {})
-  // 야생 몬스터 습격이 뜨면 닫는다 (세션당 확률 발생)
-  await page
-    .locator('.encounter-modal .btn-ghost')
-    .click({ timeout: 3500 })
-    .catch(() => {})
   await expect(page.locator('.header')).toBeVisible()
 }
 

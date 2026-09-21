@@ -2,16 +2,7 @@ import { useState } from 'react'
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import { sfx } from '../sound'
-import {
-  ActiveQuest,
-  DAILY_GOAL,
-  MONSTER_NAMES,
-  RaidState,
-  Task,
-  chapterOf,
-  monsterOf,
-  weekKey,
-} from '../game'
+import { ActiveQuest, MONSTER_NAMES, RaidState, Task, chapterOf, monsterOf, weekKey } from '../game'
 import { QuestCard } from './QuestCard'
 
 interface Props {
@@ -19,6 +10,10 @@ interface Props {
   maxActive: number
   poolSize: number
   doneToday: number
+  goal: number
+  goalRewarded: boolean
+  gentle: boolean
+  onSetStrike: (id: string) => void
   strikeTask?: Task
   strikeDone: boolean
   strikeInPool: boolean
@@ -94,6 +89,10 @@ export function QuestBoard({
   maxActive,
   poolSize,
   doneToday,
+  goal,
+  goalRewarded,
+  gentle,
+  onSetStrike,
   strikeTask,
   strikeDone,
   strikeInPool,
@@ -115,7 +114,7 @@ export function QuestBoard({
   onReview,
 }: Props) {
   const emptySlots = Math.max(0, maxActive - active.length)
-  const goalDone = doneToday >= DAILY_GOAL
+  const goalDone = doneToday >= goal
   const chapter = chapterOf()
 
   return (
@@ -184,17 +183,17 @@ export function QuestBoard({
         <div className="goal-label">
           오늘의 목표
           {goalDone ? (
-            <span className="goal-done">달성! +20G</span>
+            <span className="goal-done">달성!{goalRewarded ? ' +20G' : ''}</span>
           ) : (
             <span className="dim">
-              {doneToday}/{DAILY_GOAL} 처치
+              {doneToday}/{goal} 처치
             </span>
           )}
         </div>
         <div className="xp-bar goal-bar">
           <div
             className={`xp-fill ${goalDone ? 'goal-fill-done' : ''}`}
-            style={{ width: `${Math.min(doneToday / DAILY_GOAL, 1) * 100}%` }}
+            style={{ width: `${Math.min(doneToday / goal, 1) * 100}%` }}
           />
         </div>
       </div>
@@ -206,7 +205,9 @@ export function QuestBoard({
             <Pixel name="campfire" size={4} className="flicker" />
             <Pixel name="slime" size={3} className="bob delay1" />
           </div>
-          <div className="dim">캠프가 한산하네요. 빈 칸을 눌러 할 일을 적거나, 퀘스트를 뽑아보세요!</div>
+          <div className="dim">
+            {doneToday > 0 ? '오늘도 한 걸음 나아갔어요.' : '오늘은 작은 일 하나부터.'}
+          </div>
         </div>
       )}
 
@@ -214,6 +215,8 @@ export function QuestBoard({
         <QuestCard
           key={q.id}
           quest={q}
+          gentle={gentle}
+          onSetStrike={onSetStrike}
           isStrike={strikeTask?.id === q.id}
           mad={enragedIds.has(q.id)}
           onComplete={onComplete}
@@ -230,16 +233,18 @@ export function QuestBoard({
         <EmptySlot key={`empty-${i}`} onQuickAdd={onQuickAdd} />
       ))}
 
-      <button
-        className="btn btn-big btn-gold draw-btn"
-        onClick={() => {
-          sfx.click()
-          onDraw()
-        }}
-      >
-        퀘스트 뽑기
-        <span className="draw-sub">수집함 {poolSize}개 중에서</span>
-      </button>
+      {poolSize > 0 && (
+        <button
+          className="btn btn-big btn-gold draw-btn"
+          onClick={() => {
+            sfx.click()
+            onDraw()
+          }}
+        >
+          퀘스트 뽑기
+          <span className="draw-sub">수집함 {poolSize}개 중에서</span>
+        </button>
+      )}
 
       <button className="btn btn-sub review-btn" onClick={onReview}>
         🌙 하루 마무리 — 오늘의 전과 보기

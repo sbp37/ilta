@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import { sfx } from '../sound'
@@ -8,9 +9,11 @@ interface Props {
   onLook: (hair?: string, tunic?: string) => void
   onClass: (c: HeroClass) => void
   onClose: () => void
+  onName: (name: string) => void
 }
 
-export function HeroModal({ state, onLook, onClass, onClose }: Props) {
+export function HeroModal({ state, onLook, onClass, onClose, onName }: Props) {
+  const [name, setName] = useState(state.heroName ?? '모험가')
   const hair = state.heroHair ?? HERO_HAIRS[0].color
   const tunic = state.heroTunic ?? HERO_TUNICS[0].color
   const equipped = [
@@ -25,6 +28,16 @@ export function HeroModal({ state, onLook, onClass, onClose }: Props) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal pixel-panel" onClick={(e) => e.stopPropagation()}>
         <div className="modal-title">용사 꾸미기</div>
+        <label className="hero-name-field">
+          용사 이름
+          <input
+            className="text-input"
+            value={name}
+            maxLength={12}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={() => onName(name.trim() || '모험가')}
+          />
+        </label>
         <div className="hero-preview">
           <Hero
             size={6}

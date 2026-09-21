@@ -1,6 +1,7 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { sfx } from '../sound'
-import { GameState, THEMES, levelOf } from '../game'
+import { GameState, THEMES, dailyGoalOf, levelOf } from '../game'
+import { downloadSave } from '../persistence'
 
 interface Props {
   state: GameState
@@ -10,20 +11,31 @@ interface Props {
   onNotif: (v: boolean) => void
   onToast: (msg: string) => void
   onClose: () => void
+  onPreferences: (
+    patch: Pick<Partial<GameState>, 'dailyGoal' | 'gentle' | 'readable' | 'reducedMotion'>,
+  ) => void
+  onRestore: () => boolean
 }
 
-export function SettingsModal({ state, onExport, onImport, onTheme, onNotif, onToast, onClose }: Props) {
+export function SettingsModal({
+  state,
+  onExport,
+  onImport,
+  onTheme,
+  onNotif,
+  onToast,
+  onClose,
+  onPreferences,
+  onRestore,
+}: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const [pendingImport, setPendingImport] = useState<string | null>(null)
+  const [restoreConfirm, setRestoreConfirm] = useState(false)
   const theme = state.theme ?? 'night'
   const level = levelOf(state.xp)
 
   const download = () => {
-    const blob = new Blob([onExport()], { type: 'application/json' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `ilta-save-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(a.href)
+    downloadSave(onExport())
     sfx.complete()
     onToast('저장 파일을 내려받았어요')
   }
@@ -31,16 +43,10 @@ export function SettingsModal({ state, onExport, onImport, onTheme, onNotif, onT
   const pickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    file.text().then((text) => {
-      if (onImport(text)) {
-        sfx.levelup()
-        onToast('저장 데이터를 불러왔습니다!')
-        onClose()
-      } else {
-        sfx.deny()
-        onToast('이 파일은 읽을 수 없어요…')
-      }
-    })
+    file
+      .text()
+      .then(setPendingImport)
+      .catch(() => onToast('파일을 읽을 수 없어요'))
     e.target.value = ''
   }
 
@@ -69,6 +75,44 @@ export function SettingsModal({ state, onExport, onImport, onTheme, onNotif, onT
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal pixel-panel" onClick={(e) => e.stopPropagation()}>
         <div className="modal-title">설정</div>
+
+        <div className="preferences">
+          <label className="preference-row">
+            하루 목표
+            <input
+              aria-label="하루 목표"
+              type="number"
+              min="1"
+              max="10"
+              value={dailyGoalOf(state)}
+              onChange={(e) => onPreferences({ dailyGoal: Number(e.target.value) || 1 })}
+            />
+          </label>
+          <label className="preference-row">
+            편안한 모험
+            <input
+              type="checkbox"
+              checked={state.gentle !== false}
+              onChange={(e) => onPreferences({ gentle: e.target.checked })}
+            />
+          </label>
+          <label className="preference-row">
+            읽기 편한 본문
+            <input
+              type="checkbox"
+              checked={!!state.readable}
+              onChange={(e) => onPreferences({ readable: e.target.checked })}
+            />
+          </label>
+          <label className="preference-row">
+            움직임 줄이기
+            <input
+              type="checkbox"
+              checked={!!state.reducedMotion}
+              onChange={(e) => onPreferences({ reducedMotion: e.target.checked })}
+            />
+          </label>
+        </div>
 
         <div className="field-label">배경 테마</div>
         <div className="chip-row">
@@ -116,6 +160,40 @@ export function SettingsModal({ state, onExport, onImport, onTheme, onNotif, onT
           <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={pickFile} />
         </div>
         <div className="dim settings-hint">브라우저 데이터를 지우기 전에 내보내기로 백업해두세요</div>
+        <button className="btn btn-sub" onClick={() => setRestoreConfirm(true)}>
+          이전 자동 백업 복구
+        </button>
+        {(pendingImport || restoreConfirm) && (
+          <div className="restore-confirm" role="status">
+            <p>현재 기록을 선택한 저장 내용으로 바꿀까요?</p>
+            <div className="row-actions">
+              <button className="btn btn-sub" onClick={download}>
+                현재 기록 내보내기
+              </button>
+              <button
+                className="btn btn-go"
+                onClick={() => {
+                  const ok = pendingImport ? onImport(pendingImport) : onRestore()
+                  onToast(ok ? '저장 데이터를 불러왔습니다!' : '복구할 수 있는 저장 데이터를 찾지 못했어요')
+                  setPendingImport(null)
+                  setRestoreConfirm(false)
+                  if (ok) onClose()
+                }}
+              >
+                복구
+              </button>
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setPendingImport(null)
+                  setRestoreConfirm(false)
+                }}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        )}
 
         <button className="btn btn-sub modal-close-btn" onClick={onClose}>
           닫기

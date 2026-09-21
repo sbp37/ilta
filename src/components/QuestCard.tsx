@@ -7,6 +7,8 @@ interface Props {
   quest: ActiveQuest
   isStrike?: boolean
   mad: boolean
+  gentle: boolean
+  onSetStrike: (id: string) => void
   onComplete: (id: string) => void
   onStarter: (quest: ActiveQuest) => void
   onFight: (quest: ActiveQuest) => void
@@ -20,6 +22,8 @@ export function QuestCard({
   quest,
   isStrike,
   mad,
+  gentle,
+  onSetStrike,
   onComplete,
   onStarter,
   onFight,
@@ -40,6 +44,10 @@ export function QuestCard({
   const subsDone = subs.filter((s) => s.done).length
 
   const handleAbandon = () => {
+    if (gentle) {
+      onAbandon(quest.id)
+      return
+    }
     if (confirming) {
       setConfirming(false)
       onAbandon(quest.id)
@@ -104,10 +112,21 @@ export function QuestCard({
             <span>{quest.minutes}분</span>
             <span>{ENERGY_LABEL[quest.energy]}</span>
             {due && <span className={due.urgent ? 'due-urgent' : ''}>{due.text}</span>}
-            {(quest.retreats ?? 0) > 0 && <span className="retreat-tag">도망 x{quest.retreats}</span>}
+            {!gentle && (quest.retreats ?? 0) > 0 && (
+              <span className="retreat-tag">도망 x{quest.retreats}</span>
+            )}
           </div>
-          {quest.cost && <div className="cost-line">안 하면 → {quest.cost}</div>}
+          {!gentle && quest.cost && <div className="cost-line">안 하면 → {quest.cost}</div>}
         </div>
+        <button
+          className={`icon-btn strike-button ${isStrike ? 'act-on' : ''}`}
+          title="오늘의 일격으로 지정"
+          aria-label="오늘의 일격으로 지정"
+          aria-pressed={!!isStrike}
+          onClick={() => onSetStrike(quest.id)}
+        >
+          ★
+        </button>
         <button
           className="edit-link"
           title="제목·난이도·분류·시간·마감 고치기"
@@ -126,6 +145,8 @@ export function QuestCard({
             <button
               key={s.id}
               className={`sub-item ${s.done ? 'sub-done' : ''}`}
+              role="checkbox"
+              aria-checked={!!s.done}
               onClick={() => {
                 sfx.click()
                 onToggleSub(quest.id, s.id)
@@ -157,15 +178,18 @@ export function QuestCard({
         </div>
       )}
       <div className="quest-actions">
+        <button className="btn btn-sub" onClick={() => onStarter(quest)} title="5분만 시작">
+          5분만
+        </button>
         <button className="btn btn-go" onClick={handleKill} disabled={dying}>
           처치 완료!
         </button>
         <button
           className="btn btn-sub"
           onClick={() => onFight(quest)}
-          title={`${quest.minutes}분 타이머 — 끝나면 자동 처치`}
+          title={`${quest.minutes}분 집중 타이머`}
         >
-          전투
+          집중
         </button>
         <button
           className={`btn btn-ghost more-btn ${moreOpen ? 'act-on' : ''}`}
@@ -176,11 +200,14 @@ export function QuestCard({
         </button>
       </div>
 
+      {subs.length === 0 && !subsOpen && (
+        <button className="split-task" onClick={() => setSubsOpen(true)}>
+          + 작은 단계로 쪼개기
+        </button>
+      )}
+
       {moreOpen && (
         <div className="more-row">
-          <button className="btn btn-sub" onClick={() => onStarter(quest)} title="일단 5분만 해보기">
-            5분만
-          </button>
           {subs.length === 0 && !subsOpen && (
             <button
               className="btn btn-sub"
@@ -195,9 +222,9 @@ export function QuestCard({
           <button
             className={`btn ${confirming ? 'btn-danger' : 'btn-ghost'}`}
             onClick={handleAbandon}
-            title="수집함으로 되돌리기 (도망 기록 남음)"
+            title={gentle ? '진행을 보존하고 수집함으로 이동' : '수집함으로 되돌리기 (도망 기록 남음)'}
           >
-            {confirming ? '정말 도망?' : '후퇴'}
+            {gentle ? '나중에 하기' : confirming ? '정말 도망?' : '후퇴'}
           </button>
         </div>
       )}

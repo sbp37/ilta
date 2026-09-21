@@ -1,5 +1,10 @@
 let ctx: AudioContext | null = null
-let muted = localStorage.getItem('quest-do-muted') === '1'
+let muted = false
+try {
+  muted = localStorage.getItem('quest-do-muted') === '1'
+} catch {
+  muted = true
+}
 
 export function isMuted() {
   return muted
@@ -7,7 +12,11 @@ export function isMuted() {
 
 export function toggleMute(): boolean {
   muted = !muted
-  localStorage.setItem('quest-do-muted', muted ? '1' : '0')
+  try {
+    localStorage.setItem('quest-do-muted', muted ? '1' : '0')
+  } catch {
+    /* sound still works for this session */
+  }
   if (muted) stopBgm()
   return muted
 }

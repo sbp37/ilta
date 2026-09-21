@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { SPRITES } from './sprites'
+import { UndoChange, revertChange } from './undo'
+import { BACKUP_KEY, SAVE_KEY, isSave, readSave } from './persistence'
 import {
   Achievement,
   ActiveQuest,
@@ -7,6 +9,7 @@ import {
   CONSUMABLES,
   CRIT_CHANCE,
   CRIT_MULT,
+  DAILY_GOAL_BONUS,
   DoneQuest,
   FREEZE_COST,
   FREEZE_MAX,
@@ -18,11 +21,14 @@ import {
   POTION_CONVERT,
   Repeat,
   SAVE_VERSION,
+  STARTER_BONUS_XP,
+  STRIKE_BONUS,
   THEMES,
   Task,
   XP_BOOST_MULT,
   applyFreezes,
   chapterOf,
+  dailyGoalOf,
   goldFor,
   isAvailable,
   itemCount,
@@ -33,6 +39,7 @@ import {
   monsterFor,
   newAchievements,
   nextAvailable,
+  nextDue,
   petStage,
   raidFor,
   rollLoot,
@@ -45,7 +52,7 @@ import {
   xpFor,
 } from './game'
 
-const KEY = 'quest-do-save-v1'
+const KEY = SAVE_KEY
 
 const empty: GameState = {
   version: SAVE_VERSION,
@@ -114,6 +121,7 @@ function sanitizeTask(raw: unknown): Task | null {
   // 몬스터는 스프라이트가 없으면 분류/난이도에서 다시 뽑는다
   if (typeof t.monster === 'string' && SPRITES[t.monster]) task.monster = t.monster
   if (typeof t.cost === 'string') task.cost = t.cost
+  if (t.starterRewarded === true) task.starterRewarded = true
   if (typeof t.retreats === 'number' && Number.isFinite(t.retreats)) task.retreats = t.retreats
   if (typeof t.repeat === 'string' && REPEAT_IDS.has(t.repeat)) task.repeat = t.repeat
   if (typeof t.availableAt === 'number' && Number.isFinite(t.availableAt)) task.availableAt = t.availableAt
@@ -124,7 +132,12 @@ function sanitizeTask(raw: unknown): Task | null {
         (s): s is { id: string; title: string; done?: boolean } =>
           !!s && typeof s === 'object' && typeof (s as { title?: unknown }).title === 'string',
       )
-      .map((s) => ({ id: typeof s.id === 'string' ? s.id : uid(), title: s.title, done: s.done === true }))
+      .map((s) => ({
+        id: typeof s.id === 'string' ? s.id : uid(),
+        title: s.title,
+        done: s.done === true,
+        rewarded: ('rewarded' in s && s.rewarded === true) || s.done === true,
+      }))
   return task
 }
 
@@ -199,17 +212,39 @@ export function sanitize(raw: unknown): GameState {
   if (s.achieved) out.achieved = strArr(s.achieved)
   if (typeof s.raidKills === 'number') out.raidKills = Math.max(0, s.raidKills)
   if (s.chapterClears) out.chapterClears = strArr(s.chapterClears)
-  return out
-}
-
-function load(): GameState {
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (!raw) return empty
-    return migrate(sanitize(JSON.parse(raw)))
-  } catch {
-    return empty
+  out.dailyGoal = Math.max(1, Math.min(10, Math.round(fin(s.dailyGoal, 3))))
+  if (s.goalAwards) out.goalAwards = strArr(s.goalAwards)
+  if (s.strikeAwards) out.strikeAwards = strArr(s.strikeAwards)
+  if (s.tomorrowStrike && typeof s.tomorrowStrike.id === 'string' && typeof s.tomorrowStrike.day === 'string')
+    out.tomorrowStrike = s.tomorrowStrike
+  out.gentle = s.gentle !== false
+  out.readable = s.readable === true
+  out.reducedMotion = s.reducedMotion === true
+  if (Array.isArray(s.focusSessions))
+    out.focusSessions = s.focusSessions.filter(
+      (f) =>
+        f &&
+        typeof f.id === 'string' &&
+        typeof f.questId === 'string' &&
+        typeof f.title === 'string' &&
+        Number.isFinite(f.seconds) &&
+        f.seconds > 0 &&
+        Number.isFinite(f.endedAt),
+    )
+  if (s.reviews && typeof s.reviews === 'object' && !Array.isArray(s.reviews)) {
+    out.reviews = Object.fromEntries(
+      Object.entries(s.reviews)
+        .filter(
+          ([, r]) =>
+            r && typeof r.win === 'string' && typeof r.obstacle === 'string' && typeof r.next === 'string',
+        )
+        .map(([day, r]) => [
+          day,
+          { win: r.win.slice(0, 500), obstacle: r.obstacle.slice(0, 500), next: r.next.slice(0, 500) },
+        ]),
+    )
   }
+  return out
 }
 
 export interface CompleteResult {
@@ -227,15 +262,25 @@ export interface CompleteResult {
   potionsConverted: boolean // 빨간 포션이 모여 XP 포션으로 변함
   newLevel: number
   levelGold: number
+  goalBonus: number
+  strikeBonus: number
+  achievements: Achievement[]
 }
 
 // 반복 순환: 꺼짐 → 매일 → 평일만 → 주 1회 → 꺼짐
 const REPEAT_CYCLE: (Repeat | undefined)[] = [undefined, 'daily', 'weekdays', 'weekly']
 
 export function useGame() {
-  const [state, setState] = useState<GameState>(load)
-  // 되돌리기용 스냅샷 — 처치/삭제 직전 상태를 통째로 보관
-  const undoRef = useRef<GameState | null>(null)
+  const [loaded] = useState(readSave)
+  const [state, setState] = useState<GameState>(() =>
+    loaded.raw ? migrate(sanitize(JSON.parse(loaded.raw))) : empty,
+  )
+  const [storageWarning, setStorageWarning] = useState(loaded.warning)
+  const [saveAttempt, setSaveAttempt] = useState(0)
+  const storageBlocked = useRef(!!loaded.warning)
+  const lastSaved = useRef<string | null>(loaded.raw)
+  // 해당 행동의 전후 차이만 되돌리기 위해 스냅샷을 함께 보관한다.
+  const undoRef = useRef<UndoChange | null>(null)
   // 최신 상태 미러 — 렌더된 상태에 이번 틱에 접수된 전이까지 즉시 반영된다
   const stateRef = useRef(state)
   stateRef.current = state
@@ -251,17 +296,72 @@ export function useGame() {
   }, [])
 
   useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify(state))
-  }, [state])
+    if (storageBlocked.current) return
+    try {
+      const previous = localStorage.getItem(KEY)
+      if (previous !== lastSaved.current) {
+        storageBlocked.current = true
+        setStorageWarning('다른 창의 저장 내용이 변경됐어요. 현재 기록을 내보낸 뒤 최신 내용을 열어 주세요.')
+        return
+      }
+      const raw = JSON.stringify(state)
+      if (previous !== raw) {
+        if (isSave(previous)) localStorage.setItem(BACKUP_KEY, previous!)
+        localStorage.setItem(KEY, raw)
+      }
+      lastSaved.current = raw
+      setStorageWarning('')
+    } catch {
+      setStorageWarning('기기에 저장하지 못했어요. 화면의 기록은 유지 중입니다. 내보내기로 보관해 주세요.')
+    }
+  }, [state, saveAttempt])
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if ((event.key === KEY || event.key === null) && event.newValue !== lastSaved.current) {
+        storageBlocked.current = true
+        setStorageWarning('다른 창의 저장 내용이 변경됐어요. 현재 기록을 내보낸 뒤 최신 내용을 열어 주세요.')
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
+  const retrySave = useCallback(() => {
+    if (storageBlocked.current) return false
+    setSaveAttempt((n) => n + 1)
+    return true
+  }, [])
+
+  const restoreBackup = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(BACKUP_KEY)
+      if (!isSave(raw)) return false
+      const next = migrate(sanitize(JSON.parse(raw!)))
+      storageBlocked.current = false
+      lastSaved.current = localStorage.getItem(KEY)
+      undoRef.current = null
+      apply(() => next)
+      return true
+    } catch {
+      return false
+    }
+  }, [apply])
 
   // 휴식일 부적 자동 소모: 앱 켤 때 + 하루 넘어갈 때 어제 빈 날이 있으면 지켜준다
   const checkFreezes = useCallback((): number => {
     let consumed = 0
     apply((s) => {
       const r = applyFreezes(s.done, s.freezes ?? 0, s.freezeUsed ?? [], Date.now())
-      if (r.consumed === 0) return s
+      const promote = s.tomorrowStrike?.day === todayKey()
+      if (r.consumed === 0 && !promote) return s
       consumed = r.consumed
-      return { ...s, freezes: r.freezes, freezeUsed: r.used }
+      return {
+        ...s,
+        freezes: r.freezes,
+        freezeUsed: r.used,
+        ...(promote ? { strike: s.tomorrowStrike, tomorrowStrike: undefined } : {}),
+      }
     })
     return consumed
   }, [apply])
@@ -345,10 +445,13 @@ export function useGame() {
         const q = s.active.find((t) => t.id === id)
         const sub = q?.subs?.find((x) => x.id === subId)
         if (!q || !sub) return s
-        const subs = q.subs!.map((x) => (x.id === subId ? { ...x, done: !x.done } : x))
+        const earns = s.heroClass === 'mage' && !sub.done && !sub.rewarded
+        const subs = q.subs!.map((x) =>
+          x.id === subId ? { ...x, done: !x.done, rewarded: x.rewarded || earns } : x,
+        )
         res = subs.length > 0 && subs.every((x) => x.done) ? 'cleared' : 'sub'
-        // 마법사: 잡몹 처치(체크)할 때마다 소량 XP/골드
-        const mageBonus = s.heroClass === 'mage' && !sub.done ? { xp: s.xp + 3, gold: s.gold + 3 } : {}
+        // 마법사 보상은 같은 회차의 하위 작업마다 한 번만 지급한다.
+        const mageBonus = earns ? { xp: s.xp + 3, gold: s.gold + 3 } : {}
         return { ...s, ...mageBonus, active: s.active.map((t) => (t.id === id ? { ...t, subs } : t)) }
       })
       return res
@@ -360,8 +463,9 @@ export function useGame() {
     (id: string) => {
       apply((s) => {
         if (!s.pool.some((t) => t.id === id)) return s
-        undoRef.current = s
-        return { ...s, pool: s.pool.filter((t) => t.id !== id) }
+        const next = { ...s, pool: s.pool.filter((t) => t.id !== id) }
+        undoRef.current = { id, before: s, after: next }
+        return next
       })
     },
     [apply],
@@ -400,13 +504,25 @@ export function useGame() {
   )
 
   // 마지막 처치/삭제 되돌리기. 스냅샷이 있으면 true
-  const undo = useCallback((): boolean => {
-    const snap = undoRef.current
-    if (!snap) return false
-    undoRef.current = null
-    apply(() => snap)
-    return true
-  }, [apply])
+  const undo = useCallback(
+    (id: string): boolean => {
+      const change = undoRef.current
+      if (!change || change.id !== id) return false
+      const next = revertChange(stateRef.current, change)
+      if (!next) return false
+      // If new tasks filled the slots, keep the restored task safely in the pool.
+      while (next.active.length > slotsFor(levelOf(next.xp))) {
+        const index = next.active.findIndex((q) => q.id === id)
+        const [task] = next.active.splice(index < 0 ? next.active.length - 1 : index, 1)
+        const { acceptedAt: _at, ...rest } = task
+        next.pool = [...next.pool, rest]
+      }
+      undoRef.current = null
+      apply(() => next)
+      return true
+    },
+    [apply],
+  )
 
   // 빈 슬롯에 바로 적기: 슬롯 비어있으면 active로, 아니면 pool로
   const quickAdd = useCallback(
@@ -497,9 +613,17 @@ export function useGame() {
       apply((s) => {
         const q = s.active.find((t) => t.id === id)
         if (!q) return s
-        undoRef.current = s
         const now = Date.now()
+        const day = todayKey(now)
         const doneToday = s.done.filter((d) => sameDay(d.completedAt, now)).length
+        const goalBonus =
+          doneToday + 1 >= dailyGoalOf(s) && !(s.goalAwards ?? []).includes(day) && doneToday < dailyGoalOf(s)
+            ? DAILY_GOAL_BONUS
+            : 0
+        const strikeBonus =
+          s.strike?.id === id && s.strike.day === day && !(s.strikeAwards ?? []).includes(day)
+            ? STRIKE_BONUS
+            : 0
         const bonus = lootBonus(s.loot)
         const crit = Math.random() < CRIT_CHANCE + bonus.critChance
         let xp = xpFor(q.difficulty, doneToday)
@@ -512,7 +636,7 @@ export function useGame() {
         gold = Math.round(gold * (1 + bonus.goldMult))
         const loot = rollLoot(q.difficulty)
         const prevLevel = levelOf(s.xp)
-        const nextLevel = levelOf(s.xp + xp)
+        const nextLevel = levelOf(s.xp + xp + goalBonus + strikeBonus)
         // 레벨업 축하 골드 (여러 레벨 한 번에 오르면 합산)
         let levelGold = 0
         for (let l = prevLevel + 1; l <= nextLevel; l++) levelGold += levelUpGold(l)
@@ -548,6 +672,9 @@ export function useGame() {
           potionsConverted,
           newLevel: nextLevel,
           levelGold,
+          goalBonus,
+          strikeBonus,
+          achievements: [],
         }
         // 반복 몬스터는 수집함에 리스폰하되, 다음 차례까지 잠들어 있는다
         // (매일=내일, 평일만=다음 평일, 주 1회=다음 주)
@@ -559,35 +686,48 @@ export function useGame() {
                 difficulty: q.difficulty,
                 minutes: q.minutes,
                 energy: q.energy,
-                due: q.due,
+                due: nextDue(q.due, q.repeat, now),
                 urgent: q.urgent,
                 monster: q.monster,
                 cost: q.cost,
                 category: q.category,
                 repeat: q.repeat,
                 availableAt: nextAvailable(q.repeat, now),
-                subs: q.subs?.map((x) => ({ ...x, done: undefined })),
+                subs: q.subs?.map((x) => ({ id: uid(), title: x.title })),
                 createdAt: now,
               },
             ]
           : []
-        return {
+        let next: GameState = {
           ...s,
           active: s.active.filter((t) => t.id !== id),
           pool: [...s.pool, ...respawn],
           done: [...s.done, doneQuest],
-          xp: s.xp + xp,
-          gold: s.gold + gold,
+          xp: s.xp + xp + goalBonus + strikeBonus,
+          gold: s.gold + gold + goalBonus + strikeBonus,
+          goalAwards: goalBonus ? [...(s.goalAwards ?? []), day] : s.goalAwards,
+          strikeAwards: strikeBonus ? [...(s.strikeAwards ?? []), day] : s.strikeAwards,
           loot: lootNext,
           items,
           xpBoost: false,
           strike: strikeRespawn(s.strike, id, respawn[0]?.id, now),
+          tomorrowStrike: strikeRespawn(s.tomorrowStrike, id, respawn[0]?.id, now),
           raid: { ...raid, hp: raidHp },
           raidKills: (s.raidKills ?? 0) + (raidKilled ? 1 : 0),
           chapterClears: chapterCleared
             ? [...new Set([...(s.chapterClears ?? []), raid.chapterKey ?? chapterOf(now).key])]
             : s.chapterClears,
         }
+        const achievements = newAchievements(next, now)
+        if (achievements.length)
+          next = {
+            ...next,
+            achieved: [...(next.achieved ?? []), ...achievements.map((a) => a.id)],
+            gold: next.gold + achievements.reduce((sum, a) => sum + a.gold, 0),
+          }
+        result.achievements = achievements
+        undoRef.current = { id, before: s, after: next }
+        return next
       })
       return result
     },
@@ -597,6 +737,61 @@ export function useGame() {
   const bonusXp = useCallback(
     (amount: number) => {
       apply((s) => ({ ...s, xp: s.xp + amount, gold: s.gold + amount }))
+    },
+    [apply],
+  )
+
+  const finishFocus = useCallback(
+    (session: { id: string; questId: string; seconds: number; starter: boolean }): boolean => {
+      let rewarded = false
+      apply((s) => {
+        const task = s.active.find((q) => q.id === session.questId)
+        if (!task || s.focusSessions?.some((f) => f.id === session.id)) return s
+        rewarded = session.starter && !task.starterRewarded
+        return {
+          ...s,
+          xp: s.xp + (rewarded ? STARTER_BONUS_XP : 0),
+          gold: s.gold + (rewarded ? STARTER_BONUS_XP : 0),
+          focusSessions: [
+            ...(s.focusSessions ?? []),
+            {
+              id: session.id,
+              questId: task.id,
+              title: task.title,
+              seconds: session.seconds,
+              endedAt: Date.now(),
+            },
+          ],
+          active: s.active.map((q) => (q.id === task.id && rewarded ? { ...q, starterRewarded: true } : q)),
+        }
+      })
+      return rewarded
+    },
+    [apply],
+  )
+
+  const setPreferences = useCallback(
+    (patch: Pick<Partial<GameState>, 'dailyGoal' | 'gentle' | 'readable' | 'reducedMotion'>) => {
+      apply((s) => ({ ...s, ...patch, dailyGoal: dailyGoalOf({ ...s, ...patch }) }))
+    },
+    [apply],
+  )
+
+  const saveReview = useCallback(
+    (day: string, review: { win: string; obstacle: string; next: string }) => {
+      apply((s) => ({ ...s, reviews: { ...s.reviews, [day]: review } }))
+    },
+    [apply],
+  )
+
+  const returnToPool = useCallback(
+    (id: string) => {
+      apply((s) => {
+        const task = s.active.find((q) => q.id === id)
+        if (!task) return s
+        const { acceptedAt: _at, ...rest } = task
+        return { ...s, active: s.active.filter((q) => q.id !== id), pool: [rest, ...s.pool] }
+      })
     },
     [apply],
   )
@@ -771,7 +966,11 @@ export function useGame() {
   // 오늘의 일격 지정 (하루 1개). day를 넘기면 그 날짜용으로 예약
   const setStrike = useCallback(
     (id: string, day?: string) => {
-      apply((s) => ({ ...s, strike: { id, day: day ?? todayKey() } }))
+      apply((s) =>
+        day && day !== todayKey()
+          ? { ...s, tomorrowStrike: { id, day } }
+          : { ...s, strike: { id, day: todayKey() } },
+      )
     },
     [apply],
   )
@@ -817,6 +1016,9 @@ export function useGame() {
           Array.isArray(data.active) &&
           Array.isArray(data.done)
         if (!looksLikeSave) return false
+        lastSaved.current = localStorage.getItem(KEY)
+        storageBlocked.current = false
+        undoRef.current = null
         apply(() => migrate(sanitize(data)))
         return true
       } catch {
@@ -828,6 +1030,13 @@ export function useGame() {
 
   return {
     state,
+    storageWarning,
+    retrySave,
+    restoreBackup,
+    setPreferences,
+    saveReview,
+    returnToPool,
+    finishFocus,
     addTask,
     removeTask,
     updateTask,

@@ -1,4 +1,6 @@
 import { Component, ReactNode } from 'react'
+import { BACKUP_KEY, SAVE_KEY } from '../persistence'
+import { TIMER_KEY } from '../timer'
 
 interface Props {
   children: ReactNode
@@ -28,7 +30,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private resetSave = () => {
     if (!confirm('세이브를 지우고 처음부터 시작할까요? (보내기로 백업 권장)')) return
-    localStorage.removeItem('quest-do-save-v1')
+    localStorage.removeItem(SAVE_KEY)
+    localStorage.removeItem(BACKUP_KEY)
+    localStorage.removeItem(TIMER_KEY)
     location.reload()
   }
 

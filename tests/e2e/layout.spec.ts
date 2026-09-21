@@ -2,8 +2,10 @@ import { expect, test } from '@playwright/test'
 import { enterGame, poolTask } from './helpers'
 
 // 좁은 화면에서 글자가 세로로 쪼개지거나 가로 스크롤이 생기지 않아야 한다
-for (const width of [320, 390]) {
+for (const width of [320, 360, 390, 430]) {
   test(`${width}px 화면에서 레이아웃이 깨지지 않는다`, async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
     await page.setViewportSize({ width, height: 800 })
     await enterGame(page, {
       pool: [
@@ -45,5 +47,34 @@ for (const width of [320, 390]) {
 
     await page.locator('.tab', { hasText: '모험일지' }).click()
     await noOverflow('모험일지')
+    for (const name of ['통계', '수집']) {
+      await page.getByRole('button', { name, exact: true }).click()
+      await noOverflow(`모험일지 ${name}`)
+    }
+    await page.locator('.tab', { hasText: '수집함' }).click()
+    await page.screenshot({ path: `output/playwright/updated-pool-${width}.png`, animations: 'disabled' })
+    await page.locator('.settings-btn').click()
+    await page.getByLabel('읽기 편한 본문').check()
+    await page.getByLabel('움직임 줄이기').check()
+    await noOverflow('설정')
+    await page.screenshot({ path: `output/playwright/updated-settings-${width}.png`, animations: 'disabled' })
+    await page.keyboard.press('Escape')
+    await page.setViewportSize({ width, height: 520 })
+    await page
+      .getByPlaceholder('할 일 입력 → Enter로 계속 추가')
+      .fill('키보드가 열린 상태에서 입력하는 긴 한글 제목')
+    await noOverflow('키보드 높이의 입력 화면')
+    expect(errors).toEqual([])
   })
 }
+
+test('PC에서는 오늘과 수집함을 나란히 사용한다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await enterGame(page, { pool: [poolTask()], active: [] })
+  await expect(page.locator('.desktop-pool')).toBeVisible()
+  const columns = await page.locator('.workspace').evaluate((e) => getComputedStyle(e).gridTemplateColumns)
+  expect(columns.split(' ')).toHaveLength(2)
+  await page.getByRole('button', { name: '바로 시작', exact: true }).click()
+  await expect(page.locator('.quest-card')).toContainText('수집함 몹')
+  await page.screenshot({ path: 'output/playwright/updated-desktop.png', animations: 'disabled' })
+})

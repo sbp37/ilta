@@ -11,6 +11,235 @@
   --purple: #a86bff;
 }
 
+/* Daily work controls keep the existing pixel palette and assets. */
+[hidden] {
+  display: none !important;
+}
+button,
+input,
+select,
+textarea {
+  letter-spacing: 0;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+.desktop-pool {
+  display: none;
+}
+.workspace > *,
+.pool-item-body,
+.quest-title-wrap {
+  min-width: 0;
+}
+.quest-title,
+.strike-title,
+.reveal-title,
+.hero-name,
+.review-title {
+  overflow-wrap: anywhere;
+}
+.save-warning {
+  padding: 14px;
+  border-block: 2px solid var(--gold);
+  background: var(--panel);
+}
+.save-warning p {
+  margin-bottom: 10px;
+}
+.save-warning .row-actions {
+  flex-wrap: wrap;
+}
+.pool-filters {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.filter-row select,
+.preference-row input[type='number'] {
+  min-width: 0;
+  width: 100%;
+  min-height: 42px;
+  font: inherit;
+  font-size: 13px;
+  background: var(--panel);
+  color: var(--text);
+  border: 2px solid var(--ink);
+  padding: 6px;
+}
+.pool-start {
+  align-self: flex-end;
+  min-height: 40px;
+}
+.preferences {
+  margin-block: 14px;
+}
+.preference-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 46px;
+}
+.preference-row input[type='number'] {
+  width: 75px;
+}
+.preference-row input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--green);
+}
+.restore-confirm {
+  padding-block: 14px;
+  border-block: 1px solid var(--gold);
+}
+.restore-confirm .row-actions {
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.review-fields {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  margin-block: 16px;
+}
+.review-fields label {
+  display: grid;
+  gap: 6px;
+}
+.review-fields textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+.view-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--panel2);
+  margin-bottom: 18px;
+}
+.view-tabs button {
+  flex: 1;
+  min-height: 44px;
+  font: inherit;
+  background: transparent;
+  color: var(--dim);
+  border: 0;
+  cursor: pointer;
+}
+.view-tabs .selected {
+  color: var(--gold);
+  border-bottom: 3px solid var(--gold);
+}
+.journal-records p {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.focus-entry {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--panel2);
+}
+.focus-entry span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.focus-entry span:last-child {
+  flex-shrink: 0;
+  color: var(--green);
+}
+.timer-controls {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+.timer-minimize {
+  align-self: flex-end;
+}
+.timer-dock {
+  position: fixed;
+  bottom: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: min(450px, calc(100% - 24px));
+  padding: 12px;
+  border: 2px solid var(--green);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.timer-dock span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.timer-dock b {
+  flex-shrink: 0;
+  color: var(--green);
+}
+body:has(.timer-dock) .toast {
+  bottom: 130px;
+}
+.split-task {
+  color: var(--green);
+  background: transparent;
+  border: 0;
+  min-height: 40px;
+  font: inherit;
+  cursor: pointer;
+}
+.strike-button {
+  color: var(--gold);
+  flex-shrink: 0;
+}
+body[data-readable='true'] .content,
+body[data-readable='true'] .modal,
+body[data-readable='true'] .header {
+  font-family: system-ui, sans-serif;
+}
+body[data-readable='true'] .quest-meta,
+body[data-readable='true'] .dim,
+body[data-readable='true'] .hint {
+  font-size: 14px;
+}
+body[data-motion='reduced'] *,
+body[data-motion='reduced'] *::before,
+body[data-motion='reduced'] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+body[data-motion='reduced'] .levelup-flash {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .levelup-flash {
+    display: none;
+  }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -2547,5 +2776,125 @@ body[data-theme='sakura'] {
   to {
     transform: translate(var(--dx), var(--dy)) scale(0);
     opacity: 0;
+  }
+}
+
+.quest-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) 42px;
+  align-items: stretch;
+}
+.quest-actions .btn {
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 4px;
+  font-size: 13px;
+}
+.quest-actions .more-btn {
+  min-width: 42px;
+}
+.empty-slot {
+  color: #aeb4d1;
+  min-height: 52px;
+}
+.empty-scene + .empty-slot {
+  border-color: var(--green);
+  background: #163527;
+  color: #eafff2;
+}
+.hint {
+  color: #a0a7c4;
+}
+.quest-meta {
+  font-size: 13px;
+}
+.modal {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.modal-backdrop {
+  overflow-y: auto;
+}
+.btn,
+.icon-btn,
+.edit-link,
+.tab,
+.pool-act {
+  touch-action: manipulation;
+}
+.edit-link {
+  min-height: 36px;
+}
+.sub-item {
+  min-height: 42px;
+}
+.tab-bar {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 30;
+}
+.timer-dock {
+  bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+}
+.toast {
+  width: min(460px, calc(100% - 24px));
+  overflow-wrap: anywhere;
+}
+.review-summary {
+  padding-block: 12px;
+  border-block: 1px solid var(--panel2);
+}
+.shop-item {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.shop .quick-add-row {
+  flex-wrap: wrap;
+}
+.shop .quick-add-row > input:first-child {
+  flex-basis: 100%;
+}
+.shop .cost-input {
+  flex: 1;
+  max-width: none;
+}
+.journal-day {
+  margin-bottom: 14px;
+}
+.focus-entry {
+  margin-bottom: 10px;
+}
+@media (min-width: 1000px) {
+  .app {
+    max-width: 1040px;
+  }
+  .header {
+    max-width: 640px;
+    width: 100%;
+    align-self: center;
+  }
+  .content:not(.workspace) {
+    width: min(700px, 100%);
+    align-self: center;
+  }
+  .workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+    padding: 24px;
+  }
+  .desktop-pool {
+    display: block;
+    border-left: 1px solid var(--panel2);
+    padding-left: 24px;
+  }
+  .desktop-pool h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+    color: var(--gold);
+  }
+  .desktop-pool .form {
+    padding: 10px;
   }
 }

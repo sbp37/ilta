@@ -39,16 +39,12 @@ export function TitleScreen({
   )
 
   const start = () => {
-    if (needsName && !name.trim()) {
-      sfx.deny()
-      return
-    }
     sfx.levelup()
     if (!strikeSet && candidates.length > 0) {
       if (needsName) onStart(name.trim()) // 이름 먼저 저장
       setPhase('ritual')
     } else {
-      onStart(name.trim() || undefined)
+      onStart(name.trim() || '모험가')
     }
   }
 
@@ -103,7 +99,7 @@ export function TitleScreen({
             <div className="field-label center">용사의 이름을 알려주시오</div>
             <input
               className="text-input name-input"
-              placeholder="이름 입력"
+              placeholder="이름 입력 (선택)"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => {

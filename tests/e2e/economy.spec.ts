@@ -26,7 +26,15 @@ test('소모품을 사고 XP 포션을 쓰면 다음 처치 XP가 1.5배가 된�
 })
 
 test('진정의 향은 광폭한 몹만 진정시킨다', async ({ page }) => {
-  await enterGame(page, { pool: [poolTask({ retreats: 2, title: '광폭 몹' })], items: { calm: 1 } })
+  await enterGame(page, {
+    pool: [poolTask({ retreats: 2, title: '광폭 몹' })],
+    items: { calm: 1 },
+    gentle: false,
+  })
+  await page
+    .locator('.encounter-modal .btn-ghost')
+    .click({ timeout: 3500 })
+    .catch(() => {})
   await page.locator('.tab', { hasText: '수집함' }).click()
   await expect(page.locator('.pool-item.pool-enraged')).toHaveCount(1)
 
@@ -66,11 +74,6 @@ test('휴식일 부적은 빈 날이 생기면 자동으로 쓰여 연속 기록
   expect(await gold(page)).toBe(40)
 
   await page.reload()
-  await page.getByRole('button', { name: /모험 계속하기/ }).click()
-  await page
-    .getByRole('button', { name: '안 고르고 시작' })
-    .click({ timeout: 1500 })
-    .catch(() => {})
 
   await expect(toast(page)).toContainText('휴식일 부적')
   await expect(page.locator('.streak-badge')).toContainText('2일')
@@ -112,6 +115,7 @@ test('빨간 포션 5개가 모이면 XP 포션으로 바뀐다', async ({ page 
 test('모험일지 전리품 효과표가 전부 보인다', async ({ page }) => {
   await enterGame(page, { done: [doneDaysAgo(0)], loot: { potion: 2, gem: 1 } })
   await page.locator('.tab', { hasText: '모험일지' }).click()
+  await page.getByRole('button', { name: '수집', exact: true }).click()
   await expect(page.locator('.loot-effect-row')).toHaveCount(6)
   await expect(page.locator('.loot-effect-row').first()).toContainText('x2')
   await expect(page.locator('.loot-row-locked').first()).toContainText('미획득')
