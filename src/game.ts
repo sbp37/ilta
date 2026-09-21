@@ -152,9 +152,9 @@ export const DIFF: Record<Difficulty, { label: string; xp: number; sprite: strin
 
 // 난이도별 등장 몬스터 — 분류를 안 고르면 이 중에서 랜덤 배정
 export const MONSTERS: Record<Difficulty, string[]> = {
-  slime: ['slime', 'mushroom', 'ghost', 'blueslime', 'bat'],
-  elite: ['imp', 'skeleton', 'witch', 'ogre', 'gargoyle'],
-  boss: ['demon', 'dragon', 'lich', 'golem', 'mimic'],
+  slime: ['slime', 'mushroom', 'ghost', 'blueslime', 'bat', 'frog', 'sprout'],
+  elite: ['imp', 'skeleton', 'witch', 'ogre', 'gargoyle', 'orc', 'harpy'],
+  boss: ['demon', 'dragon', 'lich', 'golem', 'mimic', 'treant', 'kraken'],
 }
 
 // 할 일 분류 — 분류마다 전담 몬스터가 난이도별로 하나씩 있다.
@@ -224,6 +224,12 @@ export const MONSTER_NAMES: Record<string, string> = {
   lich: '리치',
   golem: '골렘',
   mimic: '미믹',
+  frog: '개구리',
+  sprout: '새싹 슬라임',
+  orc: '오크',
+  harpy: '하피',
+  treant: '트렌트',
+  kraken: '크라켄',
 }
 
 export const ALL_MONSTERS: string[] = [...MONSTERS.slime, ...MONSTERS.elite, ...MONSTERS.boss]
