@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { activeTask, doneDaysAgo, enterGame, gold, poolTask, toast } from './helpers'
+import { activeTask, doneDaysAgo, enterGame, gold, poolMore, poolTask, toast } from './helpers'
 
 test('분류를 고르면 전담 몬스터가 붙고 수집함에 분류가 보인다', async ({ page }) => {
   await enterGame(page)
@@ -23,6 +23,7 @@ test('반복 종류를 고르면 라벨이 바뀐다', async ({ page }) => {
   await enterGame(page, { pool: [poolTask()] })
   await page.locator('.tab', { hasText: '수집함' }).click()
 
+  await poolMore(page.locator('.pool-item'))
   await page.locator('.pool-act', { hasText: '수정' }).click()
   await page.locator('.edit-modal .chip', { hasText: '평일만' }).click()
   await page.locator('.edit-modal').getByRole('button', { name: '저장' }).click()
@@ -40,6 +41,7 @@ test('반복 몹은 처치 후 대기 상태로 리스폰되고 뽑기에서 빠
   await expect(item).toHaveCount(1)
   await expect(item.locator('.sleep-line')).toContainText('다시 나타남')
   // 잠든 몹은 일격으로 지정할 수 없다
+  await poolMore(item)
   await expect(item.locator('.pool-act', { hasText: '일격' })).toBeDisabled()
 
   // 뽑기에도 후보가 없다

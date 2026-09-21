@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test'
+import { Locator, Page, expect } from '@playwright/test'
 import type { GameState } from '../../src/game'
 
 export const DAY = 86400000
@@ -40,6 +40,13 @@ export async function enterGame(page: Page, save: Partial<GameState> = {}) {
 }
 
 export const toast = (page: Page) => page.locator('.toast')
+
+/** 수집함 항목의 ··· 더보기를 연다 — 액션 버튼이 접혀 있을 때만 토글한다. */
+export async function poolMore(item: Locator) {
+  if ((await item.locator('.pool-act').count()) === 0) {
+    await item.locator('.more-toggle').click()
+  }
+}
 
 export async function gold(page: Page): Promise<number> {
   const text = (await page.locator('.gold-display').textContent()) ?? ''

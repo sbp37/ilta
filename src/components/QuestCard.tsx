@@ -33,6 +33,7 @@ export function QuestCard({
   const [confirming, setConfirming] = useState(false)
   const [dying, setDying] = useState(false)
   const [subsOpen, setSubsOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const [subInput, setSubInput] = useState('')
   const confirmTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const subs = quest.subs ?? []
@@ -148,12 +149,6 @@ export function QuestCard({
           )}
         </div>
       )}
-      {subs.length === 0 && !subsOpen && (
-        <button className="sub-toggle" onClick={() => setSubsOpen(true)}>
-          + 잡몹으로 쪼개기 (큰 일을 작게 나누기)
-        </button>
-      )}
-
       <div className="quest-actions">
         <button className="btn btn-go" onClick={handleKill} disabled={dying}>
           처치 완료!
@@ -165,17 +160,40 @@ export function QuestCard({
         >
           전투
         </button>
-        <button className="btn btn-sub" onClick={() => onStarter(quest)} title="일단 5분만 해보기">
-          5분만
-        </button>
         <button
-          className={`btn ${confirming ? 'btn-danger' : 'btn-ghost'}`}
-          onClick={handleAbandon}
-          title="수집함으로 되돌리기 (도망 기록 남음)"
+          className={`btn btn-ghost more-btn ${moreOpen ? 'act-on' : ''}`}
+          onClick={() => setMoreOpen((o) => !o)}
+          title="더 많은 행동"
         >
-          {confirming ? '정말 도망?' : '후퇴'}
+          ···
         </button>
       </div>
+
+      {moreOpen && (
+        <div className="more-row">
+          <button className="btn btn-sub" onClick={() => onStarter(quest)} title="일단 5분만 해보기">
+            5분만
+          </button>
+          {subs.length === 0 && !subsOpen && (
+            <button
+              className="btn btn-sub"
+              onClick={() => {
+                setSubsOpen(true)
+                setMoreOpen(false)
+              }}
+            >
+              잡몹으로 쪼개기
+            </button>
+          )}
+          <button
+            className={`btn ${confirming ? 'btn-danger' : 'btn-ghost'}`}
+            onClick={handleAbandon}
+            title="수집함으로 되돌리기 (도망 기록 남음)"
+          >
+            {confirming ? '정말 도망?' : '후퇴'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

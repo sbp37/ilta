@@ -3,6 +3,7 @@ import { activeTask, enterGame, toast } from './helpers'
 
 test('타이머는 앱을 닫았다 열어도 이어서 흐른다', async ({ page }) => {
   await enterGame(page, { active: [activeTask()] })
+  await page.locator('.quest-card .more-btn').click()
   await page.locator('.quest-card').getByRole('button', { name: '5분만' }).click()
   await expect(page.locator('.timer-clock')).toContainText(/04:5\d/)
 
@@ -19,6 +20,7 @@ test('타이머는 앱을 닫았다 열어도 이어서 흐른다', async ({ pag
 
 test('화면 밖에서 시간이 다 가면 돌아올 때 정산된다', async ({ page }) => {
   await enterGame(page, { active: [activeTask()] })
+  await page.locator('.quest-card .more-btn').click()
   await page.locator('.quest-card').getByRole('button', { name: '5분만' }).click()
   await expect(page.locator('.timer-clock')).toBeVisible()
 
