@@ -91,7 +91,7 @@ export function DrawModal({
     : ''
 
   return (
-    <div className="modal-backdrop" onClick={phase !== 'rolling' ? onClose : undefined}>
+    <div className="modal-backdrop" onClick={blocked || phase !== 'rolling' ? onClose : undefined}>
       <div className="modal pixel-panel" onClick={(e) => e.stopPropagation()}>
         <div className="npc-row">
           <Pixel name="npc" size={3} className="bob" />
