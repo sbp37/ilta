@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { activeTask, doneDaysAgo, enterGame, gold, poolTask, toast } from './helpers'
+import { activeTask, doneDaysAgo, enterGame, gold, poolMore, poolTask, toast } from './helpers'
 
 test('소모품을 사고 XP 포션을 쓰면 다음 처치 XP가 1.5배가 된다', async ({ page }) => {
   // 크리티컬(15%)이 터지면 +15XP가 아니라 +23XP가 뜬다 — Math.random을 크리트 불가 값으로 고정
@@ -30,6 +30,7 @@ test('진정의 향은 광폭한 몹만 진정시킨다', async ({ page }) => {
   await page.locator('.tab', { hasText: '수집함' }).click()
   await expect(page.locator('.pool-item.pool-enraged')).toHaveCount(1)
 
+  await poolMore(page.locator('.pool-item.pool-enraged'))
   await page.locator('.act-calm').click()
   await expect(page.locator('.pool-item.pool-enraged')).toHaveCount(0)
   await expect(page.locator('.act-calm')).toHaveCount(0)
