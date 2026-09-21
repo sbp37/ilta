@@ -44,13 +44,10 @@ test('반복 몹은 처치 후 대기 상태로 리스폰되고 뽑기에서 빠
   await poolMore(item)
   await expect(item.locator('.pool-act', { hasText: '일격' })).toBeDisabled()
 
-  // 뽑기에도 후보가 없다
+  // 뽑기에도 후보가 없다 — 잠든 몹은 랜덤 뽑기에서 빠진다
   await page.locator('.tab', { hasText: '퀘스트' }).click()
   await page.locator('.draw-btn').click()
-  await page.locator('.modal').getByRole('button', { name: '퀘스트 뽑기!' }).click()
-  await expect(page.locator('.modal')).toContainText('조건에 맞는 퀘스트가 없어요')
-  await page.locator('.modal').getByRole('button', { name: '조건 무시하고 뽑기' }).click()
-  await expect(page.locator('.modal')).toContainText('조건에 맞는 퀘스트가 없어요')
+  await expect(page.locator('.modal')).toContainText('깨어있는 몬스터가 없어요')
 })
 
 test('업적을 달성하면 골드와 함께 알려준다', async ({ page }) => {

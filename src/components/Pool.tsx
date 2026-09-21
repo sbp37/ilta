@@ -4,13 +4,10 @@ import { sfx } from '../sound'
 import {
   CATEGORIES,
   CATEGORY_IDS,
-  COST_PRESETS,
   Category,
   DIFF,
   Difficulty,
   ENERGY_LABEL,
-  Energy,
-  MINUTE_OPTIONS,
   REPEAT_LABEL,
   Task,
   availableLabel,
@@ -48,12 +45,7 @@ export function Pool({
 }: Props) {
   const [title, setTitle] = useState('')
   const [difficulty, setDifficulty] = useState<Difficulty>('slime')
-  const [minutes, setMinutes] = useState<number>(15)
-  const [energy, setEnergy] = useState<Energy>('low')
-  const [due, setDue] = useState('')
-  const [cost, setCost] = useState('')
   const [category, setCategory] = useState<Category | undefined>(undefined)
-  const [detailOpen, setDetailOpen] = useState(false)
   const [moreId, setMoreId] = useState<string | null>(null)
 
   const submit = () => {
@@ -62,15 +54,7 @@ export function Pool({
       sfx.deny()
       return
     }
-    onAdd({
-      title: trimmed,
-      difficulty,
-      minutes,
-      energy,
-      due: due || undefined,
-      cost: cost || undefined,
-      category,
-    })
+    onAdd({ title: trimmed, difficulty, minutes: 15, energy: 'low', category })
     setTitle('')
     sfx.accept()
   }
@@ -111,74 +95,21 @@ export function Pool({
           ))}
         </div>
 
-        <button className="form-toggle" onClick={() => setDetailOpen((o) => !o)}>
-          {detailOpen ? '▲ 상세 설정 접기' : '▼ 상세 설정 (난이도·시간·에너지·마감)'}
-        </button>
-
-        {detailOpen && (
-          <div className="detail-fields">
-            <div className="field-label">난이도</div>
-            <div className="chip-row">
-              {(Object.keys(DIFF) as Difficulty[]).map((d) => (
-                <button
-                  key={d}
-                  className={`chip chip-diff ${difficulty === d ? 'chip-on' : ''}`}
-                  style={difficulty === d ? { borderColor: DIFF[d].color } : undefined}
-                  onClick={() => setDifficulty(d)}
-                >
-                  <Pixel name={DIFF[d].sprite} size={2} />
-                  {DIFF[d].label}
-                  <span className="dim">+{DIFF[d].xp}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="field-label">예상 시간</div>
-            <div className="chip-row">
-              {MINUTE_OPTIONS.map((m) => (
-                <button
-                  key={m}
-                  className={`chip ${minutes === m ? 'chip-on' : ''}`}
-                  onClick={() => setMinutes(m)}
-                >
-                  {m}분
-                </button>
-              ))}
-            </div>
-
-            <div className="field-label">필요한 에너지</div>
-            <div className="chip-row">
-              {(Object.keys(ENERGY_LABEL) as Energy[]).map((e) => (
-                <button
-                  key={e}
-                  className={`chip ${energy === e ? 'chip-on' : ''}`}
-                  onClick={() => setEnergy(e)}
-                >
-                  {ENERGY_LABEL[e]}
-                </button>
-              ))}
-            </div>
-
-            <div className="field-label">마감일 (선택)</div>
-            <input className="text-input" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
-
-            <div className="field-label">안 하면 생기는 일 (선택)</div>
-            <input
-              className="text-input"
-              placeholder="예: 야근 확정, 상사에게 혼남…"
-              value={cost}
-              onChange={(e) => setCost(e.target.value)}
-              maxLength={30}
-            />
-            <div className="chip-row preset-row">
-              {COST_PRESETS.map((c) => (
-                <button key={c} className={`chip ${cost === c ? 'chip-on' : ''}`} onClick={() => setCost(c)}>
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <div className="chip-row">
+          {(Object.keys(DIFF) as Difficulty[]).map((d) => (
+            <button
+              key={d}
+              className={`chip chip-diff ${difficulty === d ? 'chip-on' : ''}`}
+              style={difficulty === d ? { borderColor: DIFF[d].color } : undefined}
+              onClick={() => setDifficulty(d)}
+            >
+              <Pixel name={DIFF[d].sprite} size={2} />
+              {DIFF[d].label}
+              <span className="dim">+{DIFF[d].xp}</span>
+            </button>
+          ))}
+        </div>
+        <div className="hint">시간·에너지·마감은 넣은 뒤 수정에서 조정할 수 있어요</div>
       </div>
 
       <div className="pool-list">
