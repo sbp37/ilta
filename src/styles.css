@@ -2486,3 +2486,66 @@ body[data-theme='sakura'] {
   align-self: flex-start;
   margin-top: 2px;
 }
+
+/* 처치 연출: 몬스터가 하얗게 타들어가며 소멸 + 골드 파편 */
+.sprite-die {
+  animation: sprite-die 0.5s steps(5) forwards;
+}
+@keyframes sprite-die {
+  0% {
+    filter: brightness(1);
+  }
+  30% {
+    filter: brightness(3) saturate(0);
+    transform: scale(1.15);
+  }
+  100% {
+    filter: brightness(3) saturate(0);
+    transform: scale(0) translateY(6px);
+    opacity: 0;
+  }
+}
+
+.kill-p {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: var(--gold);
+  animation: kill-fly 0.45s steps(4) forwards;
+}
+.kill-p0 {
+  --dx: -46px;
+  --dy: -28px;
+}
+.kill-p1 {
+  --dx: 46px;
+  --dy: -30px;
+}
+.kill-p2 {
+  --dx: -34px;
+  --dy: 24px;
+}
+.kill-p3 {
+  --dx: 38px;
+  --dy: 26px;
+}
+.kill-p4 {
+  --dx: -8px;
+  --dy: -44px;
+  background: var(--text);
+}
+.kill-p5 {
+  --dx: 10px;
+  --dy: 40px;
+  background: var(--text);
+}
+@keyframes kill-fly {
+  from {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translate(var(--dx), var(--dy)) scale(0);
+    opacity: 0;
+  }
+}
