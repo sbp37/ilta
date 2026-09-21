@@ -133,19 +133,26 @@ function sanitizeTask(raw: unknown): Task | null {
 export function sanitize(raw: unknown): GameState {
   if (!raw || typeof raw !== 'object') return empty
   const s = raw as GameState
-  const tasks = (v: unknown) => (Array.isArray(v) ? v.map(sanitizeTask).filter((t): t is Task => !!t) : [])
+  // 파생 타입 필드(acceptedAt 등)는 sanitizeTask가 버리므로 원본에서 다시 읽는다
+  const tasks = (v: unknown): { t: Task; r: Record<string, unknown> }[] =>
+    Array.isArray(v)
+      ? v.flatMap((r) => {
+          const t = sanitizeTask(r)
+          return t && r && typeof r === 'object' ? [{ t, r: r as Record<string, unknown> }] : []
+        })
+      : []
   const out: GameState = {
     ...empty,
-    pool: tasks(s.pool),
-    active: tasks(s.active).map((t) => ({
+    pool: tasks(s.pool).map(({ t }) => t),
+    active: tasks(s.active).map(({ t, r }) => ({
       ...t,
-      acceptedAt: fin((t as ActiveQuest).acceptedAt, Date.now()),
+      acceptedAt: fin(r.acceptedAt, Date.now()),
     })),
-    done: tasks(s.done).map((t) => ({
+    done: tasks(s.done).map(({ t, r }) => ({
       ...t,
-      completedAt: fin((t as DoneQuest).completedAt, Date.now()),
-      xp: fin((t as DoneQuest).xp, 0),
-      lootId: typeof (t as DoneQuest).lootId === 'string' ? (t as DoneQuest).lootId : undefined,
+      completedAt: fin(r.completedAt, Date.now()),
+      xp: fin(r.xp, 0),
+      lootId: typeof r.lootId === 'string' ? r.lootId : undefined,
     })),
     xp: Math.max(0, fin(s.xp, 0)),
     gold: Math.max(0, fin(s.gold, 0)),
@@ -801,14 +808,14 @@ export function useGame() {
       try {
         const parsed = JSON.parse(text)
         const data = parsed?.data ?? parsed
-        // 세이브인지 최소 확인 — 아무 JSON이나 통과시키면 기존 데이터가 빈 상태로 덮어써진다
+        // 세이브는 세 태스크 배열이 항상 함께 있다 — 하나만 있어도 통과시키면
+        // 나머지가 빈 배열로 정제되면서 기존 데이터가 지워진다
         const looksLikeSave =
           data &&
           typeof data === 'object' &&
-          (Array.isArray(data.pool) ||
-            Array.isArray(data.active) ||
-            Array.isArray(data.done) ||
-            typeof data.version === 'number')
+          Array.isArray(data.pool) &&
+          Array.isArray(data.active) &&
+          Array.isArray(data.done)
         if (!looksLikeSave) return false
         apply(() => migrate(sanitize(data)))
         return true

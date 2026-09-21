@@ -415,9 +415,27 @@ export default function App() {
       clearAppBadge?: () => Promise<void>
     }
     if (!nav.setAppBadge) return
-    const left = Math.max(0, DAILY_GOAL - state.done.filter((d) => sameDay(d.completedAt, Date.now())).length)
-    if (left > 0) nav.setAppBadge(left).catch(() => {})
-    else nav.clearAppBadge?.().catch(() => {})
+    const update = () => {
+      const left = Math.max(
+        0,
+        DAILY_GOAL - state.done.filter((d) => sameDay(d.completedAt, Date.now())).length,
+      )
+      if (left > 0) nav.setAppBadge(left).catch(() => {})
+      else nav.clearAppBadge?.().catch(() => {})
+    }
+    update()
+    // 자정이 지나면 state.done이 안 바뀌어도 남은 수가 달라지므로 다음 자정에 다시 계산
+    let t: ReturnType<typeof setTimeout>
+    const arm = () => {
+      const n = new Date()
+      const midnight = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1)
+      t = setTimeout(() => {
+        update()
+        arm()
+      }, midnight.getTime() - Date.now())
+    }
+    arm()
+    return () => clearTimeout(t)
   }, [state.done])
 
   const goTab = (t: Tab) => {

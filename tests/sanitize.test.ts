@@ -83,6 +83,19 @@ describe('세이브 정제 (sanitize)', () => {
     expect(s.done[0].completedAt).toBeGreaterThan(0)
   })
 
+  it('acceptedAt/completedAt/xp/lootId는 정제를 통과해도 유지된다', () => {
+    const s = sanitize(
+      save({
+        active: [task({ acceptedAt: 111 })],
+        done: [task({ id: 't2', completedAt: 222, xp: 25, lootId: 'gem' })],
+      }),
+    )
+    expect(s.active[0].acceptedAt).toBe(111)
+    expect(s.done[0].completedAt).toBe(222)
+    expect(s.done[0].xp).toBe(25)
+    expect(s.done[0].lootId).toBe('gem')
+  })
+
   it('장비는 실제 id만 남긴다 — 로드 시 보유 장비가 사라지면 안 된다', () => {
     const s = sanitize(save({ gear: ['g_potion', 'nope'], equippedGear: ['g_boots', 'x'] }))
     expect(s.gear).toEqual(['g_potion'])
