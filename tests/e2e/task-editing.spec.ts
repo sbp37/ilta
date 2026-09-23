@@ -26,6 +26,7 @@ test('탭을 왕복해도 오늘·수집함의 입력 초안과 분류·난이�
   await page.getByLabel('새 할 일', { exact: true }).fill('오늘 입력 중')
   await page.locator('.tab', { hasText: '수집함' }).click()
   await page.getByPlaceholder('할 일 입력 → Enter로 계속 추가').fill('수집함 입력 중')
+  await page.locator('.entry-options summary').click()
   await page.getByRole('button', { name: '공부', exact: true }).click()
   await page.getByRole('button', { name: /보스 \+60/ }).click()
   await page.locator('.tab', { hasText: '퀘스트' }).click()
@@ -198,7 +199,7 @@ for (const width of [360, 390, 430, 1440]) {
       raid: { key: 'x', hp: 275, max: 300 },
     })
     const quest = await page.locator('.quest-card').boundingBox()
-    const raid = await page.locator('.raid-panel').boundingBox()
+    const raid = await page.locator('.raid-details summary').boundingBox()
     expect(quest!.y).toBeLessThan(raid!.y)
     await page.screenshot({ path: `output/playwright/88-board-${width}.png`, animations: 'disabled' })
     await page.locator('.quest-card .edit-link').click()

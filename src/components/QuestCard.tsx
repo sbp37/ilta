@@ -78,7 +78,7 @@ export function QuestCard({
   return (
     <div
       className={`quest-card ${mad ? 'quest-enraged' : ''} ${dying ? 'quest-dying' : ''}`}
-      style={{ borderLeftColor: mad || quest.difficulty === 'boss' ? '#9b4552' : diff.color }}
+      data-important={!!isStrike}
     >
       {dying && (
         <div className="kill-fx">
@@ -103,12 +103,8 @@ export function QuestCard({
             {quest.title}
           </div>
           <div className="quest-meta">
-            {quest.category && (
-              <span style={{ color: CATEGORIES[quest.category].color }}>
-                {CATEGORIES[quest.category].name}
-              </span>
-            )}
-            <span style={{ color: diff.color }}>{diff.label}</span>
+            {quest.category && <span>{CATEGORIES[quest.category].name}</span>}
+            <span>{diff.label}</span>
             <span>{quest.minutes}분</span>
             <span>{ENERGY_LABEL[quest.energy]}</span>
             {due && <span className={due.urgent ? 'due-urgent' : ''}>{due.text}</span>}

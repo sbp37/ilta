@@ -201,9 +201,6 @@ export function EditModal({ task, onSave, onClose, creating = false }: Props) {
               key={c}
               aria-pressed={category === c}
               className={`chip cat-chip ${category === c ? 'chip-on' : ''}`}
-              style={
-                category === c ? { borderColor: CATEGORIES[c].color, color: CATEGORIES[c].color } : undefined
-              }
               onClick={() => setCategory(category === c ? undefined : c)}
             >
               {CATEGORIES[c].name}
@@ -218,7 +215,6 @@ export function EditModal({ task, onSave, onClose, creating = false }: Props) {
               key={d}
               aria-pressed={difficulty === d}
               className={`chip chip-diff ${difficulty === d ? 'chip-on' : ''}`}
-              style={difficulty === d ? { borderColor: d === 'boss' ? '#9b4552' : DIFF[d].color } : undefined}
               onClick={() => setDifficulty(d)}
             >
               <Pixel name={DIFF[d].sprite} size={2} />

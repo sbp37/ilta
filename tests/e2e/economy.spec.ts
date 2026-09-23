@@ -10,6 +10,7 @@ test('소모품을 사고 XP 포션을 쓰면 다음 처치 XP가 1.5배가 된�
   })
   await enterGame(page, { active: [activeTask()], gold: 500 })
   await page.locator('.tab', { hasText: '상점' }).click()
+  await page.getByRole('button', { name: '소모품', exact: true }).click()
 
   const potion = page.locator('.freeze-card', { hasText: 'XP 포션' })
   await potion.locator('.btn-gold').click()
@@ -69,6 +70,7 @@ test('휴식일 부적은 빈 날이 생기면 자동으로 쓰여 연속 기록
   // achieved 를 미리 채워 업적 보상 골드가 계산에 섞이지 않게 한다
   await enterGame(page, { done: [doneDaysAgo(2)], gold: 100, achieved: ['first'] })
   await page.locator('.tab', { hasText: '상점' }).click()
+  await page.getByRole('button', { name: '소모품', exact: true }).click()
   await page.locator('.freeze-card', { hasText: '휴식일 부적' }).locator('.btn-gold').click()
   await expect(page.locator('.freeze-badge')).toContainText('1')
   expect(await gold(page)).toBe(40)
@@ -101,6 +103,7 @@ test('레벨이 오르면 골드와 해금을 알려주고 슬롯이 늘어난�
 test('잠긴 장비와 테마는 해금 레벨을 알려준다', async ({ page }) => {
   await enterGame(page, { gold: 500 })
   await page.locator('.tab', { hasText: '상점' }).click()
+  await page.getByRole('button', { name: '장비', exact: true }).click()
   await expect(page.locator('.gear-card.gear-locked')).toHaveCount(3)
 
   await page.locator('.settings-btn').click()

@@ -155,6 +155,32 @@ export function QuestBoard({
 
   return (
     <div className="board">
+      <div className="board-status">
+        <h2>오늘 할 일</h2>
+        <span aria-label="진행 중인 할 일">
+          {active.length}/{maxActive}
+        </span>
+      </div>
+      <div className="daily-goal">
+        <div className="goal-label">
+          <span>
+            오늘 {doneToday}/{goal} 완료
+            {goalDone && <span className="goal-done"> · 달성!{goalRewarded ? ' +20G' : ''}</span>}
+          </span>
+          <button className="pool-act" onClick={onOrganize}>
+            오늘 다시 고르기
+          </button>
+        </div>
+        <div className="xp-bar goal-bar">
+          <div
+            className={`xp-fill ${goalDone ? 'goal-fill-done' : ''}`}
+            style={{ width: `${Math.min(doneToday / goal, 1) * 100}%` }}
+          />
+        </div>
+        <div className="minimum-goal">
+          {doneToday >= minimumGoal ? '최소 목표 달성' : `최소 목표 ${doneToday}/${minimumGoal}`}
+        </div>
+      </div>
       {strikeTask && (
         <div className="pixel-panel strike-banner">
           <Pixel name={monsterOf(strikeTask)} size={3} className="bob" />
@@ -174,44 +200,9 @@ export function QuestBoard({
         </div>
       )}
 
-      <div className="pixel-panel daily-goal">
-        <div className="minimum-goal">
-          <span>{doneToday >= minimumGoal ? '최소 목표 달성' : `최소 목표 ${doneToday}/${minimumGoal}`}</span>
-          <button className="pool-act" onClick={onOrganize}>
-            오늘 다시 고르기
-          </button>
-        </div>
-        <div className="goal-label">
-          오늘의 목표
-          {goalDone ? (
-            <span className="goal-done">달성!{goalRewarded ? ' +20G' : ''}</span>
-          ) : (
-            <span className="dim">
-              {doneToday}/{goal} 처치
-            </span>
-          )}
-        </div>
-        <div className="xp-bar goal-bar">
-          <div
-            className={`xp-fill ${goalDone ? 'goal-fill-done' : ''}`}
-            style={{ width: `${Math.min(doneToday / goal, 1) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      <div className="board-status">
-        <h2>오늘 할 일</h2>
-        <span aria-label="진행 중인 할 일">
-          {active.length}/{maxActive}
-        </span>
-      </div>
       {active.length === 0 && (
         <div className="empty-scene">
-          <div className="camp-scene">
-            <Hero size={3} className="bob" palette={heroPal} equipped={equipped} variant={heroVariant} />
-            <Pixel name="campfire" size={4} className="flicker" />
-            <Pixel name="slime" size={3} className="bob delay1" />
-          </div>
+          <Hero size={2} palette={heroPal} equipped={equipped} variant={heroVariant} />
           <div className="dim">
             {doneToday > 0 ? '오늘도 한 걸음 나아갔어요.' : '오늘은 작은 일 하나부터.'}
           </div>
@@ -240,7 +231,7 @@ export function QuestBoard({
 
       {poolSize > 0 && (
         <button
-          className="btn btn-big btn-gold draw-btn"
+          className="btn btn-ghost draw-btn"
           onClick={() => {
             sfx.click()
             onDraw()
@@ -260,39 +251,47 @@ export function QuestBoard({
           const title = raid.title ?? chapter.title
           const reward = raid.reward ?? chapter.reward
           return (
-            <div className={`pixel-panel raid-panel ${final ? 'raid-final' : ''}`}>
-              <Pixel name={boss} size={3} className={raid.hp > 0 ? 'boss-glow' : ''} />
-              <div className="raid-body">
-                <div className="raid-label">
-                  {final ? '챕터 보스' : '주간 보스'} — {MONSTER_NAMES[boss]}
-                  <span className="dim">
-                    {' '}
-                    HP {raid.hp}/{raid.max}
-                  </span>
-                </div>
-                <div className="dim chapter-line">
-                  {carried
-                    ? '지난 챕터의 보스 — 잡을 때까지 남는다'
-                    : `챕터 ${chapter.index + 1} 「${chapter.name}」 · ${chapter.week}/4주차`}
-                </div>
-                <div className="xp-bar raid-bar">
-                  <div className="xp-fill raid-fill" style={{ width: `${(raid.hp / raid.max) * 100}%` }} />
-                </div>
-                {raid.hp === 0 ? (
-                  <div className="goal-done">
-                    {final ? `챕터 클리어! 칭호 「${title}」` : '이번 주 보스 처치 완료!'}
+            <details className={`raid-details ${final ? 'raid-final' : ''}`}>
+              <summary>
+                <span>
+                  {final ? '챕터 보스' : '주간 보스'} · {MONSTER_NAMES[boss]}
+                </span>
+                <span className="dim">{raid.hp === 0 ? '처치 완료' : `HP ${raid.hp}/${raid.max}`}</span>
+              </summary>
+              <div className="raid-panel">
+                <Pixel name={boss} size={2} />
+                <div className="raid-body">
+                  <div className="raid-label">
+                    {final ? '챕터 보스' : '주간 보스'} — {MONSTER_NAMES[boss]}
+                    <span className="dim">
+                      {' '}
+                      HP {raid.hp}/{raid.max}
+                    </span>
                   </div>
-                ) : (
-                  <div className="dim raid-hint">
-                    퀘스트 처치 XP만큼 데미지 — {carried ? '잡으면' : '이번 주 안에 잡으면'} +{reward}G
+                  <div className="dim chapter-line">
+                    {carried
+                      ? '지난 챕터의 보스 — 잡을 때까지 남는다'
+                      : `챕터 ${chapter.index + 1} 「${chapter.name}」 · ${chapter.week}/4주차`}
                   </div>
-                )}
+                  <div className="xp-bar raid-bar">
+                    <div className="xp-fill raid-fill" style={{ width: `${(raid.hp / raid.max) * 100}%` }} />
+                  </div>
+                  {raid.hp === 0 ? (
+                    <div className="goal-done">
+                      {final ? `챕터 클리어! 칭호 「${title}」` : '이번 주 보스 처치 완료!'}
+                    </div>
+                  ) : (
+                    <div className="dim raid-hint">
+                      퀘스트 처치 XP만큼 데미지 — {carried ? '잡으면' : '이번 주 안에 잡으면'} +{reward}G
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            </details>
           )
         })()}
 
-      <button className="btn btn-sub review-btn" onClick={onReview}>
+      <button className="btn btn-ghost review-btn" onClick={onReview}>
         🌙 하루 마무리 — 오늘의 전과 보기
       </button>
     </div>

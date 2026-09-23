@@ -609,7 +609,6 @@ export default function App() {
             showToast('오늘의 일격이 정해졌다! 이 몹만 잡아도 오늘은 승리')
           }}
         />
-        <div className="scanlines" />
       </div>
     )
   }
@@ -1050,7 +1049,6 @@ export default function App() {
         </div>
       )}
       {flash > 0 && <div key={flash} className="levelup-flash" />}
-      <div className="scanlines" />
     </div>
   )
 }

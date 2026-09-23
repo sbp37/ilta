@@ -46,20 +46,13 @@ export function Header({
       <div className="hero-col">
         <button className="hero-box hero-btn" title="눌러서 용사 꾸미기" onClick={onHeroClick}>
           <Hero
-            size={3}
+            size={2}
             palette={heroPalette(state)}
             equipped={equipped}
             variant={heroSprite(state.heroClass)}
             className="bob"
           />
         </button>
-        {displayLoot.length > 0 && (
-          <div className="equip-row" title="획득한 전리품이 장비가 됩니다">
-            {displayLoot.map((l) => (
-              <Pixel key={l.id} name={l.sprite} size={2} />
-            ))}
-          </div>
-        )}
       </div>
 
       <button
@@ -75,15 +68,8 @@ export function Header({
 
       <div className="hero-info">
         <div className="hero-name">
-          {state.heroName ?? '모험가'} <span className="hero-title">{titleOf(level)}</span>
-          {state.heroClass && <span className="class-badge">{CLASSES[state.heroClass].name}</span>}
+          {state.heroName ?? '모험가'}
           <span className="lv-badge">LV.{level}</span>
-          {streak >= 2 && <span className="streak-badge">🔥{streak}일</span>}
-          {freezes > 0 && (
-            <span className="freeze-badge" title="휴식일 부적 — 하루 빠져도 연속 기록 유지">
-              부적 {freezes}
-            </span>
-          )}
         </div>
         <div className="xp-bar" title={`${progress.cur}/${progress.need} XP`}>
           <div className="xp-fill" style={{ width: `${(progress.cur / progress.need) * 100}%` }} />
@@ -97,13 +83,32 @@ export function Header({
               포션 x{XP_BOOST_MULT}
             </span>
           )}
-          {combo > 0 ? (
-            <span className="combo">x{combo} 콤보!</span>
-          ) : (
-            <span className="dim">오늘의 첫 퀘스트를 노려보자</span>
-          )}
+          {combo > 0 && <span className="combo">x{combo} 콤보!</span>}
         </div>
       </div>
+      <details className="quiet-details hero-details">
+        <summary>모험 정보</summary>
+        <div className="hero-details-body">
+          <span>{titleOf(level)}</span>
+          {state.heroClass && <span>{CLASSES[state.heroClass].name}</span>}
+          <span>
+            {progress.cur}/{progress.need} XP
+          </span>
+          {streak >= 2 && <span className="streak-badge">연속 {streak}일</span>}
+          {freezes > 0 && (
+            <span className="freeze-badge" title="하루 빠져도 연속 기록 유지">
+              휴식일 부적 {freezes}
+            </span>
+          )}
+          {displayLoot.length > 0 && (
+            <div className="equip-row" title="획득한 전리품">
+              {displayLoot.map((l) => (
+                <Pixel key={l.id} name={l.sprite} size={1} />
+              ))}
+            </div>
+          )}
+        </div>
+      </details>
     </header>
   )
 }

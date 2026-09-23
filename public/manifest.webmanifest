@@ -4,8 +4,8 @@
   "description": "할 일이 퀘스트가 되는 곳. 몬스터를 처치하고 세상을 밝히자.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0d0e1a",
-  "theme_color": "#0d0e1a",
+  "background_color": "#17191b",
+  "theme_color": "#17191b",
   "icons": [
     {
       "src": "icon-192.png",

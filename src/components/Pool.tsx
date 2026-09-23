@@ -63,6 +63,7 @@ export function Pool({
   onDraft,
 }: Props) {
   const { title, difficulty, category } = draft
+  const [entryOptionsOpen, setEntryOptionsOpen] = useState(!!category || difficulty !== 'slime')
   const setTitle = (title: string) => onDraft({ ...draft, title })
   const setDifficulty = (difficulty: Difficulty) => onDraft({ ...draft, difficulty })
   const setCategory = (category: Category | undefined) => onDraft({ ...draft, category })
@@ -112,8 +113,11 @@ export function Pool({
 
   return (
     <div className="pool">
+      <div className="screen-heading">
+        <h2>수집함</h2>
+      </div>
       {!selecting && !archiveView && (
-        <div className="pixel-panel form">
+        <div className="form">
           <div className="quick-add-row">
             <input
               className="text-input"
@@ -131,52 +135,59 @@ export function Pool({
             </button>
           </div>
 
-          <div className="chip-row cat-row">
-            {CATEGORY_IDS.map((c) => (
-              <button
-                key={c}
-                aria-pressed={category === c}
-                className={`chip cat-chip ${category === c ? 'chip-on' : ''}`}
-                style={
-                  category === c
-                    ? { borderColor: CATEGORIES[c].color, color: CATEGORIES[c].color }
-                    : undefined
-                }
-                title={`${CATEGORIES[c].name} — 전담 몬스터가 정해져요`}
-                onClick={() => setCategory(category === c ? undefined : c)}
-              >
-                {CATEGORIES[c].name}
-              </button>
-            ))}
-          </div>
+          <div className="entry-tools">
+            <details
+              className="quiet-details entry-options"
+              open={entryOptionsOpen}
+              onToggle={(e) => setEntryOptionsOpen(e.currentTarget.open)}
+            >
+              <summary>
+                분류 · 난이도{' '}
+                <span className="dim">
+                  {category ? `${CATEGORIES[category].name} · ` : ''}
+                  {DIFF[difficulty].label}
+                </span>
+              </summary>
+              <div className="chip-row cat-row">
+                {CATEGORY_IDS.map((c) => (
+                  <button
+                    key={c}
+                    aria-pressed={category === c}
+                    className={`chip cat-chip ${category === c ? 'chip-on' : ''}`}
+                    title={`${CATEGORIES[c].name} — 전담 몬스터가 정해져요`}
+                    onClick={() => setCategory(category === c ? undefined : c)}
+                  >
+                    {CATEGORIES[c].name}
+                  </button>
+                ))}
+              </div>
 
-          <div className="chip-row">
-            {(Object.keys(DIFF) as Difficulty[]).map((d) => (
-              <button
-                key={d}
-                aria-pressed={difficulty === d}
-                className={`chip chip-diff ${difficulty === d ? 'chip-on' : ''}`}
-                style={
-                  difficulty === d ? { borderColor: d === 'boss' ? '#9b4552' : DIFF[d].color } : undefined
-                }
-                onClick={() => setDifficulty(d)}
-              >
-                <Pixel name={DIFF[d].sprite} size={2} />
-                {DIFF[d].label}
-                <span className="dim">+{DIFF[d].xp}</span>
-              </button>
-            ))}
+              <div className="chip-row">
+                {(Object.keys(DIFF) as Difficulty[]).map((d) => (
+                  <button
+                    key={d}
+                    aria-pressed={difficulty === d}
+                    className={`chip chip-diff ${difficulty === d ? 'chip-on' : ''}`}
+                    onClick={() => setDifficulty(d)}
+                  >
+                    <Pixel name={DIFF[d].sprite} size={2} />
+                    {DIFF[d].label}
+                    <span className="dim">+{DIFF[d].xp}</span>
+                  </button>
+                ))}
+              </div>
+            </details>
+            <button
+              className="btn btn-ghost detailed-add"
+              onClick={() => {
+                onCreate({ title: title.trim(), difficulty, minutes: 15, energy: 'low', category }, () =>
+                  setTitle(''),
+                )
+              }}
+            >
+              상세 입력
+            </button>
           </div>
-          <button
-            className="btn btn-ghost detailed-add"
-            onClick={() => {
-              onCreate({ title: title.trim(), difficulty, minutes: 15, energy: 'low', category }, () =>
-                setTitle(''),
-              )
-            }}
-          >
-            상세 입력
-          </button>
         </div>
       )}
 
@@ -219,32 +230,40 @@ export function Pool({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <div className="filter-row">
-            <select aria-label="일정 필터" value={view} onChange={(e) => setView(e.target.value)}>
-              <option value="all">전체 일정</option>
-              <option value="today">오늘·기한 지남</option>
-              <option value="scheduled">예정</option>
-              <option value="undated">미정</option>
-              <option value="repeat">반복</option>
-            </select>
-            <select
-              aria-label="분류 필터"
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-            >
-              <option value="all">모든 분류</option>
-              {CATEGORY_IDS.map((c) => (
-                <option key={c} value={c}>
-                  {CATEGORIES[c].name}
-                </option>
-              ))}
-            </select>
-            <select aria-label="정렬" value={sort} onChange={(e) => setSort(e.target.value)}>
-              <option value="manual">내 순서</option>
-              <option value="due">마감순</option>
-              <option value="new">최근 등록순</option>
-            </select>
-          </div>
+          <details className="quiet-details filter-options">
+            <summary>
+              필터 · 정렬
+              {(view !== 'all' || filterCategory !== 'all' || sort !== 'manual') && (
+                <span className="dim">적용 중</span>
+              )}
+            </summary>
+            <div className="filter-row">
+              <select aria-label="일정 필터" value={view} onChange={(e) => setView(e.target.value)}>
+                <option value="all">전체 일정</option>
+                <option value="today">오늘·기한 지남</option>
+                <option value="scheduled">예정</option>
+                <option value="undated">미정</option>
+                <option value="repeat">반복</option>
+              </select>
+              <select
+                aria-label="분류 필터"
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+              >
+                <option value="all">모든 분류</option>
+                {CATEGORY_IDS.map((c) => (
+                  <option key={c} value={c}>
+                    {CATEGORIES[c].name}
+                  </option>
+                ))}
+              </select>
+              <select aria-label="정렬" value={sort} onChange={(e) => setSort(e.target.value)}>
+                <option value="manual">내 순서</option>
+                <option value="due">마감순</option>
+                <option value="new">최근 등록순</option>
+              </select>
+            </div>
+          </details>
         </div>
         <div className="field-label">
           {archiveView ? '보관함' : '수집함'} ({visible.length}/{source.length})
@@ -409,12 +428,8 @@ export function Pool({
                     {t.title}
                   </div>
                   <div className="quest-meta">
-                    {t.category && (
-                      <span style={{ color: CATEGORIES[t.category].color }}>
-                        {CATEGORIES[t.category].name}
-                      </span>
-                    )}
-                    <span style={{ color: diff.color }}>{diff.label}</span>
+                    {t.category && <span>{CATEGORIES[t.category].name}</span>}
+                    <span>{diff.label}</span>
                     <span>{t.minutes}분</span>
                     <span>{ENERGY_LABEL[t.energy]}</span>
                     {due && <span className={due.urgent ? 'due-urgent' : ''}>{due.text}</span>}

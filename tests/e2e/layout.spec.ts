@@ -37,6 +37,11 @@ for (const width of [320, 360, 390, 430]) {
     await noOverflow('수집함')
 
     await page.locator('.tab', { hasText: '상점' }).click()
+    await expect(page.getByRole('region', { name: '내 보상', exact: true })).toBeVisible()
+    await expect(page.getByRole('region', { name: '장비', exact: true })).not.toBeVisible()
+    await page.getByRole('button', { name: '장비', exact: true }).click()
+    await noOverflow('상점 장비')
+    await page.getByRole('button', { name: '소모품', exact: true }).click()
     // 소모품 설명이 버튼에 밀려 0폭이 되지 않아야 한다
     const descWidth = await page
       .locator('.freeze-card .gear-desc')

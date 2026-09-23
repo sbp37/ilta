@@ -64,6 +64,7 @@ test('검색·분류·정렬 후 원하는 작업을 바로 시작한다', async
   })
   await page.locator('.tab', { hasText: '수집함' }).click()
   await page.getByRole('searchbox', { name: '할 일 검색' }).fill('보고서')
+  await page.locator('.filter-options summary').click()
   await page.getByLabel('분류 필터').selectOption('work')
   await page.getByLabel('정렬', { exact: true }).selectOption('due')
   await expect(page.locator('.pool-item')).toHaveCount(1)

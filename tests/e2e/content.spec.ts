@@ -6,6 +6,7 @@ test('분류를 고르면 전담 몬스터가 붙고 수집함에 분류가 보�
   await page.locator('.tab', { hasText: '수집함' }).click()
 
   await page.locator('.quick-add-row .text-input').fill('영어 단어 외우기')
+  await page.locator('.entry-options summary').click()
   await page.locator('.cat-chip', { hasText: '공부' }).click()
   await page.getByRole('button', { name: '넣기' }).click()
 
@@ -113,6 +114,9 @@ test('모험일지에 분류 통계와 챕터 진행이 보인다', async ({ pag
 
 test('퀘스트 탭 보스 패널에 챕터 정보가 보인다', async ({ page }) => {
   await enterGame(page, { raid: { key: 'x', hp: 100, max: 300 } })
+  await expect(page.locator('.raid-panel')).not.toBeVisible()
+  await page.locator('.raid-details summary').click()
+  await expect(page.locator('.raid-panel')).toBeVisible()
   await expect(page.locator('.raid-panel')).toContainText('챕터')
   await expect(page.locator('.chapter-line')).toContainText('주차')
 })

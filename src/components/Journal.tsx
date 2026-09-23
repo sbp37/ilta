@@ -80,6 +80,9 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
 
   return (
     <div className="journal">
+      <div className="screen-heading">
+        <h2>모험일지</h2>
+      </div>
       <nav className="view-tabs" aria-label="모험일지 보기">
         {(
           [
