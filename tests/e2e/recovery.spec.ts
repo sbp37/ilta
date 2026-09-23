@@ -2,7 +2,7 @@ import { expect, Page, test } from '@playwright/test'
 import { activeTask, enterGame, poolTask } from './helpers'
 
 async function openData(page: Page) {
-  await page.getByRole('button', { name: '⚙', exact: true }).click()
+  await page.getByRole('button', { name: '설정', exact: true }).click()
   await page.getByRole('button', { name: '저장·복구', exact: true }).click()
 }
 

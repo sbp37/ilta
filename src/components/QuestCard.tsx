@@ -163,17 +163,35 @@ export function QuestCard({
             </div>
           )}
           {subs.length < 8 && (
-            <input
-              className="text-input sub-input"
-              placeholder="+ 하위 잡몹 추가 후 Enter"
-              value={subInput}
-              maxLength={40}
-              onChange={(e) => setSubInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.nativeEvent.isComposing) return
-                if (e.key === 'Enter') submitSub()
+            <form
+              className="sub-add"
+              onSubmit={(e) => {
+                e.preventDefault()
+                submitSub()
               }}
-            />
+            >
+              <input
+                className="text-input sub-input"
+                placeholder="+ 하위 잡몹 추가 후 Enter"
+                value={subInput}
+                maxLength={40}
+                aria-label="하위 단계 추가"
+                enterKeyHint="done"
+                onChange={(e) => setSubInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.nativeEvent.isComposing) e.preventDefault()
+                }}
+              />
+              <button
+                className="icon-btn"
+                type="submit"
+                title="하위 단계 추가"
+                aria-label="하위 단계 추가"
+                disabled={!subInput.trim()}
+              >
+                +
+              </button>
+            </form>
           )}
         </div>
       )}

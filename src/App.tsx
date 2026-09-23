@@ -34,7 +34,8 @@ import { Pool } from './components/Pool'
 import { Journal } from './components/Journal'
 import { Shop } from './components/Shop'
 import { TimerOverlay } from './components/TimerOverlay'
-import { EditModal, TaskPatch } from './components/EditModal'
+import { EditModal } from './components/EditModal'
+import { TaskPatch } from './taskEditing'
 import { TIMER_KEY, TimerState, loadTimer, remaining } from './timer'
 import { downloadSave, lastVisit, recordVisit } from './persistence'
 import { useModalFocus } from './useModalFocus'
@@ -108,6 +109,12 @@ export default function App() {
     return !!at && Date.now() - at >= 3 * 86400000 && state.active.length + state.pool.length > 0
   })
   const [editing, setEditing] = useState<Task | null>(null)
+  const [creating, setCreating] = useState<{ task: Task; onCreated: () => void } | null>(null)
+  const [questDraft, setQuestDraft] = useState('')
+  const [poolDraft, setPoolDraft] = useState<Pick<Task, 'title' | 'difficulty' | 'category'>>({
+    title: '',
+    difficulty: 'slime',
+  })
   const [encounter, setEncounter] = useState<Task | null>(null)
   const [muted, setMuted] = useState(isMuted())
   const [installEvt, setInstallEvt] = useState<Event | null>(null)
@@ -223,10 +230,10 @@ export default function App() {
 
   const handleEditSave = useCallback(
     (id: string, patch: TaskPatch) => {
-      updateTask(id, patch)
-      showToast('수정했어요')
+      const actionId = updateTask(id, patch)
+      if (actionId) showToast('수정했어요', undoAction(actionId), 5000)
     },
-    [updateTask, showToast],
+    [updateTask, showToast, undoAction],
   )
 
   // 업적: 조건을 새로 만족하면 골드와 함께 알린다
@@ -539,6 +546,8 @@ export default function App() {
   const poolView = (
     <Pool
       pool={state.pool}
+      draft={poolDraft}
+      onDraft={setPoolDraft}
       archived={state.archived ?? []}
       onBulk={(ids, action) => {
         const id = bulkOrganize(ids, action)
@@ -551,6 +560,9 @@ export default function App() {
       strikeId={strikeSet ? state.strike!.id : undefined}
       enragedIds={enragedIds}
       onAdd={addTask}
+      onCreate={(draft, onCreated) =>
+        setCreating({ task: { ...draft, id: uid(), createdAt: Date.now() }, onCreated })
+      }
       onRemove={handleRemove}
       onEdit={setEditing}
       calmCount={itemCount(state, 'calm')}
@@ -608,6 +620,7 @@ export default function App() {
         <button
           className="mute-btn settings-btn"
           title="설정"
+          aria-label="설정"
           onClick={() => {
             sfx.click()
             setSettingsOpen(true)
@@ -619,6 +632,7 @@ export default function App() {
         <button
           className="mute-btn"
           title={muted ? '사운드 켜기' : '사운드 끄기'}
+          aria-label={muted ? '사운드 켜기' : '사운드 끄기'}
           onClick={() => {
             const m = toggleMute()
             setMuted(m)
@@ -698,6 +712,11 @@ export default function App() {
             onStarter={handleStarter}
             onFight={handleFight}
             onAbandon={(id) => {
+              if (timer?.questId === id && !timer.finished) {
+                const elapsed = timer.seconds - remaining(timer)
+                if (elapsed > 0) finishFocus({ ...timer, seconds: elapsed, starter: false })
+              }
+              setTimer((current) => (current?.questId === id ? null : current))
               if (state.gentle !== false) {
                 returnToPool(id)
                 showToast('진행 내용을 보관했어요. 준비되면 다시 시작해요')
@@ -711,6 +730,8 @@ export default function App() {
               )
             }}
             onQuickAdd={handleQuickAdd}
+            draft={questDraft}
+            onDraft={setQuestDraft}
             onAcceptStrike={(id) => {
               if (accept(id)) showToast('일격 퀘스트 수락! 오늘은 이것만 깨면 됩니다')
               else showToast('슬롯이 가득 찼습니다! 하나 먼저 처치하세요')
@@ -768,19 +789,35 @@ export default function App() {
         />
       )}
 
-      <nav className="tab-bar">
-        <button className={`tab ${tab === 'quest' ? 'tab-on' : ''}`} onClick={() => goTab('quest')}>
+      <nav className="tab-bar" aria-label="주 메뉴">
+        <button
+          aria-current={tab === 'quest' ? 'page' : undefined}
+          className={`tab ${tab === 'quest' ? 'tab-on' : ''}`}
+          onClick={() => goTab('quest')}
+        >
           퀘스트
           {state.active.length > 0 && <span className="tab-badge">{state.active.length}</span>}
         </button>
-        <button className={`tab ${tab === 'pool' ? 'tab-on' : ''}`} onClick={() => goTab('pool')}>
+        <button
+          aria-current={tab === 'pool' ? 'page' : undefined}
+          className={`tab ${tab === 'pool' ? 'tab-on' : ''}`}
+          onClick={() => goTab('pool')}
+        >
           수집함
           <span className="tab-badge">{state.pool.length}</span>
         </button>
-        <button className={`tab ${tab === 'shop' ? 'tab-on' : ''}`} onClick={() => goTab('shop')}>
+        <button
+          aria-current={tab === 'shop' ? 'page' : undefined}
+          className={`tab ${tab === 'shop' ? 'tab-on' : ''}`}
+          onClick={() => goTab('shop')}
+        >
           상점
         </button>
-        <button className={`tab ${tab === 'journal' ? 'tab-on' : ''}`} onClick={() => goTab('journal')}>
+        <button
+          aria-current={tab === 'journal' ? 'page' : undefined}
+          className={`tab ${tab === 'journal' ? 'tab-on' : ''}`}
+          onClick={() => goTab('journal')}
+        >
           모험일지
         </button>
       </nav>
@@ -944,6 +981,18 @@ export default function App() {
       )}
 
       {editing && <EditModal task={editing} onSave={handleEditSave} onClose={() => setEditing(null)} />}
+      {creating && (
+        <EditModal
+          creating
+          task={creating.task}
+          onClose={() => setCreating(null)}
+          onSave={(_id, patch) => {
+            addTask({ ...creating.task, ...patch })
+            creating.onCreated()
+            showToast('수집함에 추가했어요')
+          }}
+        />
+      )}
 
       {installEvt && (
         <div className="install-banner pixel-panel">

@@ -24,6 +24,7 @@ interface Props {
   strikeId?: string
   enragedIds: Set<string>
   onAdd: (t: Omit<Task, 'id' | 'createdAt'>) => void
+  onCreate: (t: Omit<Task, 'id' | 'createdAt'>, onCreated: () => void) => void
   onRemove: (id: string) => void
   onMove: (id: string, dir: -1 | 1) => void
   onToggleUrgent: (id: string) => void
@@ -35,6 +36,8 @@ interface Props {
   onAccept: (id: string) => void
   full: boolean
   gentle: boolean
+  draft: Pick<Task, 'title' | 'difficulty' | 'category'>
+  onDraft: (draft: Pick<Task, 'title' | 'difficulty' | 'category'>) => void
 }
 
 export function Pool({
@@ -44,6 +47,7 @@ export function Pool({
   strikeId,
   enragedIds,
   onAdd,
+  onCreate,
   onRemove,
   onMove,
   onToggleUrgent,
@@ -55,10 +59,13 @@ export function Pool({
   onAccept,
   full,
   gentle,
+  draft,
+  onDraft,
 }: Props) {
-  const [title, setTitle] = useState('')
-  const [difficulty, setDifficulty] = useState<Difficulty>('slime')
-  const [category, setCategory] = useState<Category | undefined>(undefined)
+  const { title, difficulty, category } = draft
+  const setTitle = (title: string) => onDraft({ ...draft, title })
+  const setDifficulty = (difficulty: Difficulty) => onDraft({ ...draft, difficulty })
+  const setCategory = (category: Category | undefined) => onDraft({ ...draft, category })
   const [moreId, setMoreId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [view, setView] = useState('all')
@@ -128,6 +135,7 @@ export function Pool({
             {CATEGORY_IDS.map((c) => (
               <button
                 key={c}
+                aria-pressed={category === c}
                 className={`chip cat-chip ${category === c ? 'chip-on' : ''}`}
                 style={
                   category === c
@@ -146,8 +154,11 @@ export function Pool({
             {(Object.keys(DIFF) as Difficulty[]).map((d) => (
               <button
                 key={d}
+                aria-pressed={difficulty === d}
                 className={`chip chip-diff ${difficulty === d ? 'chip-on' : ''}`}
-                style={difficulty === d ? { borderColor: DIFF[d].color } : undefined}
+                style={
+                  difficulty === d ? { borderColor: d === 'boss' ? '#9b4552' : DIFF[d].color } : undefined
+                }
                 onClick={() => setDifficulty(d)}
               >
                 <Pixel name={DIFF[d].sprite} size={2} />
@@ -156,7 +167,16 @@ export function Pool({
               </button>
             ))}
           </div>
-          <div className="hint">시간·에너지·마감은 넣은 뒤 수정에서 조정할 수 있어요</div>
+          <button
+            className="btn btn-ghost detailed-add"
+            onClick={() => {
+              onCreate({ title: title.trim(), difficulty, minutes: 15, energy: 'low', category }, () =>
+                setTitle(''),
+              )
+            }}
+          >
+            상세 입력
+          </button>
         </div>
       )}
 

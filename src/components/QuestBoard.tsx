@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Pixel } from '../Pixel'
 import { Hero } from './Hero'
 import { sfx } from '../sound'
@@ -26,6 +26,8 @@ interface Props {
   onFight: (quest: ActiveQuest) => void
   onAbandon: (id: string) => void
   onQuickAdd: (title: string) => void
+  draft: string
+  onDraft: (value: string) => void
   onAcceptStrike: (id: string) => void
   onAddSub: (id: string, title: string) => void
   onToggleSub: (id: string, subId: string) => void
@@ -37,9 +39,19 @@ interface Props {
   onReview: () => void
 }
 
-function EmptySlot({ onQuickAdd }: { onQuickAdd: (title: string) => void }) {
-  const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState('')
+function EmptySlot({
+  onQuickAdd,
+  full,
+  value,
+  onDraft: setValue,
+}: {
+  onQuickAdd: (title: string) => void
+  full: boolean
+  value: string
+  onDraft: (value: string) => void
+}) {
+  const [editing, setEditing] = useState(!!value)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   if (!editing) {
     return (
@@ -50,39 +62,57 @@ function EmptySlot({ onQuickAdd }: { onQuickAdd: (title: string) => void }) {
           setEditing(true)
         }}
       >
-        + 여기에 할 일 적기
+        {full ? '+ 수집함에 할 일 적기' : '+ 여기에 할 일 적기'}
       </button>
     )
   }
 
   return (
-    <div className="empty-slot editing">
+    <form
+      className="empty-slot editing"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!value.trim()) return
+        onQuickAdd(value.trim())
+        setValue('')
+        inputRef.current?.focus()
+      }}
+    >
       <input
         className="slot-input"
+        ref={inputRef}
         autoFocus
-        placeholder="할 일 입력 후 Enter (연속 등록 가능)"
+        placeholder={full ? '수집함에 보관할 일' : '오늘 할 일'}
+        aria-label="새 할 일"
+        enterKeyHint="done"
         value={value}
         maxLength={60}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
+          if (e.key === 'Enter' && e.nativeEvent.isComposing) e.preventDefault()
           if (e.nativeEvent.isComposing) return
-          if (e.key === 'Enter' && value.trim()) {
-            onQuickAdd(value.trim())
-            setValue('')
-          }
           if (e.key === 'Escape') {
             setValue('')
             setEditing(false)
           }
         }}
-        onBlur={() => {
-          // 다른 곳 눌러도 적어둔 내용은 버리지 않고 등록
-          if (value.trim()) onQuickAdd(value.trim())
-          setValue('')
-          setEditing(false)
-        }}
       />
-    </div>
+      <div className="slot-actions">
+        <button type="submit" className="btn btn-go" disabled={!value.trim()}>
+          {full ? '보관' : '추가'}
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => {
+            setValue('')
+            setEditing(false)
+          }}
+        >
+          취소
+        </button>
+      </div>
+    </form>
   )
 }
 
@@ -107,6 +137,8 @@ export function QuestBoard({
   onFight,
   onAbandon,
   onQuickAdd,
+  draft,
+  onDraft,
   onAcceptStrike,
   onAddSub,
   onToggleSub,
@@ -140,6 +172,83 @@ export function QuestBoard({
             )
           )}
         </div>
+      )}
+
+      <div className="pixel-panel daily-goal">
+        <div className="minimum-goal">
+          <span>{doneToday >= minimumGoal ? '최소 목표 달성' : `최소 목표 ${doneToday}/${minimumGoal}`}</span>
+          <button className="pool-act" onClick={onOrganize}>
+            오늘 다시 고르기
+          </button>
+        </div>
+        <div className="goal-label">
+          오늘의 목표
+          {goalDone ? (
+            <span className="goal-done">달성!{goalRewarded ? ' +20G' : ''}</span>
+          ) : (
+            <span className="dim">
+              {doneToday}/{goal} 처치
+            </span>
+          )}
+        </div>
+        <div className="xp-bar goal-bar">
+          <div
+            className={`xp-fill ${goalDone ? 'goal-fill-done' : ''}`}
+            style={{ width: `${Math.min(doneToday / goal, 1) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="board-status">
+        <h2>오늘 할 일</h2>
+        <span aria-label="진행 중인 할 일">
+          {active.length}/{maxActive}
+        </span>
+      </div>
+      {active.length === 0 && (
+        <div className="empty-scene">
+          <div className="camp-scene">
+            <Hero size={3} className="bob" palette={heroPal} equipped={equipped} variant={heroVariant} />
+            <Pixel name="campfire" size={4} className="flicker" />
+            <Pixel name="slime" size={3} className="bob delay1" />
+          </div>
+          <div className="dim">
+            {doneToday > 0 ? '오늘도 한 걸음 나아갔어요.' : '오늘은 작은 일 하나부터.'}
+          </div>
+        </div>
+      )}
+
+      {active.map((q) => (
+        <QuestCard
+          key={q.id}
+          quest={q}
+          gentle={gentle}
+          onSetStrike={onSetStrike}
+          isStrike={strikeTask?.id === q.id}
+          mad={enragedIds.has(q.id)}
+          onComplete={onComplete}
+          onStarter={onStarter}
+          onFight={onFight}
+          onAbandon={onAbandon}
+          onAddSub={onAddSub}
+          onToggleSub={onToggleSub}
+          onEdit={onEdit}
+        />
+      ))}
+
+      <EmptySlot onQuickAdd={onQuickAdd} full={emptySlots === 0} value={draft} onDraft={onDraft} />
+
+      {poolSize > 0 && (
+        <button
+          className="btn btn-big btn-gold draw-btn"
+          onClick={() => {
+            sfx.click()
+            onDraw()
+          }}
+        >
+          퀘스트 뽑기
+          <span className="draw-sub">수집함 {poolSize}개 중에서</span>
+        </button>
       )}
 
       {raid &&
@@ -182,79 +291,6 @@ export function QuestBoard({
             </div>
           )
         })()}
-
-      <div className="pixel-panel daily-goal">
-        <div className="minimum-goal">
-          <span>{doneToday >= minimumGoal ? '최소 목표 달성' : `최소 목표 ${doneToday}/${minimumGoal}`}</span>
-          <button className="pool-act" onClick={onOrganize}>
-            오늘 다시 고르기
-          </button>
-        </div>
-        <div className="goal-label">
-          오늘의 목표
-          {goalDone ? (
-            <span className="goal-done">달성!{goalRewarded ? ' +20G' : ''}</span>
-          ) : (
-            <span className="dim">
-              {doneToday}/{goal} 처치
-            </span>
-          )}
-        </div>
-        <div className="xp-bar goal-bar">
-          <div
-            className={`xp-fill ${goalDone ? 'goal-fill-done' : ''}`}
-            style={{ width: `${Math.min(doneToday / goal, 1) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      {active.length === 0 && (
-        <div className="empty-scene">
-          <div className="camp-scene">
-            <Hero size={3} className="bob" palette={heroPal} equipped={equipped} variant={heroVariant} />
-            <Pixel name="campfire" size={4} className="flicker" />
-            <Pixel name="slime" size={3} className="bob delay1" />
-          </div>
-          <div className="dim">
-            {doneToday > 0 ? '오늘도 한 걸음 나아갔어요.' : '오늘은 작은 일 하나부터.'}
-          </div>
-        </div>
-      )}
-
-      {active.map((q) => (
-        <QuestCard
-          key={q.id}
-          quest={q}
-          gentle={gentle}
-          onSetStrike={onSetStrike}
-          isStrike={strikeTask?.id === q.id}
-          mad={enragedIds.has(q.id)}
-          onComplete={onComplete}
-          onStarter={onStarter}
-          onFight={onFight}
-          onAbandon={onAbandon}
-          onAddSub={onAddSub}
-          onToggleSub={onToggleSub}
-          onEdit={onEdit}
-        />
-      ))}
-
-      {Array.from({ length: emptySlots }).map((_, i) => (
-        <EmptySlot key={`empty-${i}`} onQuickAdd={onQuickAdd} />
-      ))}
-
-      {poolSize > 0 && (
-        <button
-          className="btn btn-big btn-gold draw-btn"
-          onClick={() => {
-            sfx.click()
-            onDraw()
-          }}
-        >
-          퀘스트 뽑기
-          <span className="draw-sub">수집함 {poolSize}개 중에서</span>
-        </button>
-      )}
 
       <button className="btn btn-sub review-btn" onClick={onReview}>
         🌙 하루 마무리 — 오늘의 전과 보기

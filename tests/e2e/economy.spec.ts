@@ -83,13 +83,19 @@ test('휴식일 부적은 빈 날이 생기면 자동으로 쓰여 연속 기록
 test('레벨이 오르면 골드와 해금을 알려주고 슬롯이 늘어난다', async ({ page }) => {
   // 750XP = 7레벨, 잡몹 하나 더 잡으면 8레벨
   await enterGame(page, { active: [activeTask()], xp: 750 })
-  await expect(page.locator('.empty-slot')).toHaveCount(2) // 3슬롯 중 1개 사용
+  await expect(page.getByLabel('진행 중인 할 일')).toHaveText('1/3')
 
   await page.locator('.quest-card').getByRole('button', { name: '처치 완료!' }).click()
   await expect(toast(page)).toContainText('LEVEL UP! Lv.8')
   await expect(toast(page)).toContainText('+80G')
   await expect(toast(page)).toContainText('슬롯 4개')
-  await expect(page.locator('.empty-slot')).toHaveCount(4)
+  await expect(page.getByLabel('진행 중인 할 일')).toHaveText('0/4')
+  await page.getByRole('button', { name: '+ 여기에 할 일 적기' }).click()
+  for (let i = 1; i <= 4; i++) {
+    await page.getByLabel('새 할 일', { exact: true }).fill(`해금 슬롯 ${i}`)
+    await page.locator('.slot-input').press('Enter')
+  }
+  await expect(page.locator('.quest-card')).toHaveCount(4)
 })
 
 test('잠긴 장비와 테마는 해금 레벨을 알려준다', async ({ page }) => {

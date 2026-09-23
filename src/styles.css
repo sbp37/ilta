@@ -141,7 +141,8 @@ textarea {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
-textarea:focus-visible {
+textarea:focus-visible,
+summary:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 3px;
 }
@@ -572,6 +573,9 @@ body {
   border: 3px solid var(--ink);
   padding: 4px 7px;
   cursor: pointer;
+  color: var(--text);
+  min-width: 44px;
+  min-height: 44px;
 }
 
 /* ---------- title screen ---------- */
@@ -667,6 +671,20 @@ body {
 
 .daily-goal {
   padding: 10px 12px;
+}
+.board-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--dim);
+  font-size: 13px;
+}
+.board-status h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: normal;
 }
 
 .goal-label {
@@ -935,7 +953,6 @@ body {
 
 .due-urgent {
   color: var(--red);
-  animation: blink 0.7s steps(2) infinite;
 }
 
 .quest-actions {
@@ -1242,8 +1259,8 @@ body {
   font-size: 13px;
   color: var(--text);
   background: var(--panel2);
-  border: 3px solid var(--ink);
-  padding: 6px 10px;
+  border: 1px solid var(--ink);
+  padding: 8px 12px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -1330,7 +1347,9 @@ body {
 }
 
 .text-input:focus {
-  border-color: var(--green);
+  border-color: var(--ink);
+  outline: 2px solid var(--gold);
+  outline-offset: 0;
 }
 
 .form .btn-big {
@@ -2690,6 +2709,10 @@ body[data-theme='sakura'] {
   align-items: stretch;
   gap: 8px;
 }
+.pool-item.pool-enraged {
+  border-color: var(--ink);
+  border-left: 2px solid #9b4552;
+}
 .pool-item-main {
   display: flex;
   align-items: center;
@@ -3103,10 +3126,101 @@ body[data-theme='sakura'] {
   touch-action: manipulation;
 }
 .edit-link {
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px;
+}
+.quest-top .strike-button {
+  width: 44px;
+  height: 44px;
 }
 .sub-item {
-  min-height: 42px;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+}
+.sub-check {
+  flex-shrink: 0;
+}
+.empty-slot.editing {
+  display: grid;
+  gap: 8px;
+  border-width: 1px;
+}
+.slot-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.slot-actions .btn,
+.step-editor-row .icon-btn,
+.sub-add .icon-btn,
+.edit-modal .chip,
+.edit-footer .btn,
+.detailed-add {
+  min-height: 44px;
+}
+.step-editor {
+  display: grid;
+  gap: 8px;
+}
+.step-editor-row,
+.sub-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 8px;
+  align-items: center;
+}
+.step-editor-row .icon-btn,
+.sub-add .icon-btn {
+  width: 44px;
+  height: 44px;
+}
+.sub-add {
+  margin-top: 8px;
+}
+.sub-add .sub-input {
+  margin-top: 0;
+  min-height: 44px;
+}
+.step-editor-row .text-input,
+.slot-input {
+  min-width: 0;
+}
+.edit-modal .text-input,
+.pool .text-input,
+.sub-add .sub-input,
+.slot-input {
+  font-size: 16px;
+}
+.cost-settings {
+  margin-block: 12px;
+}
+.cost-settings summary {
+  min-height: 44px;
+  align-content: center;
+  cursor: pointer;
+  color: var(--dim);
+  font-size: 13px;
+}
+.edit-modal input[type='date'] {
+  color-scheme: dark;
+  min-width: 0;
+}
+.edit-footer {
+  position: sticky;
+  bottom: -16px;
+  background: var(--panel);
+  padding-block: 12px;
+  border-top: 1px solid var(--panel2);
+}
+.edit-error,
+.edit-discard {
+  padding: 10px;
+  border-left: 2px solid var(--gold);
+  background: var(--ink);
+  overflow-wrap: anywhere;
+}
+.edit-discard .row-actions {
+  flex-wrap: wrap;
 }
 .tab-bar {
   padding-bottom: env(safe-area-inset-bottom, 0px);

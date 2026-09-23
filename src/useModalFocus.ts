@@ -45,7 +45,7 @@ export function useModalFocus() {
       if (event.key !== 'Tab') return
       const items = [
         ...active.querySelectorAll<HTMLElement>(
-          'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]',
+          'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, a[href], [tabindex="0"]',
         ),
       ].filter((e) => e.getClientRects().length > 0 && e.tabIndex >= 0)
       event.preventDefault()

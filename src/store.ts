@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { TaskPatch, mergeSubtasks, validTaskDate } from './taskEditing'
 import { SPRITES } from './sprites'
 import { UndoChange, revertChange } from './undo'
 import { SAVE_KEY, checkpoint, isSave, preservePrevious, readSave } from './persistence'
@@ -450,7 +451,8 @@ export function useGame() {
   // 보스 레이드: 큰 몬스터를 잡몹으로 쪼개기 (수집함/슬롯 둘 다 가능)
   const addSub = useCallback(
     (id: string, title: string) => {
-      const sub = { id: uid(), title }
+      if (!title.trim()) return
+      const sub = { id: uid(), title: title.trim().slice(0, 40) }
       const attach = <T extends Task>(t: T): T =>
         t.id === id && (t.subs?.length ?? 0) < 8 ? { ...t, subs: [...(t.subs ?? []), sub] } : t
       apply((s) => ({ ...s, pool: s.pool.map(attach), active: s.active.map(attach) }))
@@ -458,7 +460,7 @@ export function useGame() {
     [apply],
   )
 
-  // 잡몹 하나 처치. 전부 처치하면 'cleared' (→ 보스 자동 사망)
+  // All steps checked is a milestone; the parent still needs explicit completion.
   const toggleSub = useCallback(
     (id: string, subId: string): 'sub' | 'cleared' | null => {
       let res: 'sub' | 'cleared' | null = null
@@ -494,15 +496,16 @@ export function useGame() {
 
   // 할 일 편집 — 수집함/슬롯 어디 있든. 난이도가 바뀌면 몬스터도 새로 배정
   const updateTask = useCallback(
-    (
-      id: string,
-      patch: Partial<
-        Pick<Task, 'title' | 'difficulty' | 'minutes' | 'energy' | 'due' | 'cost' | 'repeat' | 'category'>
-      >,
-    ) => {
+    (id: string, patch: TaskPatch) => {
+      if (patch.title !== undefined && !patch.title.trim()) return null
+      if (patch.due !== undefined && !validTaskDate(patch.due)) return null
+      const actionId = uid()
+      let changed = false
       const patchTask = <T extends Task>(t: T): T => {
-        const next = { ...t, ...patch }
         if (t.id !== id) return t
+        const next = { ...t, ...patch }
+        if (patch.title !== undefined) next.title = patch.title.trim()
+        if (patch.subs) next.subs = mergeSubtasks(t.subs ?? [], patch.subs)
         const diffChanged = patch.difficulty !== undefined && patch.difficulty !== t.difficulty
         const catChanged = 'category' in patch && patch.category !== t.category
         if (diffChanged || catChanged) next.monster = monsterFor(next.difficulty, next.category)
@@ -519,7 +522,14 @@ export function useGame() {
         }
         return next
       }
-      apply((s) => ({ ...s, pool: s.pool.map(patchTask), active: s.active.map(patchTask) }))
+      apply((s) => {
+        if (![...s.pool, ...s.active].some((task) => task.id === id)) return s
+        const next = { ...s, pool: s.pool.map(patchTask), active: s.active.map(patchTask) }
+        changed = true
+        undoRef.current = { id: actionId, before: s, after: next }
+        return next
+      })
+      return changed ? actionId : null
     },
     [apply],
   )
