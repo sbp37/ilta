@@ -202,7 +202,11 @@ export function QuestBoard({
 
       {active.length === 0 && (
         <div className="empty-scene">
-          <Hero size={2} palette={heroPal} equipped={equipped} variant={heroVariant} />
+          <div className="camp-scene">
+            <Hero size={3} palette={heroPal} equipped={equipped} variant={heroVariant} />
+            <Pixel name="campfire" size={3} className="flicker" />
+            <Pixel name="slime" size={2} className="bob" />
+          </div>
           <div className="dim">
             {doneToday > 0 ? '오늘도 한 걸음 나아갔어요.' : '오늘은 작은 일 하나부터.'}
           </div>
@@ -253,6 +257,7 @@ export function QuestBoard({
           return (
             <details className={`raid-details ${final ? 'raid-final' : ''}`}>
               <summary>
+                <Pixel name={boss} size={1} />
                 <span>
                   {final ? '챕터 보스' : '주간 보스'} · {MONSTER_NAMES[boss]}
                 </span>

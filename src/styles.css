@@ -1,15 +1,16 @@
 :root {
-  --bg: #17191b;
-  --panel: #202325;
-  --panel2: #2a2e30;
-  --ink: #141618;
-  --text: #edf0eb;
-  --dim: #a1aaa5;
-  --line: #383e3b;
-  --green: #a9c6af;
-  --gold: #d4bc82;
-  --red: #d49a96;
-  --purple: #b8abc9;
+  --bg: #19191f;
+  --panel: #252630;
+  --panel2: #31333f;
+  --ink: #121318;
+  --text: #f1f0e9;
+  --dim: #acadb9;
+  --line: #494b59;
+  --green: #8fc89d;
+  --gold: #e3c265;
+  --red: #d99a9a;
+  --purple: #b7a4ce;
+  --bevel: inset 1px 1px 0 #ffffff14, inset -1px -1px 0 #00000045;
 }
 
 /* Daily work controls keep the existing pixel palette and assets. */
@@ -561,8 +562,11 @@ body {
   right: 14px;
   top: 12px;
   font-size: 15px;
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--panel2);
+  border: 2px solid var(--line);
+  box-shadow:
+    var(--bevel),
+    0 2px 0 var(--ink);
   padding: 4px 7px;
   cursor: pointer;
   color: var(--text);
@@ -723,7 +727,8 @@ body {
 .pixel-panel {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 0;
+  box-shadow: var(--bevel);
 }
 
 .btn {
@@ -731,8 +736,11 @@ body {
   font-size: 14px;
   color: var(--text);
   background: var(--panel2);
-  border: 1px solid var(--line);
-  border-radius: 4px;
+  border: 2px solid var(--line);
+  border-radius: 0;
+  box-shadow:
+    var(--bevel),
+    0 2px 0 var(--ink);
   min-height: 44px;
   padding: 8px 12px;
   cursor: pointer;
@@ -745,6 +753,7 @@ body {
 
 .btn:active {
   transform: translateY(1px);
+  box-shadow: inset 1px 1px 0 #00000040;
 }
 
 .btn:disabled {
@@ -754,23 +763,23 @@ body {
 }
 
 .btn-go {
-  background: #bed0c2;
-  border-color: #bed0c2;
-  color: #18271d;
+  background: #375f46;
+  border-color: #749a7b;
+  color: #f0fff3;
 }
 
 .btn-sub {
-  background: var(--panel2);
+  background: #35384d;
 }
 
 .btn-ghost {
-  background: transparent;
-  color: var(--dim);
+  background: var(--panel);
+  color: var(--text);
 }
 
 .btn-gold {
-  background: var(--panel2);
-  color: var(--text);
+  background: #423e30;
+  color: #ead698;
 }
 
 .btn-big {
@@ -790,8 +799,9 @@ body {
 }
 
 .hero-box {
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  box-shadow: var(--bevel);
   padding: 6px;
 }
 
@@ -809,22 +819,23 @@ body {
 .lv-badge {
   font-family: 'Press Start 2P', monospace;
   font-size: 10px;
-  color: var(--dim);
+  color: var(--gold);
   background: transparent;
   padding: 3px 6px;
 }
 
 .xp-bar {
-  height: 4px;
-  background: var(--line);
-  border: 0;
-  border-radius: 2px;
+  height: 8px;
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 0;
   overflow: hidden;
 }
 
 .xp-fill {
   height: 100%;
-  background: #849d89;
+  background: var(--green);
+  box-shadow: inset 0 -2px 0 #00000025;
   transition: width 0.3s steps(8);
 }
 
@@ -841,8 +852,9 @@ body {
 }
 
 .pet-box {
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  box-shadow: var(--bevel);
   padding: 6px 8px;
   display: flex;
   flex-direction: column;
@@ -914,7 +926,8 @@ body {
 .quest-card {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 0;
+  box-shadow: var(--bevel);
   padding: 14px;
   animation: pop-in 0.18s steps(3);
 }
@@ -1143,7 +1156,9 @@ body {
 
 .empty-slot {
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 0;
+  background: var(--panel);
+  box-shadow: var(--bevel);
   color: var(--dim);
   text-align: center;
   padding: 14px;
@@ -1252,7 +1267,8 @@ body {
   color: var(--text);
   background: transparent;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 0;
+  box-shadow: var(--bevel);
   padding: 8px 12px;
   cursor: pointer;
   display: inline-flex;
@@ -1440,10 +1456,11 @@ body {
   font-size: 13px;
   width: 30px;
   height: 30px;
-  background: transparent;
+  background: var(--panel2);
   color: var(--dim);
-  border: 1px solid transparent;
-  border-radius: 4px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: var(--bevel);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -1654,6 +1671,8 @@ body {
   background: var(--bg);
   position: sticky;
   bottom: 0;
+  gap: 4px;
+  padding: 6px;
 }
 
 .tab {
@@ -1661,30 +1680,48 @@ body {
   font-family: inherit;
   font-size: 14px;
   color: var(--dim);
-  background: transparent;
-  border: none;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  box-shadow:
+    var(--bevel),
+    0 2px 0 var(--ink);
   min-height: 56px;
-  padding: 12px 4px;
+  padding: 6px 2px;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+.tab-icon {
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
 }
-
-.tab:last-child {
-  border-right: none;
+.tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+  font-size: 12px;
 }
 
 .tab-on {
-  color: var(--text);
-  box-shadow: inset 0 2px 0 0 var(--green);
+  color: var(--gold);
+  background: #37373d;
+  border-color: #a39160;
+  box-shadow:
+    inset 0 2px 0 var(--gold),
+    var(--bevel);
 }
 
 .tab-badge {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--dim);
-  padding: 1px 5px;
+  padding: 0 2px;
 }
 
 .toast {
@@ -3070,9 +3107,9 @@ body[data-theme='sakura'] {
   min-height: 52px;
 }
 .empty-scene + .empty-slot {
-  border-color: #bed0c2;
-  background: #bed0c2;
-  color: #18271d;
+  border-color: #749a7b;
+  background: #375f46;
+  color: #f0fff3;
 }
 .hint {
   color: #a0a7c4;
@@ -3193,11 +3230,11 @@ body[data-theme='sakura'] {
   flex-wrap: wrap;
 }
 .tab-bar {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
   z-index: 30;
 }
 .timer-dock {
-  bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 .toast {
   width: min(460px, calc(100% - 24px));
@@ -3228,10 +3265,10 @@ body[data-theme='sakura'] {
   margin-bottom: 10px;
 }
 
-/* Work stays prominent; supporting game information uses quiet disclosure rows. */
+/* Keep the task hierarchy while giving interactive controls a pixel-game shape. */
 .header {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 44px;
+  grid-template-columns: 58px minmax(0, 1fr) 52px;
   gap: 6px 12px;
   margin-bottom: 20px;
   padding: 8px 20px 12px;
@@ -3260,7 +3297,9 @@ body[data-theme='sakura'] {
   min-height: 44px;
 }
 .hero-btn {
-  min-height: 44px;
+  min-height: 64px;
+  display: grid;
+  place-items: center;
 }
 .hero-details {
   grid-column: 1 / -1;
@@ -3281,9 +3320,13 @@ body[data-theme='sakura'] {
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  color: var(--dim);
+  color: var(--text);
   font-size: 13px;
   list-style: none;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--bevel);
+  padding: 8px 10px;
 }
 .hero-details-body .streak-badge,
 .hero-details-body .freeze-badge {
@@ -3302,13 +3345,20 @@ body[data-theme='sakura'] {
   content: '+';
   margin-left: auto;
   flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--line);
+  color: var(--gold);
+  line-height: 1;
 }
 .quiet-details[open] > summary::after,
 .raid-details[open] > summary::after {
   content: '−';
 }
 .hero-details > summary {
-  min-height: 32px;
+  min-height: 44px;
   font-size: 12px;
 }
 .content {
@@ -3332,9 +3382,10 @@ body[data-theme='sakura'] {
 }
 .daily-goal .pool-act {
   min-height: 44px;
-  padding: 4px 0 4px 8px;
-  border: 0;
-  background: transparent;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  box-shadow: var(--bevel);
 }
 .daily-goal .minimum-goal {
   margin: 8px 0 0;
@@ -3342,25 +3393,26 @@ body[data-theme='sakura'] {
   font-size: 12px;
 }
 .goal-bar {
-  height: 3px;
+  height: 6px;
 }
 .quest-card[data-important='true'] {
   border-left: 2px solid var(--gold);
 }
 .quest-actions .btn-sub,
 .quest-actions .btn-ghost {
-  background: transparent;
-  border-color: transparent;
-  color: var(--dim);
+  background: var(--panel2);
+  border-color: var(--line);
+  color: var(--text);
 }
 .edit-link,
 .pool-act {
   border: 1px solid var(--line);
-  border-radius: 4px;
-  background: transparent;
+  border-radius: 0;
+  background: var(--panel2);
+  box-shadow: var(--bevel);
 }
 .edit-link {
-  border-color: transparent;
+  color: var(--text);
 }
 .strike-button,
 .split-task {
@@ -3382,12 +3434,15 @@ body[data-theme='sakura'] {
   background: transparent;
 }
 .raid-details {
-  border-top: 1px solid var(--line);
+  border: 0;
   margin-top: 8px;
 }
 .raid-details > summary {
   flex-wrap: wrap;
   padding-block: 12px;
+}
+.raid-details > summary > .pixel-sprite {
+  flex-shrink: 0;
 }
 .raid-details > summary > .dim {
   font-size: 11px;
@@ -3404,8 +3459,15 @@ body[data-theme='sakura'] {
 .review-btn {
   margin: 0;
   font-size: 13px;
-  border-color: transparent;
-  padding: 10px 0;
+  border-color: var(--line);
+  padding: 10px;
+}
+.draw-btn {
+  background: #423e30;
+  color: var(--gold);
+}
+.review-btn {
+  background: #35384d;
 }
 .entry-options .chip-row {
   margin-block: 8px;
@@ -3414,19 +3476,22 @@ body[data-theme='sakura'] {
   position: relative;
 }
 .entry-tools .entry-options > summary {
-  padding-right: 92px;
+  margin-right: 92px;
+  padding: 8px;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 .entry-tools .detailed-add {
   position: absolute;
   top: 0;
   right: 0;
+  width: 84px;
 }
 .entry-options .chip-diff {
   padding: 8px;
 }
 .detailed-add {
-  border: 0;
-  padding-left: 0;
+  padding-inline: 8px;
   font-size: 13px;
 }
 .filter-options .filter-row {
@@ -3434,8 +3499,23 @@ body[data-theme='sakura'] {
 }
 .view-tabs .selected,
 .organize-toolbar .view-tabs [aria-selected='true'] {
-  color: var(--text);
-  border-bottom-color: var(--green);
+  color: var(--gold);
+  background: #37373d;
+  border-color: #a39160;
+  box-shadow:
+    inset 0 -2px 0 var(--gold),
+    var(--bevel);
+}
+.view-tabs {
+  border: 0;
+  gap: 4px;
+}
+.view-tabs button {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  box-shadow: var(--bevel);
+  padding-inline: 6px;
+  min-width: 0;
 }
 .shop-section {
   display: flex;
@@ -3456,13 +3536,19 @@ body[data-theme='sakura'] {
   padding-inline: 0;
 }
 .shopkeeper .bubble {
-  border: 0;
-  background: transparent;
-  color: var(--dim);
-  padding: 0;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  padding: 10px 12px;
+  box-shadow: var(--bevel);
 }
 .shopkeeper .bubble::before {
-  display: none;
+  display: block;
+  border-width: 1px;
+  border-color: var(--line);
+  background: var(--panel);
+  left: -5px;
+  transform: rotate(45deg);
 }
 .stat-num,
 .stat-num.boss-num,
@@ -3530,6 +3616,33 @@ body[data-theme='sakura'] {
 }
 .logo-kr {
   color: var(--dim);
+}
+.game-title,
+.logo-main {
+  text-shadow: 2px 2px 0 var(--ink);
+}
+.camp-scene {
+  min-height: 58px;
+  padding: 0 18px 8px;
+  border-bottom: 2px solid #50513c;
+}
+.camp-scene .bob {
+  animation: bob 2.4s steps(2) infinite;
+}
+.camp-scene .flicker {
+  animation: flicker 2s steps(2) infinite;
+}
+.board > .empty-scene {
+  padding-block: 18px;
+}
+.quiet-details > summary:hover,
+.raid-details > summary:hover,
+.tab:hover,
+.view-tabs button:hover {
+  filter: brightness(1.12);
+}
+.toast {
+  bottom: calc(82px + env(safe-area-inset-bottom, 0px));
 }
 
 @media (min-width: 1000px) {

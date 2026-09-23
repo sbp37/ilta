@@ -175,7 +175,7 @@ export function Shop({
       </nav>
       <section className="shop-section" hidden={view !== 'rewards'} aria-label="내 보상">
         <div className="pixel-panel shopkeeper">
-          <Pixel name="npc" size={2} />
+          <Pixel name="npc" size={3} />
           <div className="bubble">{line}</div>
         </div>
 

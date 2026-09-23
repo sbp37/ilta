@@ -46,7 +46,7 @@ export function Header({
       <div className="hero-col">
         <button className="hero-box hero-btn" title="눌러서 용사 꾸미기" onClick={onHeroClick}>
           <Hero
-            size={2}
+            size={3}
             palette={heroPalette(state)}
             equipped={equipped}
             variant={heroSprite(state.heroClass)}

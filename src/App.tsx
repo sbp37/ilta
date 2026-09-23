@@ -794,30 +794,46 @@ export default function App() {
           className={`tab ${tab === 'quest' ? 'tab-on' : ''}`}
           onClick={() => goTab('quest')}
         >
-          퀘스트
-          {state.active.length > 0 && <span className="tab-badge">{state.active.length}</span>}
+          <span className="tab-icon">
+            <Pixel name="sword" size={2} />
+          </span>
+          <span className="tab-label">
+            퀘스트
+            {state.active.length > 0 && <span className="tab-badge">{state.active.length}</span>}
+          </span>
         </button>
         <button
           aria-current={tab === 'pool' ? 'page' : undefined}
           className={`tab ${tab === 'pool' ? 'tab-on' : ''}`}
           onClick={() => goTab('pool')}
         >
-          수집함
-          <span className="tab-badge">{state.pool.length}</span>
+          <span className="tab-icon">
+            <Pixel name="chest" size={2} />
+          </span>
+          <span className="tab-label">
+            수집함
+            <span className="tab-badge">{state.pool.length}</span>
+          </span>
         </button>
         <button
           aria-current={tab === 'shop' ? 'page' : undefined}
           className={`tab ${tab === 'shop' ? 'tab-on' : ''}`}
           onClick={() => goTab('shop')}
         >
-          상점
+          <span className="tab-icon">
+            <Pixel name="coin" size={2} />
+          </span>
+          <span className="tab-label">상점</span>
         </button>
         <button
           aria-current={tab === 'journal' ? 'page' : undefined}
           className={`tab ${tab === 'journal' ? 'tab-on' : ''}`}
           onClick={() => goTab('journal')}
         >
-          모험일지
+          <span className="tab-icon">
+            <Pixel name="ticket" size={2} />
+          </span>
+          <span className="tab-label">모험일지</span>
         </button>
       </nav>
 
