@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { SPRITES } from './sprites'
 import { UndoChange, revertChange } from './undo'
-import { BACKUP_KEY, SAVE_KEY, isSave, readSave } from './persistence'
+import { SAVE_KEY, checkpoint, isSave, preservePrevious, readSave } from './persistence'
 import { BulkAction, PlanChoice, applyReturnPlan, organizeTasks } from './organization'
 import {
   Achievement,
@@ -253,6 +253,33 @@ export function sanitize(raw: unknown): GameState {
   return out
 }
 
+export type SaveInspection =
+  { ok: true; state: GameState; raw: string; omittedTasks: number } | { ok: false; error: string }
+
+export function inspectSave(text: string): SaveInspection {
+  try {
+    const parsed = JSON.parse(text)
+    if (parsed?.app && parsed.app !== 'ilta')
+      return { ok: false, error: '일타에서 내보낸 저장 파일이 아니에요.' }
+    const data = parsed?.data ?? parsed
+    if (!isSave(JSON.stringify(data)))
+      return { ok: false, error: '할 일과 완료 기록이 포함된 일타 저장 파일을 선택해 주세요.' }
+    if (typeof data.version === 'number' && data.version > SAVE_VERSION)
+      return { ok: false, error: '더 새로운 버전의 저장 파일이에요. 앱을 업데이트한 뒤 불러와 주세요.' }
+    const state = migrate(sanitize(data))
+    const originalCount = [data.pool, data.active, data.done, data.archived].reduce(
+      (sum, tasks) => sum + (Array.isArray(tasks) ? tasks.length : 0),
+      0,
+    )
+    const count = state.pool.length + state.active.length + state.done.length + (state.archived?.length ?? 0)
+    return { ok: true, state, raw: JSON.stringify(state), omittedTasks: originalCount - count }
+  } catch {
+    return { ok: false, error: '파일을 읽을 수 없어요. JSON 저장 파일인지 확인해 주세요.' }
+  }
+}
+
+export type RestoreResult = { ok: true } | { ok: false; error: string }
+
 export interface CompleteResult {
   xp: number
   gold: number
@@ -284,6 +311,7 @@ export function useGame() {
   const [storageWarning, setStorageWarning] = useState(loaded.warning)
   const [saveAttempt, setSaveAttempt] = useState(0)
   const storageBlocked = useRef(!!loaded.warning)
+  const storageConflict = useRef(false)
   const lastSaved = useRef<string | null>(loaded.raw)
   // 해당 행동의 전후 차이만 되돌리기 위해 스냅샷을 함께 보관한다.
   const undoRef = useRef<UndoChange | null>(null)
@@ -307,12 +335,13 @@ export function useGame() {
       const previous = localStorage.getItem(KEY)
       if (previous !== lastSaved.current) {
         storageBlocked.current = true
+        storageConflict.current = true
         setStorageWarning('다른 창의 저장 내용이 변경됐어요. 현재 기록을 내보낸 뒤 최신 내용을 열어 주세요.')
         return
       }
       const raw = JSON.stringify(state)
       if (previous !== raw) {
-        if (isSave(previous)) localStorage.setItem(BACKUP_KEY, previous!)
+        preservePrevious(previous)
         localStorage.setItem(KEY, raw)
       }
       lastSaved.current = raw
@@ -326,6 +355,7 @@ export function useGame() {
     const onStorage = (event: StorageEvent) => {
       if ((event.key === KEY || event.key === null) && event.newValue !== lastSaved.current) {
         storageBlocked.current = true
+        storageConflict.current = true
         setStorageWarning('다른 창의 저장 내용이 변경됐어요. 현재 기록을 내보낸 뒤 최신 내용을 열어 주세요.')
       }
     }
@@ -338,21 +368,6 @@ export function useGame() {
     setSaveAttempt((n) => n + 1)
     return true
   }, [])
-
-  const restoreBackup = useCallback(() => {
-    try {
-      const raw = localStorage.getItem(BACKUP_KEY)
-      if (!isSave(raw)) return false
-      const next = migrate(sanitize(JSON.parse(raw!)))
-      storageBlocked.current = false
-      lastSaved.current = localStorage.getItem(KEY)
-      undoRef.current = null
-      apply(() => next)
-      return true
-    } catch {
-      return false
-    }
-  }, [apply])
 
   // 휴식일 부적 자동 소모: 앱 켤 때 + 하루 넘어갈 때 어제 빈 날이 있으면 지켜준다
   const checkFreezes = useCallback((): number => {
@@ -1044,26 +1059,33 @@ export function useGame() {
   )
 
   const importSave = useCallback(
-    (text: string): boolean => {
+    (text: string, expectedStored: string | null): RestoreResult => {
+      const inspected = inspectSave(text)
+      if (!inspected.ok) return inspected
       try {
-        const parsed = JSON.parse(text)
-        const data = parsed?.data ?? parsed
-        // 세이브는 세 태스크 배열이 항상 함께 있다 — 하나만 있어도 통과시키면
-        // 나머지가 빈 배열로 정제되면서 기존 데이터가 지워진다
-        const looksLikeSave =
-          data &&
-          typeof data === 'object' &&
-          Array.isArray(data.pool) &&
-          Array.isArray(data.active) &&
-          Array.isArray(data.done)
-        if (!looksLikeSave) return false
-        lastSaved.current = localStorage.getItem(KEY)
+        const previous = localStorage.getItem(KEY)
+        if (previous !== expectedStored)
+          return { ok: false, error: '미리보기 이후 기록이 변경됐어요. 백업을 다시 선택해 주세요.' }
+        if (storageConflict.current)
+          return {
+            ok: false,
+            error: '다른 창의 최신 기록이 있어요. 현재 기록을 내보낸 뒤 새로고침하고 복구해 주세요.',
+          }
+        if (!checkpoint(JSON.stringify(stateRef.current), 'before-restore'))
+          return {
+            ok: false,
+            error:
+              '복구 전 기록을 백업할 공간이 부족하거나 저장소에 접근할 수 없어요. 현재 기록은 유지됩니다.',
+          }
+        localStorage.setItem(KEY, inspected.raw)
+        lastSaved.current = inspected.raw
         storageBlocked.current = false
+        setStorageWarning('')
         undoRef.current = null
-        apply(() => migrate(sanitize(data)))
-        return true
+        apply(() => inspected.state)
+        return { ok: true }
       } catch {
-        return false
+        return { ok: false, error: '복구 내용을 저장하지 못했어요. 현재 기록은 유지됩니다.' }
       }
     },
     [apply],
@@ -1073,7 +1095,6 @@ export function useGame() {
     state,
     storageWarning,
     retrySave,
-    restoreBackup,
     bulkOrganize,
     planReturn,
     setPreferences,

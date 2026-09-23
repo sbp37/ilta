@@ -195,7 +195,8 @@ textarea:focus-visible {
 }
 .filter-row select,
 .bulk-controls select,
-.return-item select {
+.return-item select,
+.journal-filters select {
   appearance: none;
   border-radius: 0;
   padding-right: 26px;
@@ -235,8 +236,83 @@ textarea:focus-visible {
   border-block: 1px solid var(--gold);
 }
 .restore-confirm .row-actions {
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 10px;
+}
+.restore-confirm .row-actions > :first-child {
+  grid-column: 1 / -1;
+}
+.save-settings {
+  min-width: 0;
+}
+.save-settings .btn,
+.journal-records .btn {
+  min-height: 44px;
+}
+.restore-confirm h3 {
+  font-size: 16px;
+  margin-block: 0 12px;
+}
+.save-source,
+.save-error {
+  overflow-wrap: anywhere;
+}
+.save-error {
+  color: var(--gold);
+}
+.save-comparison table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.save-comparison th,
+.save-comparison td {
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--dim);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+.save-comparison th:first-child {
+  text-align: left;
+  width: 24%;
+}
+.save-omissions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 10px;
+}
+.save-omissions input {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+}
+.save-history {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.save-history li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-block: 14px;
+  border-bottom: 1px solid var(--dim);
+}
+.save-snapshot-info {
+  display: grid;
+  flex: 1 1 180px;
+  gap: 5px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.save-snapshot-info time {
+  font-size: 12px;
 }
 .review-fields {
   width: 100%;
@@ -273,6 +349,65 @@ textarea:focus-visible {
 .journal-records p {
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+.journal-filters {
+  display: grid;
+  gap: 10px;
+}
+.journal-filter-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.journal-filter-row label {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  font-size: 13px;
+}
+.journal-filters input,
+.journal-filters select {
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--dim);
+  font: inherit;
+  font-size: 14px;
+  padding: 8px;
+}
+.journal-filters select {
+  padding-right: 26px;
+}
+.journal-result-summary {
+  padding-block: 14px;
+  color: var(--dim);
+  font-size: 13px;
+}
+.journal-record-day {
+  margin-block: 12px 24px;
+}
+.journal-record-day .journal-day-header {
+  border-bottom: 1px solid var(--dim);
+  padding-bottom: 10px;
+}
+.journal-record {
+  padding-block: 12px;
+  border-top: 0;
+  border-bottom: 1px solid var(--panel2);
+  margin: 0;
+}
+.journal-record .journal-task-title {
+  flex: 1 1 140px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.journal-record .journal-xp {
+  flex-shrink: 0;
+}
+.journal-more {
+  width: 100%;
 }
 .focus-entry {
   display: flex;
@@ -770,8 +905,7 @@ body {
 
 .quest-card {
   background: var(--panel);
-  border: 3px solid var(--ink);
-  border-left-width: 6px;
+  border: 2px solid var(--ink);
   padding: 10px;
   animation: pop-in 0.18s steps(3);
 }
@@ -813,11 +947,12 @@ body {
 /* ---------- 광폭화 / 대가 / 도망 ---------- */
 
 .quest-enraged {
-  animation: enrage-pulse 1.2s steps(3) infinite;
+  animation: pop-in 0.18s steps(3);
 }
 
 .pool-enraged {
-  border-color: var(--red);
+  border-color: var(--ink);
+  border-left: 2px solid #9b4552;
 }
 
 .enraged-tag {
@@ -1060,7 +1195,7 @@ body {
   width: 100%;
   max-width: 400px;
   padding: 16px;
-  animation: pop-in 0.15s steps(3);
+  animation: modal-in 0.15s steps(3);
 }
 
 .npc-row {
@@ -1643,6 +1778,15 @@ body {
   }
 }
 
+@keyframes modal-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes pop-in {
   from {
     transform: scale(0.85);
@@ -1957,7 +2101,8 @@ body {
 /* ---------- 랜덤 인카운터 ---------- */
 
 .encounter-modal {
-  border-color: var(--red);
+  border-color: var(--ink);
+  border-top: 2px solid #9b4552;
   text-align: center;
 }
 
@@ -2198,7 +2343,8 @@ body[data-theme='dungeon'] {
   gap: 12px;
   padding: 10px 12px;
   margin-bottom: 10px;
-  border-color: var(--red);
+  border-color: var(--ink);
+  border-left: 2px solid #9b4552;
 }
 
 .raid-body {
@@ -2723,7 +2869,7 @@ body[data-theme='sakura'] {
   font-size: 10px;
 }
 .chapter-week.week-final.week-now {
-  border-color: var(--red);
+  border-color: var(--ink);
   color: var(--red);
 }
 .chapter-hint,
@@ -2731,7 +2877,7 @@ body[data-theme='sakura'] {
   font-size: 11px;
 }
 .raid-final {
-  border-color: var(--red);
+  border-color: var(--ink);
 }
 
 /* 업적 */
@@ -2792,9 +2938,10 @@ body[data-theme='sakura'] {
   color: var(--text);
 }
 
-/* 챕터 보스 주간은 금색 테두리로 구분 (평소 주간 보스는 빨강) */
+/* 보스 상태는 박스 전체 대신 얇은 왼쪽 선으로만 구분한다. */
 .raid-panel.raid-final {
-  border-color: var(--gold);
+  border-color: var(--ink);
+  border-left-color: var(--gold);
 }
 .raid-final .raid-label {
   color: var(--gold);

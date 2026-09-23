@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Pixel } from '../Pixel'
 import { sfx } from '../sound'
 import { shareCard } from '../shareCard'
+import { JournalRecords } from './JournalRecords'
 import {
   ACHIEVEMENTS,
   ALL_MONSTERS,
@@ -14,7 +15,6 @@ import {
   GameState,
   MONSTER_NAMES,
   chapterOf,
-  lootById,
   monsterOf,
   streakDays,
   weekCounts,
@@ -26,11 +26,6 @@ function dayKey(ts: number) {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
 }
 
-function reviewDate(key: string): Date {
-  const [year, month, day] = key.split('-').map(Number)
-  return new Date(year, month, day)
-}
-
 export function Journal({ state, onToast }: { state: GameState; onToast: (msg: string) => void }) {
   const [view, setView] = useState<'records' | 'stats' | 'collection'>('records')
   const days = new Map<string, DoneQuest[]>()
@@ -38,7 +33,6 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
     const k = dayKey(d.completedAt)
     days.set(k, [...(days.get(k) ?? []), d])
   }
-  const dayList = [...days.entries()].reverse()
 
   const bossKills = state.done.filter((d) => d.difficulty === 'boss').length
   const streak = streakDays(state.done, Date.now(), state.freezeUsed)
@@ -104,64 +98,7 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
           </button>
         ))}
       </nav>
-      {view === 'records' && (
-        <section className="journal-records">
-          {Object.entries(state.reviews ?? {})
-            .sort(([a], [b]) => reviewDate(b).getTime() - reviewDate(a).getTime())
-            .map(([day, r]) => (
-              <div className="journal-day pixel-panel" key={day}>
-                <div className="field-label">{reviewDate(day).toLocaleDateString('ko-KR')} · 하루 회고</div>
-                {r.win && <p>{r.win}</p>}
-                {r.obstacle && <p className="dim">막혔던 점 · {r.obstacle}</p>}
-                {r.next && <p>다음 행동 · {r.next}</p>}
-              </div>
-            ))}
-          {(state.focusSessions ?? [])
-            .slice(-5)
-            .reverse()
-            .map((f) => (
-              <div className="focus-entry" key={f.id}>
-                <span>{f.title}</span>
-                <span>{Math.round(f.seconds / 60)}분 집중</span>
-              </div>
-            ))}
-          <div className="field-label">모험 일지</div>
-          {dayList.length === 0 && (
-            <div className="empty-scene">
-              <Pixel name="egg" size={4} className="bob" />
-              <div className="dim">아직 쓰인 이야기가 없어요. 첫 퀘스트를 완료해보세요!</div>
-            </div>
-          )}
-          {dayList.map(([k, quests], i) => {
-            const totalXp = quests.reduce((s, q) => s + q.xp, 0)
-            return (
-              <div key={k} className="journal-day pixel-panel">
-                <div className="journal-day-header">
-                  제 {dayList.length - i} 일 <span className="dim">{k}</span>
-                  <span className="journal-xp">+{totalXp} XP</span>
-                </div>
-                {quests.map((q) => {
-                  const loot = lootById(q.lootId)
-                  return (
-                    <div key={q.id} className="journal-entry">
-                      <div className="journal-entry-line">
-                        <Pixel name={monsterOf(q)} size={2} />
-                        용사는 「{q.title}」 몬스터를 처치했다!
-                        <span className="journal-xp"> +{q.xp}XP</span>
-                      </div>
-                      {loot && (
-                        <div className="journal-loot">
-                          <Pixel name={loot.sprite} size={2} /> 전리품 「{loot.name}」 획득!
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })}
-        </section>
-      )}
+      {view === 'records' && <JournalRecords state={state} />}
       {view === 'stats' && (
         <section>
           <div className="pixel-panel stats-row">

@@ -78,7 +78,7 @@ export function QuestCard({
   return (
     <div
       className={`quest-card ${mad ? 'quest-enraged' : ''} ${dying ? 'quest-dying' : ''}`}
-      style={{ borderColor: mad ? '#ff4d5e' : diff.color }}
+      style={{ borderLeftColor: mad || quest.difficulty === 'boss' ? '#9b4552' : diff.color }}
     >
       {dying && (
         <div className="kill-fx">

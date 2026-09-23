@@ -53,7 +53,6 @@ export default function App() {
     state,
     storageWarning,
     retrySave,
-    restoreBackup,
     setPreferences,
     bulkOrganize,
     planReturn,
@@ -826,11 +825,14 @@ export default function App() {
         <SettingsModal
           state={state}
           onExport={exportSave}
-          onImport={importSave}
+          onImport={(text, expectedStored) => {
+            const result = importSave(text, expectedStored)
+            if (result.ok) setTimer(null)
+            return result
+          }}
           onTheme={setTheme}
           onNotif={setNotif}
           onPreferences={setPreferences}
-          onRestore={restoreBackup}
           onToast={showToast}
           onClose={() => setSettingsOpen(false)}
         />
