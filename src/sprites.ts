@@ -1,3 +1,5 @@
+import { VILLAGE_SPRITES } from './villageSprites'
+
 export interface Sprite {
   palette: Record<string, string>
   rows: string[]
@@ -11,6 +13,7 @@ const S = '#b8c0d8'
 const F = '#f2c49b'
 
 export const SPRITES: Record<string, Sprite> = {
+  ...VILLAGE_SPRITES,
   // 잡몹 — 슬라임
   slime: {
     palette: { K, G: '#43d675', g: '#2aa852', B: K },

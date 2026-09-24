@@ -31,7 +31,8 @@ import { Header } from './components/Header'
 import { QuestBoard } from './components/QuestBoard'
 import { DrawModal } from './components/DrawModal'
 import { Pool } from './components/Pool'
-import { Journal } from './components/Journal'
+import { Journal, JournalView } from './components/Journal'
+import { villageCompletion } from './village'
 import { Shop } from './components/Shop'
 import { TimerOverlay } from './components/TimerOverlay'
 import { EditModal } from './components/EditModal'
@@ -135,6 +136,7 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
   const [tab, setTab] = useState<Tab>('quest')
+  const [journalView, setJournalView] = useState<JournalView>('records')
   const [drawing, setDrawing] = useState(false)
   // 저장된 타이머가 있으면 그대로 복원 (시작 시각 기준이라 닫았다 열어도 정확)
   const [timer, setTimer] = useState<TimerState | null>(loadTimer)
@@ -265,6 +267,8 @@ export default function App() {
       }
       const result = complete(id)
       if (!result) return
+      const completedQuest = state.active.find((q) => q.id === id)
+      const villageText = completedQuest ? ` · ${villageCompletion(state.done, completedQuest)}` : ''
       setTimer((current) => (current?.questId === id ? null : current))
       const critText = result.crit ? '크리티컬! ' : ''
       const goalBonus = result.goalBonus ? ` · 일일 목표 달성 +${result.goalBonus}G!` : ''
@@ -297,7 +301,7 @@ export default function App() {
           .map((u) => ` · 🔓 ${u}`)
           .join('')
         showToast(
-          `${strikeText}LEVEL UP! Lv.${result.newLevel} (+${result.levelGold}G) ${boostText}${critText}+${result.xp}XP +${result.gold}G${goalBonus}${raidText}${potionText}${unlockText}`,
+          `${strikeText}LEVEL UP! Lv.${result.newLevel} (+${result.levelGold}G) ${boostText}${critText}+${result.xp}XP +${result.gold}G${goalBonus}${raidText}${potionText}${unlockText}${villageText}`,
           actions,
           unlockText ? 8000 : 5000,
         )
@@ -306,7 +310,7 @@ export default function App() {
         showToast(
           `${strikeText}${boostText}${critText}처치 완료! +${result.xp}XP +${result.gold}G${
             result.combo > 1 ? ` · x${result.combo} 콤보!` : ''
-          }${result.lootName ? ` · 「${result.lootName}」` : ''}${goalBonus}${raidText}${potionText}`,
+          }${result.lootName ? ` · 「${result.lootName}」` : ''}${goalBonus}${raidText}${potionText}${villageText}`,
           actions,
           5000,
         )
@@ -319,7 +323,17 @@ export default function App() {
         )
       }
     },
-    [complete, showToast, undoAction, state.pool.length, state.active.length, state.xp, timer, finishFocus],
+    [
+      complete,
+      showToast,
+      undoAction,
+      state.pool.length,
+      state.active,
+      state.done,
+      state.xp,
+      timer,
+      finishFocus,
+    ],
   )
 
   const startTimer = useCallback(
@@ -742,6 +756,10 @@ export default function App() {
             equipped={equippedIds}
             heroVariant={heroSprite(state.heroClass)}
             raid={state.raid}
+            onVisitVillage={() => {
+              setJournalView('village')
+              goTab('journal')
+            }}
             onReview={() => {
               sfx.click()
               setReviewOpen(true)
@@ -769,7 +787,9 @@ export default function App() {
             onToast={showToast}
           />
         )}
-        {tab === 'journal' && <Journal state={state} onToast={showToast} />}
+        {tab === 'journal' && (
+          <Journal state={state} onToast={showToast} view={journalView} onViewChange={setJournalView} />
+        )}
       </main>
       {returnOpen && (
         <ReturnModal

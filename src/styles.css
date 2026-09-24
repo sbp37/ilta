@@ -1,16 +1,20 @@
 :root {
-  --bg: #19191f;
-  --panel: #252630;
-  --panel2: #31333f;
-  --ink: #121318;
-  --text: #f1f0e9;
-  --dim: #acadb9;
-  --line: #494b59;
-  --green: #8fc89d;
-  --gold: #e3c265;
-  --red: #d99a9a;
-  --purple: #b7a4ce;
+  --bg: #171821;
+  --panel: #25283a;
+  --panel2: #353a52;
+  --ink: #101118;
+  --text: #f7f5eb;
+  --dim: #bdc2d5;
+  --line: #59617c;
+  --green: #72d691;
+  --gold: #f1c94f;
+  --red: #ed858d;
+  --purple: #c4a2e8;
   --bevel: inset 1px 1px 0 #ffffff14, inset -1px -1px 0 #00000045;
+  --button-raised:
+    inset 2px 2px 0 #ffffff38, inset -2px -2px 0 #00000070, inset 4px 4px 0 #ffffff0c,
+    inset -4px -4px 0 #00000020, 0 3px 0 #0d0e12;
+  --button-pressed: inset 2px 2px 0 #00000070, inset -2px -2px 0 #ffffff24;
 }
 
 /* Daily work controls keep the existing pixel palette and assets. */
@@ -763,13 +767,13 @@ body {
 }
 
 .btn-go {
-  background: #375f46;
-  border-color: #749a7b;
+  background: #286844;
+  border-color: #6bc786;
   color: #f0fff3;
 }
 
 .btn-sub {
-  background: #35384d;
+  background: #3c4264;
 }
 
 .btn-ghost {
@@ -778,8 +782,8 @@ body {
 }
 
 .btn-gold {
-  background: #423e30;
-  color: #ead698;
+  background: #56471f;
+  color: #ffe085;
 }
 
 .btn-big {
@@ -3107,12 +3111,12 @@ body[data-theme='sakura'] {
   min-height: 52px;
 }
 .empty-scene + .empty-slot {
-  border-color: #749a7b;
-  background: #375f46;
+  border-color: #6bc786;
+  background: #286844;
   color: #f0fff3;
 }
 .hint {
-  color: #a0a7c4;
+  color: #b5bde2;
 }
 .quest-meta {
   font-size: 13px;
@@ -3463,11 +3467,11 @@ body[data-theme='sakura'] {
   padding: 10px;
 }
 .draw-btn {
-  background: #423e30;
+  background: #56471f;
   color: var(--gold);
 }
 .review-btn {
-  background: #35384d;
+  background: #3c4264;
 }
 .entry-options .chip-row {
   margin-block: 8px;
@@ -3500,8 +3504,8 @@ body[data-theme='sakura'] {
 .view-tabs .selected,
 .organize-toolbar .view-tabs [aria-selected='true'] {
   color: var(--gold);
-  background: #37373d;
-  border-color: #a39160;
+  background: #454151;
+  border-color: #c8aa54;
   box-shadow:
     inset 0 -2px 0 var(--gold),
     var(--bevel);
@@ -3643,6 +3647,301 @@ body[data-theme='sakura'] {
 }
 .toast {
   bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Hard pixel bevels belong to controls, not the surrounding cards. */
+:is(
+  button.btn,
+  button.icon-btn,
+  button.mute-btn,
+  button.hero-btn,
+  button.pet-btn,
+  button.empty-slot,
+  button.edit-link,
+  button.pool-act,
+  .daily-goal .pool-act,
+  button.chip,
+  button.tab,
+  .view-tabs button,
+  button.class-card,
+  .quiet-details > summary,
+  .raid-details > summary
+) {
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--button-depth, var(--button-raised));
+  background-image: var(--button-texture, repeating-conic-gradient(#ffffff06 0% 25%, transparent 0% 50%));
+  background-size: 4px 4px;
+  text-shadow: var(--button-text-shadow, 1px 1px 0 #00000070);
+  transition: none;
+  touch-action: manipulation;
+}
+
+button.empty-slot {
+  background-color: var(--panel2);
+}
+.empty-scene + button.empty-slot {
+  background-color: #286844;
+  color: #f0fff3;
+}
+button.chip {
+  background-color: var(--panel2);
+  min-height: 40px;
+}
+button.tab-on,
+.view-tabs button.selected,
+.organize-toolbar .view-tabs button[aria-selected='true'] {
+  --button-depth: inset 0 2px 0 var(--gold), var(--button-pressed);
+  background-color: #45415a;
+  color: var(--gold);
+}
+button.chip-on,
+button.chip-diff.chip-on,
+button.class-on,
+button.pool-act.act-on {
+  --button-depth: inset 0 -2px 0 var(--gold), var(--button-pressed);
+  background-color: #41465f;
+  color: var(--gold);
+}
+.quiet-details > summary::after,
+.raid-details > summary::after {
+  border: 0;
+  box-shadow: none;
+  font-size: 16px;
+}
+.quiet-details[open] > summary,
+.raid-details[open] > summary {
+  box-shadow: var(--button-pressed);
+}
+
+:is(
+    button.btn,
+    button.icon-btn,
+    button.mute-btn,
+    button.hero-btn,
+    button.pet-btn,
+    button.empty-slot,
+    button.edit-link,
+    button.pool-act,
+    .daily-goal .pool-act,
+    button.chip,
+    button.tab,
+    .view-tabs button,
+    button.class-card,
+    .quiet-details > summary,
+    .raid-details > summary
+  ):active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: var(--button-pressed);
+  filter: none;
+}
+button:disabled {
+  --button-depth: var(--button-pressed);
+  --button-texture: none;
+  --button-text-shadow: none;
+  opacity: 0.45;
+}
+button:disabled:hover {
+  filter: none;
+}
+
+.resident-request {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+.resident-request > .pixel-sprite,
+.resident-visit > .pixel-sprite {
+  flex-shrink: 0;
+}
+.resident-request > div:last-child {
+  min-width: 0;
+}
+.resident-name {
+  color: var(--text);
+}
+.resident-request p {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+}
+.village-link {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--dim);
+}
+.village {
+  min-width: 0;
+}
+.village-heading,
+.village-progress > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.village-heading {
+  margin: 8px 0 16px;
+}
+.village h3,
+.village h4 {
+  font-weight: normal;
+  margin: 0;
+}
+.village h3 {
+  font-size: 17px;
+}
+.village h4 {
+  font-size: 14px;
+}
+.village-heading .dim,
+.village-progress,
+.village-memories {
+  font-size: 12px;
+}
+.village-scene {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 4px;
+  padding: 14px 8px 0;
+  background: #214b3b;
+  border-block: 2px solid #6b8c61;
+}
+.village-road {
+  position: absolute;
+  z-index: -1;
+  top: 105px;
+  left: 0;
+  right: 0;
+  height: 16px;
+  background: #817b55;
+  border-block: 3px solid #647653;
+}
+.village-place {
+  appearance: none;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  height: 108px;
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #f1f1d9;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.village-place:hover,
+.village-place:focus-visible {
+  background: #ffffff12;
+}
+.village-place[aria-pressed='true'] {
+  border-bottom-color: var(--gold);
+  color: var(--gold);
+}
+.village-building {
+  width: 76px;
+  height: 62px;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.village-walker {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+.village-flowers {
+  position: absolute;
+  left: 7px;
+  bottom: 9px;
+}
+.village-place-name {
+  font-size: 11px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.village-square {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 0;
+  color: #f1f1d9;
+  font-size: 12px;
+  border-top: 2px solid #6b8c61;
+}
+.village-pennant {
+  width: 12px;
+  height: 22px;
+  border-left: 2px solid #d1c8ab;
+  box-shadow: inset 0 9px 0 #f1c94f;
+}
+.resident-visit {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 0;
+  min-height: 108px;
+}
+.resident-visit p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--dim);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.village-progress progress {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 8px;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  background: var(--ink);
+  color: var(--green);
+}
+.village-progress progress::-webkit-progress-bar {
+  background: var(--ink);
+}
+.village-progress progress::-webkit-progress-value {
+  background: var(--green);
+}
+.village-progress progress::-moz-progress-bar {
+  background: var(--green);
+}
+.village-progress p,
+.village-memories p {
+  line-height: 1.5;
+}
+.village-memories {
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+.village-memories ul {
+  padding-left: 18px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
 }
 
 @media (min-width: 1000px) {

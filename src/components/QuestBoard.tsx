@@ -37,6 +37,7 @@ interface Props {
   heroVariant?: string
   raid?: RaidState
   onReview: () => void
+  onVisitVillage: () => void
 }
 
 function EmptySlot({
@@ -148,6 +149,7 @@ export function QuestBoard({
   heroVariant,
   raid,
   onReview,
+  onVisitVillage,
 }: Props) {
   const emptySlots = Math.max(0, maxActive - active.length)
   const goalDone = doneToday >= goal
@@ -298,6 +300,9 @@ export function QuestBoard({
 
       <button className="btn btn-ghost review-btn" onClick={onReview}>
         🌙 하루 마무리 — 오늘의 전과 보기
+      </button>
+      <button className="btn btn-ghost village-link" onClick={onVisitVillage}>
+        <Pixel name="village_house" size={1} /> 마을 산책
       </button>
     </div>
   )

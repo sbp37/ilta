@@ -1,8 +1,8 @@
-import { useState } from 'react'
 import { Pixel } from '../Pixel'
 import { sfx } from '../sound'
 import { shareCard } from '../shareCard'
 import { JournalRecords } from './JournalRecords'
+import { Village } from './Village'
 import {
   ACHIEVEMENTS,
   ALL_MONSTERS,
@@ -26,8 +26,19 @@ function dayKey(ts: number) {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
 }
 
-export function Journal({ state, onToast }: { state: GameState; onToast: (msg: string) => void }) {
-  const [view, setView] = useState<'records' | 'stats' | 'collection'>('records')
+export type JournalView = 'records' | 'stats' | 'collection' | 'village'
+
+export function Journal({
+  state,
+  onToast,
+  view,
+  onViewChange: setView,
+}: {
+  state: GameState
+  onToast: (msg: string) => void
+  view: JournalView
+  onViewChange: (view: JournalView) => void
+}) {
   const days = new Map<string, DoneQuest[]>()
   for (const d of [...state.done].sort((a, b) => a.completedAt - b.completedAt)) {
     const k = dayKey(d.completedAt)
@@ -89,6 +100,7 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
             ['records', '완료·회고'],
             ['stats', '통계'],
             ['collection', '수집'],
+            ['village', '마을'],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -102,6 +114,7 @@ export function Journal({ state, onToast }: { state: GameState; onToast: (msg: s
         ))}
       </nav>
       {view === 'records' && <JournalRecords state={state} />}
+      {view === 'village' && <Village state={state} />}
       {view === 'stats' && (
         <section>
           <div className="pixel-panel stats-row">

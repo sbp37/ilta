@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { residentFor } from '../village'
 import { Pixel } from '../Pixel'
 import { sfx } from '../sound'
 import { BulkAction, tomorrowDate } from '../organization'
@@ -428,6 +429,7 @@ export function Pool({
                     {t.title}
                   </div>
                   <div className="quest-meta">
+                    <span>{residentFor(t).name}의 의뢰</span>
                     {t.category && <span>{CATEGORIES[t.category].name}</span>}
                     <span>{diff.label}</span>
                     <span>{t.minutes}분</span>

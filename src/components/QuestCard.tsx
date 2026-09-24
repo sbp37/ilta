@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Pixel } from '../Pixel'
 import { sfx } from '../sound'
+import { requestLine, residentFor } from '../village'
 import { ActiveQuest, CATEGORIES, DIFF, ENERGY_LABEL, REPEAT_LABEL, Task, dueLabel, monsterOf } from '../game'
 
 interface Props {
@@ -33,6 +34,7 @@ export function QuestCard({
   onEdit,
 }: Props) {
   const diff = DIFF[quest.difficulty]
+  const resident = residentFor(quest)
   const due = quest.due ? dueLabel(quest.due) : null
   const [confirming, setConfirming] = useState(false)
   const [dying, setDying] = useState(false)
@@ -133,6 +135,16 @@ export function QuestCard({
         >
           수정
         </button>
+      </div>
+
+      <div className="resident-request">
+        <Pixel name={`resident_${resident.id}`} size={2} />
+        <div>
+          <span className="resident-name">
+            {resident.role} {resident.name}의 의뢰
+          </span>
+          <p>{requestLine(quest)}</p>
+        </div>
       </div>
 
       {(subs.length > 0 || subsOpen) && (
