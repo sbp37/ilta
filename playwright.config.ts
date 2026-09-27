@@ -6,10 +6,13 @@ export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
   workers: 1,
-  retries: 0,
+  // CI에서만 한 번 재시도하고, 실패 흔적(trace)과 HTML 리포트를 남긴다
+  retries: process.env.CI ? 1 : 0,
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: 'http://localhost:4173/ilta/',
     ...devices['Pixel 5'],
+    trace: 'retain-on-failure',
   },
   webServer: {
     command: 'npm run build && npm run preview -- --port 4173 --strictPort',

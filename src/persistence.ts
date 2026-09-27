@@ -12,9 +12,25 @@ export interface SaveSnapshot {
 const HISTORY_LIMIT = 8
 const HISTORY_CHAR_LIMIT = 1_000_000
 
+// Every save calls checkpoint(), which reads the history (up to 1M chars, each snapshot re-validated).
+// Reuse the parsed list while the stored string is unchanged so ordinary clicks stay cheap.
+let historyCache: { encoded: string; history: SaveSnapshot[] } | null = null
+
 export function readHistory(): SaveSnapshot[] {
   try {
-    const history: unknown = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]')
+    const encoded = localStorage.getItem(HISTORY_KEY) ?? '[]'
+    if (historyCache?.encoded === encoded) return [...historyCache.history]
+    const history = parseHistory(encoded)
+    historyCache = { encoded, history }
+    return [...history]
+  } catch {
+    return []
+  }
+}
+
+function parseHistory(encoded: string): SaveSnapshot[] {
+  try {
+    const history: unknown = JSON.parse(encoded)
     if (!Array.isArray(history)) return []
     return history
       .filter(

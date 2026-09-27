@@ -1,18 +1,32 @@
-import { useState } from 'react'
-import type { GameState } from '../game'
+import { useMemo, useState } from 'react'
+import type { DoneQuest, GameState } from '../game'
 import { Pixel } from '../Pixel'
 import { ResidentId, STAGE_NAMES, VILLAGE_STAGES, residentFor, villageOf } from '../village'
 
 export function Village({ state }: { state: GameState }) {
-  const village = villageOf(state)
-  const [selected, setSelected] = useState<ResidentId>('librarian')
-  const place = village.places.find((p) => p.resident.id === selected)!
+  const { done, raidKills } = state
+  // Every resident match runs a few regexes, so derive once per history change, not per render.
+  const village = useMemo(() => villageOf({ done, raidKills }), [done, raidKills])
+  const latest = useMemo(
+    () =>
+      done.reduce<DoneQuest | undefined>((a, b) => (!a || b.completedAt > a.completedAt ? b : a), undefined),
+    [done],
+  )
+  // Open on the resident the player helped most recently; fall back to the first place.
+  const [selected, setSelected] = useState<ResidentId>(() =>
+    latest ? residentFor(latest).id : village.places[0].resident.id,
+  )
+  const place = village.places.find((p) => p.resident.id === selected) ?? village.places[0]
   const { resident, count, stage } = place
   const next = VILLAGE_STAGES[stage + 1]
-  const recent = [...state.done]
-    .filter((task) => residentFor(task).id === selected)
-    .sort((a, b) => b.completedAt - a.completedAt)
-    .slice(0, 3)
+  const recent = useMemo(
+    () =>
+      done
+        .filter((task) => residentFor(task).id === selected)
+        .sort((a, b) => b.completedAt - a.completedAt)
+        .slice(0, 3),
+    [done, selected],
+  )
 
   return (
     <section className="village" aria-label="우리 마을">
@@ -43,7 +57,7 @@ export function Village({ state }: { state: GameState }) {
             <span className="village-place-name">{r.place}</span>
           </button>
         ))}
-        <div className="village-square" aria-label={`보스 격퇴 기념 ${village.trophies}회`}>
+        <div className="village-square" role="img" aria-label={`보스 격퇴 기념 ${village.trophies}회`}>
           <Pixel name={village.trophies > 0 ? 'crown' : 'campfire'} size={2} />
           <span>{village.trophies > 0 ? `보스 격퇴 기념 ${village.trophies}` : '마을의 작은 모닥불'}</span>
           {village.trophies > 0 && <span className="village-pennant" aria-hidden="true" />}

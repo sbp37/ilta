@@ -36,9 +36,32 @@ jobs:
         with:
           path: dist
 
+  # 실제 브라우저 흐름(저장·복구·오프라인·마을)을 PR마다 확인하고, 실패하면 배포하지 않는다
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: |
+            playwright-report/
+            test-results/
+            output/playwright/
+          retention-days: 7
+
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: build
+    needs: [build, e2e]
     runs-on: ubuntu-latest
     environment:
       name: github-pages

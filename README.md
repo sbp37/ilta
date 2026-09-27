@@ -34,10 +34,17 @@ npm run format  # Prettier 전체 포맷
 npm run build   # 타입체크 + 프로덕션 빌드
 ```
 
+CI(`.github/workflows/deploy.yml`)는 PR과 `main` 푸시마다 lint·포맷·단위 테스트·빌드와 Playwright E2E를 실행하고, 모두 통과해야 배포한다.
+
 ## 구조
 
 - `src/game.ts` — 순수 게임 로직 (레벨·밸런스·분류·반복·챕터·업적 규칙)
-- `src/store.ts` — `useGame()` 상태 훅 (localStorage 저장/마이그레이션 포함)
+- `src/store.ts` — `useGame()` 상태 훅 (모든 상태 전이와 저장 시점, 되돌리기)
+- `src/saveData.ts` — 세이브 검증(`sanitize`)·마이그레이션·불러오기 미리보기
+- `src/persistence.ts` — localStorage 읽기/쓰기, 자동 백업과 복구 이력
+- `src/undo.ts` — 한 행동이 바꾼 부분만 되돌리는 diff
+- `src/organization.ts` / `src/taskEditing.ts` / `src/journal.ts` / `src/timer.ts` — 일괄 정리·복귀 계획, 할 일 편집, 모험일지, 집중 타이머 규칙
+- `src/completionToast.ts` — 처치 결과 토스트 문구
 - `src/village.ts` / `src/villageSprites.ts` — 주민 배정·대사·성장 규칙과 도트 자산
 - `src/components/` — 화면 컴포넌트
 - `public/sw.js` — 서비스 워커 (오프라인 캐시, PWA)

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useGame } from './store'
+import { achievementToast, completionToast } from './completionToast'
 import { Pixel } from './Pixel'
 import { isMuted, sfx, startBgm, stopBgm, toggleMute } from './sound'
 import {
@@ -19,7 +20,6 @@ import {
   sameDay,
   slotsFor,
   todayKey,
-  unlocksAt,
   uid,
 } from './game'
 import { TitleScreen } from './components/TitleScreen'
@@ -32,7 +32,6 @@ import { QuestBoard } from './components/QuestBoard'
 import { DrawModal } from './components/DrawModal'
 import { Pool } from './components/Pool'
 import { Journal, JournalView } from './components/Journal'
-import { villageCompletion } from './village'
 import { Shop } from './components/Shop'
 import { TimerOverlay } from './components/TimerOverlay'
 import { EditModal } from './components/EditModal'
@@ -245,9 +244,7 @@ export default function App() {
     if (earned.length === 0) return
     sfx.levelup()
     setFlash((f) => f + 1)
-    const names = earned.map((a) => `「${a.name}」`).join(' ')
-    const bonus = earned.reduce((sum, a) => sum + a.gold, 0)
-    showToast(`업적 달성! ${names} +${bonus}G`, undefined, 6000)
+    showToast(achievementToast(earned), undefined, 6000)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     started,
@@ -267,29 +264,16 @@ export default function App() {
       }
       const result = complete(id)
       if (!result) return
-      const completedQuest = state.active.find((q) => q.id === id)
-      const villageText = completedQuest ? ` · ${villageCompletion(state.done, completedQuest)}` : ''
       setTimer((current) => (current?.questId === id ? null : current))
-      const critText = result.crit ? '크리티컬! ' : ''
-      const goalBonus = result.goalBonus ? ` · 일일 목표 달성 +${result.goalBonus}G!` : ''
       // 모멘텀: 수집함에 남은 게 있고 슬롯에 자리가 있으면 바로 다음 뽑기 제안 + 잘못 눌렀으면 되돌리기
       const actions: ToastAction[] = [undoAction(id)]
       if (state.pool.length > 0 && state.active.length <= slotsFor(levelOf(state.xp)))
         actions.push({ label: '다음 뽑기 →', fn: () => setDrawing(true) })
-      const boostText = result.boosted ? '포션 효과! ' : ''
-      const potionText = result.potionsConverted ? ' · 빨간 포션 5개 → XP 포션!' : ''
-      // 오늘의 일격 처치 → 대축하 + 보너스
-      const isStrike = result.strikeBonus > 0
-      if (isStrike) {
+      // 연출: 오늘의 일격 → 보스 처치 → 레벨업 순으로 축하한다
+      if (result.strikeBonus > 0) {
         setFlash((f) => f + 1)
         sfx.levelup()
       }
-      const strikeText = isStrike ? `오늘의 일격 성공! +${result.strikeBonus}G ` : ''
-      const raidText = result.raidKilled
-        ? result.chapterCleared
-          ? ` · 챕터 클리어! 칭호 「${result.raidTitle}」 +${result.raidReward}G`
-          : ` · 주간 보스 처치! +${result.raidReward}G`
-        : ''
       if (result.raidKilled) {
         sfx.bossReveal()
         setFlash((f) => f + 1)
@@ -297,43 +281,12 @@ export default function App() {
       if (result.leveledUp) {
         sfx.levelup()
         setFlash((f) => f + 1)
-        const unlockText = unlocksAt(result.newLevel)
-          .map((u) => ` · 🔓 ${u}`)
-          .join('')
-        showToast(
-          `${strikeText}LEVEL UP! Lv.${result.newLevel} (+${result.levelGold}G) ${boostText}${critText}+${result.xp}XP +${result.gold}G${goalBonus}${raidText}${potionText}${unlockText}${villageText}`,
-          actions,
-          unlockText ? 8000 : 5000,
-        )
-      } else {
-        sfx.complete()
-        showToast(
-          `${strikeText}${boostText}${critText}처치 완료! +${result.xp}XP +${result.gold}G${
-            result.combo > 1 ? ` · x${result.combo} 콤보!` : ''
-          }${result.lootName ? ` · 「${result.lootName}」` : ''}${goalBonus}${raidText}${potionText}${villageText}`,
-          actions,
-          5000,
-        )
-      }
-      if (result.achievements.length) {
-        showToast(
-          `업적 달성! ${result.achievements.map((a) => `「${a.name}」`).join(' ')} +${result.achievements.reduce((sum, a) => sum + a.gold, 0)}G`,
-          undefined,
-          6000,
-        )
-      }
+      } else sfx.complete()
+      const toast = completionToast(result)
+      showToast(toast.text, actions, toast.duration)
+      if (result.achievements.length) showToast(achievementToast(result.achievements), undefined, 6000)
     },
-    [
-      complete,
-      showToast,
-      undoAction,
-      state.pool.length,
-      state.active,
-      state.done,
-      state.xp,
-      timer,
-      finishFocus,
-    ],
+    [complete, showToast, undoAction, state.pool.length, state.active.length, state.xp, timer, finishFocus],
   )
 
   const startTimer = useCallback(
@@ -441,7 +394,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started])
 
-  // 하위 잡몹 처치 — 전부 잡으면 본체 자동 처치
+  // 하위 잡몹 처치 — 전부 잡아도 본체는 자동 처치하지 않고 완료를 안내만 한다
   const handleToggleSub = useCallback(
     (id: string, subId: string) => {
       const res = toggleSub(id, subId)
@@ -496,8 +449,9 @@ export default function App() {
       }
     }, 20000)
     return () => clearTimeout(t)
+    // 켜는 순간에도 동작하도록 notif 를 포함. 목록 변화마다 타이머를 다시 걸지는 않는다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [started])
+  }, [started, state.notif])
 
   // PWA 앱 배지 — 설치된 앱 아이콘에 오늘 남은 목표 수를 표시 (서버 없이 되는 리마인드)
   useEffect(() => {
@@ -529,6 +483,8 @@ export default function App() {
   const goTab = (t: Tab) => {
     sfx.click()
     setTab(t)
+    // 모험일지 탭은 언제나 완료·회고부터 연다 (마을 산책은 이 뒤에 보기를 덮어쓴다)
+    if (t === 'journal') setJournalView('records')
   }
 
   const doneToday = state.done.filter((d) => sameDay(d.completedAt, clock)).length
@@ -757,8 +713,8 @@ export default function App() {
             heroVariant={heroSprite(state.heroClass)}
             raid={state.raid}
             onVisitVillage={() => {
-              setJournalView('village')
               goTab('journal')
+              setJournalView('village')
             }}
             onReview={() => {
               sfx.click()
