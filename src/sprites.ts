@@ -13,6 +13,7 @@ const S = '#b8c0d8'
 const F = '#f2c49b'
 
 export const SPRITES: Record<string, Sprite> = {
+  // Village art shares the renderer but must never become a monster (see isMonsterSprite).
   ...VILLAGE_SPRITES,
   // 잡몹 — 슬라임
   slime: {
@@ -618,4 +619,13 @@ export const SPRITES: Record<string, Sprite> = {
       '.K.K.K.K.K..',
     ],
   },
+}
+
+// Saves are external data: only real monster art may be restored as a task or raid boss.
+export function isMonsterSprite(name: unknown): name is string {
+  return (
+    typeof name === 'string' &&
+    !!SPRITES[name] &&
+    !Object.prototype.hasOwnProperty.call(VILLAGE_SPRITES, name)
+  )
 }

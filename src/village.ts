@@ -125,8 +125,10 @@ const CATEGORY_RESIDENT: Record<Exclude<Category, 'etc'>, ResidentId> = {
   health: 'herbalist',
   home: 'innkeeper',
 }
+// Order matters: the first match wins. Generic verbs such as "정리" live in the last rule so
+// "회의록 정리" goes to the smith and "과제 정리" to the librarian instead of the innkeeper.
 const TITLE_RULES: [ResidentId, RegExp][] = [
-  ['innkeeper', /청소|정리|빨래|설거지|세탁|분리수거|장보기|요리|집안|\b(clean|laundry|dishes|tidy)\b/i],
+  ['innkeeper', /청소|빨래|설거지|세탁|분리수거|장보기|요리|집안|\b(clean|laundry|dishes)\b/i],
   ['librarian', /공부|독서|시험|과제|복습|예습|강의|수업|문제집|책\s*읽|\b(study|read|exam|homework)\b/i],
   [
     'herbalist',
@@ -138,9 +140,11 @@ const TITLE_RULES: [ResidentId, RegExp][] = [
   ],
   [
     'smith',
-    /업무|보고서|회의|개발|코딩|코드|배포|출근|기획|메일|이메일|\b(work|report|meeting|code|deploy|email)\b/i,
+    /업무|보고서|회의|개발|코딩|코드|배포|출근|기획|메일|\b(work|report|meeting|code|deploy|email)\b/i,
   ],
+  ['innkeeper', /정리|\btidy\b/i],
 ]
+const COURIER = RESIDENTS.find((r) => r.id === 'courier')!
 
 // Explicit categories win; unspecified/miscellaneous tasks get a local, deterministic match.
 export function residentFor(task: Pick<Task, 'title' | 'category'>): Resident {
@@ -148,7 +152,7 @@ export function residentFor(task: Pick<Task, 'title' | 'category'>): Resident {
     task.category && task.category !== 'etc'
       ? CATEGORY_RESIDENT[task.category]
       : (TITLE_RULES.find(([, pattern]) => pattern.test(task.title))?.[0] ?? 'courier')
-  return RESIDENTS.find((r) => r.id === id) ?? RESIDENTS[5]
+  return RESIDENTS.find((r) => r.id === id) ?? COURIER
 }
 
 export function requestLine(task: Pick<Task, 'id' | 'title' | 'category'>): string {
